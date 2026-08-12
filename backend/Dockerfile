@@ -15,6 +15,7 @@ RUN npm ci
 COPY . .
 
 # Generate Prisma Client & Compile TypeScript
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
 RUN npm run build
 
@@ -33,10 +34,6 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copy static frontend assets (Flutter Web & Admin Panel if present)
-COPY --from=builder /app/../admin ./admin
-COPY --from=builder /app/../lcm_audios_app/build/web ./lcm_audios_app/build/web
 
 EXPOSE 5000
 
