@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LCM Audios — Content Ingestion & Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0D0F17;
+      --surface: #161926;
+      --surface-light: #202436;
+      --border: #2A2E45;
+      --primary: #E63946;
+      --primary-glow: rgba(230, 57, 70, 0.3);
+      --text: #FAFAFA;
+      --text-muted: #9CA3AF;
+      --gold: #F59E0B;
+      --purple: #8B5CF6;
+      --cyan: #06B6D4;
+      --green: #10B981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: rgba(22, 25, 38, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .brand-icon {
+      background: var(--primary);
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .brand span {
+      color: var(--primary);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--surface-light);
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    /* Container */
+    main {
+      max-width: 1200px;
+      width: 100%;
+      margin: 32px auto;
+      padding: 0 24px;
+      flex: 1;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Glass Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Stats Cards Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    /* Categories Grid */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .category-card {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .category-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .category-key {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+
+    /* Form Layout */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input, select, textarea {
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      background: rgba(32, 36, 54, 0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .dropzone:hover {
+      border-color: var(--primary);
+      background: var(--primary-glow);
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
+    .badge-purple { background: rgba(139, 92, 246, 0.2); color: var(--purple); }
+    .badge-red { background: rgba(230, 57, 70, 0.2); color: var(--primary); }
+    .badge-cyan { background: rgba(6, 182, 212, 0.2); color: var(--cyan); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+
+    /* Buttons */
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: var(--surface-light);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: #EF4444;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      padding: 28px;
+    }
+
+    /* Synced Lyrics List */
+    .lyric-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+
+    .lyric-time { width: 100px; }
+    .lyric-text { flex: 1; }
+    audio { width: 100%; margin-top: 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">✝</div>
+      LCM <span>AUDIOS</span> ADMIN
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('analytics')">Analytics 📊</button>
+      <button class="tab-btn" onclick="switchTab('categories')">Intent Categories 🏷️</button>
+      <button class="tab-btn" onclick="switchTab('catalog')">Media Catalog 🎵</button>
+      <button class="tab-btn" onclick="switchTab('ingest')">Ingest Media 🚀</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: Analytics Overview -->
+    <div id="tab-analytics" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Audio Streams</span>
+          <span class="stat-value" id="stat-streams">9,180</span>
+          <span class="stat-sub">↑ 24% this week</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Active Devotees</span>
+          <span class="stat-value" id="stat-users">1,240</span>
+          <span class="stat-sub">↑ 18% new users</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Listening Hours</span>
+          <span class="stat-value" id="stat-hours">854 Hrs</span>
+          <span class="stat-sub">High Engagement</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Sermon Notes Anchored</span>
+          <span class="stat-value" id="stat-notes">321 Notes</span>
+          <span class="stat-sub">Active Study</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Stream Breakdown by Spiritual Intent Category</div>
+        <div id="analytics-categories-bars" style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Top Performing Streams Leaderboard</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Stream Title & Preacher</th>
+              <th>Intent Category</th>
+              <th>Total Plays</th>
+              <th>Engagement Share</th>
+            </tr>
+          </thead>
+          <tbody id="top-tracks-body">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Intent Categories Management -->
+    <div id="tab-categories" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Spiritual Intent Categories Management</span>
+          <button class="btn" onclick="openCategoryModal()">+ Create Category</button>
+        </div>
+        <div class="categories-grid" id="categories-grid">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Media Catalog -->
+    <div id="tab-catalog" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Managed Audio Streams & Sermons</span>
+          <button class="btn" onclick="switchTab('ingest')">+ Ingest Media</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Artwork</th>
+              <th>Title & Artist</th>
+              <th>Intent Category</th>
+              <th>Subgenre</th>
+              <th>Duration</th>
+              <th>Audio Preview</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="catalog-table-body">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: Ingest New Media & Synced Lyrics Editor -->
+    <div id="tab-ingest" class="tab-content">
+      <div class="card">
+        <div class="card-title">1. Track & Sermon Metadata</div>
+        <form id="upload-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Media Title *</label>
+              <input type="text" id="title" placeholder="e.g. Atmosphere of Grace & Glory" required />
+            </div>
+
+            <div class="form-group">
+              <label>Artist / Preacher Name *</label>
+              <input type="text" id="artist" placeholder="e.g. Nathaniel Bassey & LCM Worship" required />
+            </div>
+
+            <div class="form-group">
+              <label>Spiritual Intent Category *</label>
+              <select id="intentCategory" required>
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Subgenre Tag</label>
+              <input type="text" id="subgenre" placeholder="e.g. Afrogospel, Spoken Sermon" value="Deep Worship" />
+            </div>
+
+            <div class="form-group">
+              <label>Media Type</label>
+              <select id="mediaType">
+                <option value="song">Song Track</option>
+                <option value="sermon">Spoken Sermon</option>
+                <option value="podcast">Faith Podcast</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Duration (Seconds)</label>
+              <input type="number" id="duration" placeholder="e.g. 342" value="300" />
+            </div>
+          </div>
+
+          <div style="margin-top: 24px;" class="form-grid">
+            <!-- Audio File Dropzone -->
+            <div class="form-group">
+              <label>Audio File (.mp3, .wav, .flac) *</label>
+              <div class="dropzone" onclick="document.getElementById('audioFileInput').click()">
+                <div style="font-size: 32px;">🎵</div>
+                <strong id="audioFileName">Click to select audio file</strong>
+                <p>Max file size: 100 MB</p>
+                <input type="file" id="audioFileInput" accept="audio/*" style="display:none" onchange="handleAudioSelect(this)" />
+              </div>
+            </div>
+
+            <!-- Artwork Dropzone -->
+            <div class="form-group">
+              <label>Cover Artwork Image (.png, .jpg)</label>
+              <div class="dropzone" onclick="document.getElementById('artworkFileInput').click()">
+                <div style="font-size: 32px;">🖼️</div>
+                <strong id="artworkFileName">Click to select cover image</strong>
+                <p>Recommended: 800x800 square</p>
+                <input type="file" id="artworkFileInput" accept="image/*" style="display:none" onchange="handleArtworkSelect(this)" />
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Synchronized Lyrics & Sermon Notes Capture Engine -->
+      <div class="card">
+        <div class="card-title">
+          <span>2. Synchronized Lyrics & Transcript Timestamp Capture</span>
+          <button class="btn btn-secondary" onclick="addLyricRow()">+ Add Line</button>
+        </div>
+
+        <audio id="audioPreview" controls style="display:none; margin-bottom: 20px;"></audio>
+
+        <div style="margin-bottom: 16px; display: flex; gap: 12px;">
+          <button class="btn btn-secondary" onclick="captureCurrentTime()">⏱️ Capture Current Time for New Line</button>
+        </div>
+
+        <div id="lyrics-container">
+          <!-- Lyric rows added dynamically -->
+        </div>
+
+        <div style="margin-top: 32px;">
+          <button class="btn" style="width: 100%; justify-content: center; padding: 16px;" onclick="publishTrack()">
+            🚀 PUBLISH TO LIVE STREAMING API
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Category Modal -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal-card">
+      <h3 style="margin-bottom: 16px;" id="modalTitle">Create Intent Category</h3>
+      <input type="hidden" id="editCatId" />
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Category Title *</label>
+        <input type="text" id="catTitle" placeholder="e.g. Deliverance & Healing" required />
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Category Key (Slug) *</label>
+        <input type="text" id="catKey" placeholder="e.g. deliverance" required />
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Description</label>
+        <input type="text" id="catDesc" placeholder="e.g. Prayers & scripture for freedom" />
+      </div>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label>Accent Color</label>
+        <input type="color" id="catColor" value="#E63946" style="height: 44px; padding: 4px; width: 100%; cursor: pointer;" />
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+        <button class="btn" onclick="saveCategory()">Save Category</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000/api/v1';
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      const tabs = ['analytics', 'categories', 'catalog', 'ingest'];
+      const idx = tabs.indexOf(tabId);
+      if (idx !== -1) {
+        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+      }
+
+      if (tabId === 'analytics') loadAnalytics();
+      if (tabId === 'categories') loadCategories();
+      if (tabId === 'catalog') loadCatalog();
+      if (tabId === 'ingest') populateCategoryDropdown();
+    }
+
+    async function loadAnalytics() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/analytics`);
+        const data = await res.json();
+        const a = data.analytics;
+
+        document.getElementById('stat-streams').innerText = a.totalStreams.toLocaleString();
+        document.getElementById('stat-users').innerText = a.activeListeners.toLocaleString();
+        document.getElementById('stat-hours').innerText = `${a.totalListeningHours} Hrs`;
+        document.getElementById('stat-notes').innerText = `${a.totalNotesTaken} Notes`;
+
+        // Category Distribution Bars
+        const container = document.getElementById('analytics-categories-bars');
+        container.innerHTML = '';
+
+        a.topCategories.forEach(cat => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+              <span>${cat.category}</span>
+              <span>${cat.count} streams (${cat.percentage}%)</span>
+            </div>
+            <div style="background: var(--surface-light); height: 8px; border-radius: 4px; overflow: hidden;">
+              <div style="background: var(--primary); width: ${cat.percentage}%; height: 100%;"></div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+        // Leaderboard
+        const tbody = document.getElementById('top-tracks-body');
+        tbody.innerHTML = '';
+        a.topTracks.forEach((t, i) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${i + 1}</td>
+            <td><strong>${t.title}</strong><br><small style="color: var(--text-muted);">${t.artist}</small></td>
+            <td><span class="badge badge-purple">${t.intentCategory}</span></td>
+            <td><strong>${t.playCount || 100}</strong></td>
+            <td><span style="color: var(--green); font-weight: bold;">Top ${(5 - i) * 10}%</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error('Failed to load analytics', e);
+      }
+    }
+
+    async function loadCategories() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/categories`);
+        const data = await res.json();
+        const grid = document.getElementById('categories-grid');
+        grid.innerHTML = '';
+
+        data.categories.forEach(cat => {
+          const card = document.createElement('div');
+          card.className = 'category-card';
+          card.innerHTML = `
+            <div class="category-header">
+              <div class="category-title">
+                <span class="color-dot" style="background: ${cat.accentColor}; box-shadow: 0 0 8px ${cat.accentColor};"></span>
+                ${cat.title}
+              </div>
+              <span class="category-key">${cat.categoryKey}</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted);">${cat.description || 'Spiritual intent playlist category'}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">${cat.trackCount} Tracks</span>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="editCategory('${cat.id}', '${cat.title}', '${cat.categoryKey}', '${cat.description || ''}', '${cat.accentColor}')">Edit</button>
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteCategory('${cat.id}')">Delete</button>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (e) {
+        console.error('Failed to load categories', e);
+      }
+    }
+
+    function openCategoryModal() {
+      document.getElementById('editCatId').value = '';
+      document.getElementById('modalTitle').innerText = 'Create Intent Category';
+      document.getElementById('catTitle').value = '';
+      document.getElementById('catKey').value = '';
+      document.getElementById('catDesc').value = '';
+      document.getElementById('categoryModal').classList.add('active');
+    }
+
+    function editCategory(id, title, key, desc, color) {
+      document.getElementById('editCatId').value = id;
+      document.getElementById('modalTitle').innerText = 'Edit Intent Category';
+      document.getElementById('catTitle').value = title;
+      document.getElementById('catKey').value = key;
+      document.getElementById('catDesc').value = desc;
+      document.getElementById('catColor').value = color;
+      document.getElementById('categoryModal').classList.add('active');
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('categoryModal').classList.remove('active');
+    }
+
+    async function saveCategory() {
+      const id = document.getElementById('editCatId').value;
+      const title = document.getElementById('catTitle').value;
+      const categoryKey = document.getElementById('catKey').value;
+      const description = document.getElementById('catDesc').value;
+      const accentColor = document.getElementById('catColor').value;
+
+      if (!title || !categoryKey) {
+        alert('Please enter Category Title and Key');
+        return;
+      }
+
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `${API_BASE}/admin/categories/${id}` : `${API_BASE}/admin/categories`;
+
+      try {
+        await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, categoryKey, description, accentColor }),
+        });
+        closeCategoryModal();
+        loadCategories();
+      } catch (e) {
+        alert('Failed to save category');
+      }
+    }
+
+    async function deleteCategory(id) {
+      if (!confirm('Are you sure you want to delete this category?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/categories/${id}`, { method: 'DELETE' });
+        loadCategories();
+      } catch (e) {
+        alert('Failed to delete category');
+      }
+    }
+
+    async function populateCategoryDropdown() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/categories`);
+        const data = await res.json();
+        const select = document.getElementById('intentCategory');
+        select.innerHTML = '';
+        data.categories.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.categoryKey;
+          opt.innerText = `${c.title} (${c.accentColor})`;
+          select.appendChild(opt);
+        });
+      } catch (e) {}
+    }
+
+    async function loadCatalog() {
+      try {
+        const res = await fetch(`${API_BASE}/tracks`);
+        const data = await res.json();
+        const tbody = document.getElementById('catalog-table-body');
+        tbody.innerHTML = '';
+
+        data.tracks.forEach(track => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><img src="${track.albumArtUrl}" width="40" height="40" style="border-radius: 8px; object-fit: cover;" /></td>
+            <td><strong>${track.title}</strong><br><small style="color: var(--text-muted);">${track.artist}</small></td>
+            <td><span class="badge badge-purple">${track.intentCategory}</span></td>
+            <td>${track.subgenre}</td>
+            <td>${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart ? (track.duration % 60).toString().padStart(2, '0') : track.duration % 60}</td>
+            <td><audio src="${track.audioUrl}" controls style="width: 180px; height: 30px;"></audio></td>
+            <td><button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteTrack('${track.id}')">Delete</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error('Failed to load catalog', e);
+      }
+    }
+
+    async function deleteTrack(id) {
+      if (!confirm('Are you sure you want to delete this track?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/tracks/${id}`, { method: 'DELETE' });
+        loadCatalog();
+      } catch (e) {
+        alert('Failed to delete track');
+      }
+    }
+
+    function handleAudioSelect(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('audioFileName').innerText = input.files[0].name;
+        const audioUrl = URL.createObjectURL(input.files[0]);
+        const player = document.getElementById('audioPreview');
+        player.src = audioUrl;
+        player.style.display = 'block';
+      }
+    }
+
+    function handleArtworkSelect(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('artworkFileName').innerText = input.files[0].name;
+      }
+    }
+
+    function addLyricRow(timestamp = 0, text = '') {
+      const container = document.getElementById('lyrics-container');
+      const row = document.createElement('div');
+      row.className = 'lyric-row';
+      row.innerHTML = `
+        <input type="number" step="0.1" class="lyric-time" value="${timestamp}" placeholder="Sec" />
+        <input type="text" class="lyric-text" value="${text}" placeholder="Synchronized lyric text line..." />
+        <button class="btn btn-danger" style="padding: 6px 10px; font-size: 12px;" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function captureCurrentTime() {
+      const player = document.getElementById('audioPreview');
+      const currentTime = player.currentTime ? player.currentTime.toFixed(1) : 0;
+      addLyricRow(currentTime, '');
+    }
+
+    async function publishTrack() {
+      const title = document.getElementById('title').value;
+      const artist = document.getElementById('artist').value;
+      const intentCategory = document.getElementById('intentCategory').value;
+      const subgenre = document.getElementById('subgenre').value;
+      const mediaType = document.getElementById('mediaType').value;
+      const duration = document.getElementById('duration').value;
+
+      const audioFile = document.getElementById('audioFileInput').files[0];
+      const artworkFile = document.getElementById('artworkFileInput').files[0];
+
+      if (!title || !artist) {
+        alert('Please enter Title and Artist');
+        return;
+      }
+
+      let audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      let albumArtUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80';
+
+      if (audioFile || artworkFile) {
+        const formData = new FormData();
+        if (audioFile) formData.append('audioFile', audioFile);
+        if (artworkFile) formData.append('artworkFile', artworkFile);
+
+        try {
+          const uploadRes = await fetch(`${API_BASE}/admin/upload`, {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.audioUrl) audioUrl = uploadData.audioUrl;
+          if (uploadData.albumArtUrl) albumArtUrl = uploadData.albumArtUrl;
+        } catch (e) {}
+      }
+
+      const lyricRows = document.querySelectorAll('.lyric-row');
+      const lyrics = [];
+      lyricRows.forEach(row => {
+        const sec = parseFloat(row.querySelector('.lyric-time').value) || 0;
+        const text = row.querySelector('.lyric-text').value.trim();
+        if (text) {
+          lyrics.push({ timestampSeconds: sec, text });
+        }
+      });
+
+      const payload = {
+        title, artist, intentCategory, subgenre, mediaType,
+        duration: parseInt(duration) || 300,
+        audioUrl, albumArtUrl, lyrics,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/tracks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          alert('🚀 Track published successfully to live streaming API!');
+          switchTab('catalog');
+        }
+      } catch (e) {
+        alert('Failed to connect to API server');
+      }
+    }
+
+    // Initial load
+    loadAnalytics();
+    addLyricRow(0, '[Instrumental Prelude]');
+    addLyricRow(15, 'Glorious God, powerful in battle');
+  </script>
+</body>
+</html>

@@ -26,8 +26,9 @@ ENV PORT=5000
 COPY package*.json ./
 RUN npm install --only=production
 
-# Copy compiled JavaScript from builder stage
+# Copy compiled JavaScript and public static assets
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 
 EXPOSE 5000
 

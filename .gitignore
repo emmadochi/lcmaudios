@@ -4,6 +4,12 @@ dist/
 npm-debug.log
 .env
 
+# Binary APK & Executables
+*.apk
+*.exe
+build/
+lcm_audios_app/build/
+
 # Flutter & Mobile Build Artifacts
 .dart_tool/
 .idea/

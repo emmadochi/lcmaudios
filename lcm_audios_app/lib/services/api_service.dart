@@ -5,8 +5,8 @@ import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
 
 class ApiService {
-  // Replace this URL with your deployed live cloud backend URL (e.g., Railway, Render, Supabase)
-  static const String _liveCloudUrl = 'http://localhost:5000/api/v1';
+  // Live Cloud Production URL deployed on Render.com
+  static const String _liveCloudUrl = 'https://lcmaudios.onrender.com/api/v1';
   static const String _localUrl = 'http://localhost:5000/api/v1';
 
   static String get baseUrl {

@@ -33,10 +33,23 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Serve Admin Dashboard Web App
-const adminWebPath = path.join(__dirname, '../../admin');
-if (fs.existsSync(adminWebPath)) {
-  app.use('/admin', express.static(adminWebPath));
+// Serve Admin Dashboard Web App (Multiple Resolution Paths)
+const adminPaths = [
+  path.join(__dirname, '../public/admin'),
+  path.join(__dirname, './public/admin'),
+  path.join(__dirname, '../../admin'),
+  path.join(process.cwd(), 'public/admin'),
+  path.join(process.cwd(), 'admin'),
+];
+
+let adminServed = false;
+for (const p of adminPaths) {
+  if (fs.existsSync(p)) {
+    console.log(`[LCM AUDIOS BACKEND] Serving Admin Dashboard from: ${p}`);
+    app.use('/admin', express.static(p));
+    adminServed = true;
+    break;
+  }
 }
 
 // Serve Compiled Flutter Web App Static Files (if available)
@@ -62,6 +75,8 @@ if (fs.existsSync(flutterWebBuildPath)) {
         `http://localhost:${PORT}/api/v1/auth/me`,
         `http://localhost:${PORT}/api/v1/notes`,
         `http://localhost:${PORT}/api/v1/admin/upload`,
+        `http://localhost:${PORT}/api/v1/admin/analytics`,
+        `http://localhost:${PORT}/api/v1/admin/categories`,
       ],
     });
   });
