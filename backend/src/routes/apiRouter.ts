@@ -1,0 +1,54 @@
+import { Router } from 'express';
+import { register, login, getMe } from '../controllers/authController';
+import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
+import { getNotes, createNote } from '../controllers/noteController';
+import {
+  uploadMedia,
+  createTrackAdmin,
+  deleteTrackAdmin,
+  getAnalyticsAdmin,
+  getCategoriesAdmin,
+  createCategoryAdmin,
+  updateCategoryAdmin,
+  deleteCategoryAdmin,
+} from '../controllers/adminController';
+import { uploadMediaMiddleware } from '../middleware/upload';
+
+const apiRouter = Router();
+
+// Auth Routes
+apiRouter.post('/auth/register', register);
+apiRouter.post('/auth/login', login);
+apiRouter.get('/auth/me', getMe);
+
+// Tracks & Intent Discovery Routes
+apiRouter.get('/tracks', getTracks);
+apiRouter.get('/tracks/:id', getTrackById);
+apiRouter.get('/tracks/:id/lyrics', getLyrics);
+
+// Sermon Notes Routes
+apiRouter.get('/notes', getNotes);
+apiRouter.post('/notes', createNote);
+
+// Admin Media Upload & Tracks Management Routes
+apiRouter.post(
+  '/admin/upload',
+  uploadMediaMiddleware.fields([
+    { name: 'audioFile', maxCount: 1 },
+    { name: 'artworkFile', maxCount: 1 },
+  ]),
+  uploadMedia
+);
+apiRouter.post('/admin/tracks', createTrackAdmin);
+apiRouter.delete('/admin/tracks/:id', deleteTrackAdmin);
+
+// Admin Analytics Dashboard Routes
+apiRouter.get('/admin/analytics', getAnalyticsAdmin);
+
+// Admin Intent Categories Management Routes
+apiRouter.get('/admin/categories', getCategoriesAdmin);
+apiRouter.post('/admin/categories', createCategoryAdmin);
+apiRouter.put('/admin/categories/:id', updateCategoryAdmin);
+apiRouter.delete('/admin/categories/:id', deleteCategoryAdmin);
+
+export default apiRouter;

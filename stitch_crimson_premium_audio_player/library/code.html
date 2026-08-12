@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(26, 26, 29, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .crimson-glow {
+            box-shadow: 0 0 20px rgba(182, 3, 25, 0.3);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#410003",
+                        "on-background": "#e5e2e1",
+                        "on-tertiary": "#3c2f00",
+                        "tertiary-fixed-dim": "#e9c349",
+                        "on-surface": "#e5e2e1",
+                        "surface-bright": "#3a3939",
+                        "surface": "#141313",
+                        "on-secondary": "#680009",
+                        "tertiary": "#e9c349",
+                        "on-surface-variant": "#c7c6ca",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-tint": "#c8c6c7",
+                        "inverse-on-surface": "#313030",
+                        "inverse-surface": "#e5e2e1",
+                        "secondary-container": "#b60319",
+                        "on-secondary-container": "#ffc2bd",
+                        "on-primary-fixed": "#1c1b1c",
+                        "error": "#ffb4ab",
+                        "outline": "#919094",
+                        "secondary": "#ffb3ad",
+                        "surface-variant": "#353434",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#e5e2e3",
+                        "tertiary-fixed": "#ffe088",
+                        "surface-dim": "#141313",
+                        "tertiary-container": "#150e00",
+                        "secondary-fixed": "#ffdad6",
+                        "surface-container": "#201f1f",
+                        "surface-container-highest": "#353434",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "on-primary": "#313031",
+                        "primary-container": "#0f0f10",
+                        "primary": "#c8c6c7",
+                        "outline-variant": "#46464a",
+                        "surface-container-high": "#2b2a2a",
+                        "on-secondary-fixed-variant": "#930011",
+                        "secondary-fixed-dim": "#ffb3ad",
+                        "on-tertiary-fixed": "#241a00",
+                        "background": "#0F0F10",
+                        "surface-container-low": "#1c1b1b",
+                        "on-primary-container": "#7d7b7c",
+                        "primary-fixed-dim": "#c8c6c7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "margin": "20px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "gutter": "16px",
+                        "md": "16px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "h3": ["Manrope"],
+                        "label-caps": ["Manrope"],
+                        "h2": ["Manrope"],
+                        "h1": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "body-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h3": ["20px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "h2": ["28px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "h1": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md selection:bg-secondary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest border border-white/10">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a stylish person with soft studio lighting and a clean dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaRKSTR6ui5FPNTmSarJb80uIcoHbY9erZEl5-IBZWKk4Ow8fqPipchnRbh3odnSddG1A_xQ7aBlFvNeGJ5I3cv3rneAC8idzhXlWbIOMvowrHKfajEexebpE-HAxrXqyNjNvL6n12w4Plx9xrHr-ueAfHYgNjEXBwf9zZldmAF0e4izOIdjpcj1YbQ9Gq2uOlVZRry8_Xb7q3TfeTRwjbT5h9i3J6xqxlsJzED1raHqqdCCRF4fNf-StpEdp65Z5qdYNnfw8V5X-b"/>
+</div>
+</div>
+<div class="font-manrope font-black tracking-widest text-red-600 uppercase text-xl">VOX LOUNGE</div>
+<div class="text-on-surface-variant hover:text-red-500 transition-colors cursor-pointer active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</div>
+</header>
+<main class="pt-24 pb-32 px-margin max-w-2xl mx-auto">
+<!-- Tab Structure -->
+<div class="flex items-center gap-8 mb-xl overflow-x-auto no-scrollbar">
+<div class="flex flex-col gap-2 group cursor-pointer">
+<span class="font-label-caps text-label-caps text-on-background whitespace-nowrap">Downloads</span>
+<div class="h-0.5 w-full bg-secondary-container crimson-glow"></div>
+</div>
+<div class="flex flex-col gap-2 group cursor-pointer">
+<span class="font-label-caps text-label-caps text-on-surface-variant/60 group-hover:text-on-background transition-colors whitespace-nowrap">Playlists</span>
+<div class="h-0.5 w-full bg-transparent group-hover:bg-white/10 transition-colors"></div>
+</div>
+<div class="flex flex-col gap-2 group cursor-pointer">
+<span class="font-label-caps text-label-caps text-on-surface-variant/60 group-hover:text-on-background transition-colors whitespace-nowrap">Favorites</span>
+<div class="h-0.5 w-full bg-transparent group-hover:bg-white/10 transition-colors"></div>
+</div>
+</div>
+<!-- Bento Featured Area -->
+<section class="grid grid-cols-2 gap-md mb-xl">
+<div class="col-span-2 glass-panel rounded-xl p-lg flex flex-row items-center gap-md relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-r from-secondary-container/10 to-transparent pointer-events-none"></div>
+<div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="High-fidelity audio equipment with glowing vacuum tubes in a dimly lit, professional recording studio environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2YIhxFZdJDXfSRFIEhmmz7msxggmW8jwpY_V_FH-LP-EuEQih3n0ueaJ8__Zflnrkk7ikQKFt6fZNaks0IWwx6Oobc1qtqq8frFyOSr9uHnnovSYqzxVP_GkhPly2kWQTlXXJenqqk-V7AtAMh53NFjvJivql53xLHhiugwC24efV9Mp-_I4f-KDQNZRBSuuQgqgbyydCSJYMnLt3JKRs2fY5kxG-oM2EyQXBXYB_2VEpzjc3Pnmo2qXo3q93OXQy8BSNFB28u-TF"/>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="workspace_premium" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<span class="font-label-caps text-[10px] text-tertiary">HI-RES AUDIO</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-background leading-tight">Last Played: Midnight Sessions</h3>
+<p class="font-body-md text-on-surface-variant/70">8 tracks • Downloaded</p>
+</div>
+</div>
+</section>
+<!-- Organized List View -->
+<div class="space-y-4">
+<div class="flex items-center justify-between mb-md">
+<h2 class="font-h2 text-h2 text-on-background">Saved Songs</h2>
+<span class="material-symbols-outlined text-on-surface-variant/60 cursor-pointer" data-icon="filter_list">filter_list</span>
+</div>
+<!-- List Item 1 (Active/Selected State) -->
+<div class="flex items-center gap-md p-2 -mx-2 rounded-xl bg-white/5 border border-white/5 group transition-all">
+<div class="relative w-14 h-14 rounded-lg overflow-hidden shadow-lg">
+<img class="w-full h-full object-cover" data-alt="Abstract vibrant colors swirling in a dark liquid, evoking deep atmospheric electronic music visuals" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMrTBJDM3e-dSHseVtd6QTQ9cO0VY1vEaslrZXUUvBPIFfzXqhaAhwwqiSmyMzKyvsLOEul1aPswz8pS7m5mtbBc7DTPosbCKCWoFzXe2XxIYosSpkZx5qAeCtdkIa4dpc4-sBA1aQKEnSyRCdo93RQMTnNwVzh-d1EMA9tlrjhx4GZzqknGbePkNfiSzTrHtZV4YG3C6NujPtrf_qHYs9qpGu2xyGvN3XfMoxWGTAOsT-Eh-UZnR4ypX3JNhsSYM33NqnwgdltB9E"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-100">
+<span class="material-symbols-outlined text-secondary-container" data-icon="equalizer" style="font-variation-settings: 'FILL' 1;">equalizer</span>
+</div>
+</div>
+<div class="flex-grow flex flex-col">
+<span class="font-body-lg text-on-background font-semibold flex items-center gap-2">
+                        Ether Realities
+                        <span class="w-1.5 h-1.5 rounded-full bg-secondary-container crimson-glow"></span>
+</span>
+<span class="font-body-md text-on-surface-variant/80">Veles &amp; The Void</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary-container" data-icon="download_done">download_done</span>
+<span class="material-symbols-outlined text-on-surface-variant/40" data-icon="more_vert">more_vert</span>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center gap-md p-2 -mx-2 rounded-xl hover:bg-white/5 transition-all group">
+<div class="w-14 h-14 rounded-lg overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-cover" data-alt="Dramatic silhouette of a musician performing on stage with hazy purple smoke and minimal spotlighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt0v2ATnAiC9sDsho3tWPaWGNaNfRL31YFfEqVA_XLaifFeQCsmp-rpIZ_Jxi3JKRzl61lGz-SngZjiyWUzurhzrPzPc7xR2OO3mSOhb4psn8FGQAROEPbJnsEmwBtAMvgDthbPXr_7KAV_7vCWe26EDnsZaF2H2Pzvppbr-XODhzNK9VEmDyy036O8aMvsTBUPRYnR5Mc4qJraKAqdL1N6arEtUQqdGKLQyyhn--0LyCRokBhcc62equE3-s4YsbWr4u_5EQPo5Au"/>
+</div>
+<div class="flex-grow flex flex-col">
+<span class="font-body-lg text-on-background/80 group-hover:text-on-background transition-colors">Urban Somnium</span>
+<span class="font-body-md text-on-surface-variant/60">District 9 Echoes</span>
+</div>
+<div class="flex items-center gap-sm opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="download_done">download_done</span>
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center gap-md p-2 -mx-2 rounded-xl hover:bg-white/5 transition-all group">
+<div class="w-14 h-14 rounded-lg overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-cover" data-alt="Macro shot of a classic vinyl record spinning, with sharp needle detail and elegant wooden turntable textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHYh1EHi8GQs6JOssjVmYowpeXTJR164v2gBa-Y_AY3ylEDWKV9sLJYvtiK1BTkQjmDKrIVXKwx7dcU0oKI2O7IMgxxrFHrTnSboDm4_8ka5webbPsPFqGZSGmcLxUIAAJo8c8DDFvTbZPZYBaz7HOG4wQCFveS2lubVepQzHlUzjMsNSUnYEJA6GotrkRYJq0wZQZCyXgf7EfGnDMuKIXLTZK8S1EYsVtG9XoRXa_R5iLbixl-EJmFHLZIg1UO5zQQwdeEmeLGvXK"/>
+</div>
+<div class="flex-grow flex flex-col">
+<span class="font-body-lg text-on-background/80 group-hover:text-on-background transition-colors">Glass Cathedral</span>
+<span class="font-body-md text-on-surface-variant/60">The Architect</span>
+</div>
+<div class="flex items-center gap-sm opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="download_done">download_done</span>
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</div>
+</div>
+<!-- List Item 4 -->
+<div class="flex items-center gap-md p-2 -mx-2 rounded-xl hover:bg-white/5 transition-all group">
+<div class="w-14 h-14 rounded-lg overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-cover" data-alt="Minimalist architectural shapes in monochrome with deep shadows and sharp geometric lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLzyy4jiMscJvTgLQ3bn8Fy1nyJkuh1T-18FE-LJh_okEaHpoKfLtkqm5EpcGx-Sp5USpFnGrlzwZxuLOm-F1GnQX6iRmQ9vlsHJ5LLh_Ib-YVnX_dw1hl8bK-vP9n1A-2gvETMbJqbBhC9WSW7pXOaIFu1V7ZEkfc5KdF8YCD2jHmUJMe88E-DyyYXlFzw_6sZxqCpPMdSpvG-L2NVyO5hnovVd_-6HYQP_Q4lqwOOjm74rsraiQTsOnWCqiNYmxM-fBaBsg6L_RD"/>
+</div>
+<div class="flex-grow flex flex-col">
+<span class="font-body-lg text-on-background/80 group-hover:text-on-background transition-colors">Monolith</span>
+<span class="font-body-md text-on-surface-variant/60">Static Bloom</span>
+</div>
+<div class="flex items-center gap-sm opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="download_done">download_done</span>
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</div>
+</div>
+<!-- List Item 5 -->
+<div class="flex items-center gap-md p-2 -mx-2 rounded-xl hover:bg-white/5 transition-all group">
+<div class="w-14 h-14 rounded-lg overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-cover" data-alt="Soft ethereal gradient of deep blue and violet with subtle grain texture like a night sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB6fQyJwpqAMo9AyIUU7uESxE7WBBF-tnhxoiQ9S7ZucTmdXMpq8NSX1GI0okTdT4euURfZXYQ6abaLu6SwaKWjmpph_qYqUy0OIjE1PQ5sBF_lr5auQk-qYzzWDp0MRESSCE9rWAKmVuZX89gOmm4u8ZhriX8F8n60wJPuHFUtriu7J6Bun2jGCZ6GKG4NKSRotWzw4Gt18TehRNZlfZwoLJcbfu4Bol9vlz1aGHrGruSFSOkzQoF3QuACusy6HSGW_OXFI5n_6su"/>
+</div>
+<div class="flex-grow flex flex-col">
+<span class="font-body-lg text-on-background/80 group-hover:text-on-background transition-colors">Nostalgia Drift</span>
+<span class="font-body-md text-on-surface-variant/60">Cora Luna</span>
+</div>
+<div class="flex items-center gap-sm opacity-40 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined" data-icon="download_done">download_done</span>
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-[#1A1A1D]/90 backdrop-blur-2xl border-t border-white/5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] rounded-t-2xl">
+<div class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity cursor-pointer active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity cursor-pointer active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Search</span>
+</div>
+<div class="flex flex-col items-center justify-center text-red-600 after:content-[''] after:w-1 after:h-1 after:bg-red-600 after:rounded-full after:mt-1 cursor-pointer active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="library_music" style="font-variation-settings: 'FILL' 1;">library_music</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Library</span>
+</div>
+<div class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity cursor-pointer active:scale-90 duration-150">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

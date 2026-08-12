@@ -1,0 +1,21 @@
+# Node.js
+node_modules/
+dist/
+npm-debug.log
+.env
+
+# Flutter & Mobile Build Artifacts
+.dart_tool/
+.idea/
+.pub-cache/
+.pub/
+lcm_audios_app/.dart_tool/
+lcm_audios_app/.idea/
+lcm_audios_app/build/
+lcm_audios_app/.pub/
+lcm_audios_app/windows/flutter/ephemeral/
+lcm_audios_app/android/.gradle/
+
+# Uploads directory contents (preserve folder structure)
+backend/uploads/*
+!backend/uploads/.gitkeep

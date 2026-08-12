@@ -1,0 +1,78 @@
+// This is your Prisma schema file for PostgreSQL production database deployments.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IntentCategory {
+  morningDevotion
+  deepWorship
+  warfarePrayers
+  studyFocus
+}
+
+enum MediaType {
+  song
+  sermon
+  podcast
+}
+
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  passwordHash      String
+  fullName          String
+  intentPreferences String[]     @default(["morningDevotion"])
+  createdAt         DateTime     @default(now())
+  sermonNotes       SermonNote[]
+  playlists         Playlist[]
+}
+
+model Track {
+  id             String         @id @default(uuid())
+  title          String
+  artist         String
+  albumArtUrl    String
+  audioUrl       String
+  duration       Int
+  subgenre       String
+  intentCategory IntentCategory @default(morningDevotion)
+  mediaType      MediaType      @default(song)
+  createdAt      DateTime       @default(now())
+  lyrics         LyricLine[]
+  notes          SermonNote[]
+}
+
+model LyricLine {
+  id               String   @id @default(uuid())
+  trackId          String
+  timestampSeconds Float
+  text             String
+  track            Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model SermonNote {
+  id               String   @id @default(uuid())
+  userId           String
+  trackId          String
+  timestampSeconds Float
+  noteText         String
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track            Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model Playlist {
+  id          String   @id @default(uuid())
+  title       String
+  userId      String
+  isCommunity Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

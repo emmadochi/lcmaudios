@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-fixed": "#410003",
+                    "on-background": "#e5e2e1",
+                    "on-tertiary": "#3c2f00",
+                    "tertiary-fixed-dim": "#e9c349",
+                    "on-surface": "#e5e2e1",
+                    "surface-bright": "#3a3939",
+                    "surface": "#141313",
+                    "on-secondary": "#680009",
+                    "tertiary": "#e9c349",
+                    "on-surface-variant": "#c7c6ca",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-tint": "#c8c6c7",
+                    "inverse-on-surface": "#313030",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-container": "#b60319",
+                    "on-secondary-container": "#ffc2bd",
+                    "on-primary-fixed": "#1c1b1c",
+                    "error": "#ffb4ab",
+                    "outline": "#919094",
+                    "secondary": "#ffb3ad",
+                    "surface-variant": "#353434",
+                    "error-container": "#93000a",
+                    "on-tertiary-container": "#967800",
+                    "on-primary-fixed-variant": "#474647",
+                    "inverse-primary": "#5f5e5f",
+                    "on-error": "#690005",
+                    "on-error-container": "#ffdad6",
+                    "primary-fixed": "#e5e2e3",
+                    "tertiary-fixed": "#ffe088",
+                    "surface-dim": "#141313",
+                    "tertiary-container": "#150e00",
+                    "secondary-fixed": "#ffdad6",
+                    "surface-container": "#201f1f",
+                    "surface-container-highest": "#353434",
+                    "on-tertiary-fixed-variant": "#574500",
+                    "on-primary": "#313031",
+                    "primary-container": "#0f0f10",
+                    "primary": "#c8c6c7",
+                    "outline-variant": "#46464a",
+                    "surface-container-high": "#2b2a2a",
+                    "on-secondary-fixed-variant": "#930011",
+                    "secondary-fixed-dim": "#ffb3ad",
+                    "on-tertiary-fixed": "#241a00",
+                    "background": "#141313",
+                    "surface-container-low": "#1c1b1b",
+                    "on-primary-container": "#7d7b7c",
+                    "primary-fixed-dim": "#c8c6c7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin": "20px",
+                    "unit": "4px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "gutter": "16px",
+                    "md": "16px",
+                    "lg": "24px"
+            },
+            "fontFamily": {
+                    "h3": ["Manrope"],
+                    "label-caps": ["Manrope"],
+                    "h2": ["Manrope"],
+                    "h1": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "body-md": ["Manrope"]
+            },
+            "fontSize": {
+                    "h3": ["20px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                    "h2": ["28px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "h1": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(26, 26, 29, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .crimson-glow {
+            box-shadow: 0 0 15px rgba(182, 3, 25, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-40 selection:bg-secondary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center border border-white/10 overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Close-up portrait of a professional man with a kind expression, soft studio lighting, high-end photography style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJfW7j4wsMUdIhkh1oZk297vJhtrEGbwBjlRArG-T4gY04KkspxCB2efTd-lc20-vuhQsBA2FM-inp5jM8swmLy85GqkoecEU43p8ModX6GfuqhBmaB1P77zDxCdSJLUaSLW9LwGojezPjrt8AN7fjRZbYq4WDuZ7ExRmfwUt3sJFiddXybOv02ilLbJIVPPwjrYTgwzN5xLBpZFtaGZhGQ2TPt3s_AFWJ6ycqHBm96O3dFpiEVhEt-mewo31B7K36xFF4hmo3ncJH"/>
+</div>
+</div>
+<h1 class="font-manrope font-black tracking-widest text-red-600 uppercase text-xl">VOX LOUNGE</h1>
+<button class="text-neutral-500 hover:text-red-500 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="pt-24 px-margin space-y-lg max-w-2xl mx-auto">
+<!-- Greeting -->
+<section class="mb-lg">
+<h2 class="font-h2 text-h2 text-on-background">Good morning, Emmanuel</h2>
+<p class="text-on-surface-variant font-body-md opacity-70">Curated audio for your refined palate.</p>
+</section>
+<!-- Categories -->
+<nav class="flex gap-sm overflow-x-auto pb-2 no-scrollbar">
+<button class="px-lg py-sm rounded-full bg-secondary-container text-on-secondary-container font-label-caps whitespace-nowrap active:scale-95 duration-200 crimson-glow">Music</button>
+<button class="px-lg py-sm rounded-full glass-card text-on-surface font-label-caps whitespace-nowrap active:scale-95 duration-200">Podcasts</button>
+<button class="px-lg py-sm rounded-full glass-card text-on-surface font-label-caps whitespace-nowrap active:scale-95 duration-200">Sermons</button>
+</nav>
+<!-- Trending Banner -->
+<section class="relative h-64 rounded-xl overflow-hidden shadow-2xl group">
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent z-10"></div>
+<img alt="Trending" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Cinematic shot of a jazz club with soft magenta neon lights, smoke in the air, and a glossy piano surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BDtf03Do37QQye0SEA7eBJfp6c_drV4eZ7S8xnGJnMUBfUH9JJ7txpYbIkOIQ4j08Ub9qbZ_9FH1cXlbdfZROjThPAxQVSQm_Xta21llj9qHasCWUCPR7VeIIT59Qe-CTNjgNazmNHKE4Fs9ZUvdYVQRU5zVtslcTduQ0JX9HWUiP6h8E-MARcCZ8K9aToq8Y673FXejlaKcrTiM2pMJGFxtC02pUkHFIwd6aGl1sNGw-iN00WHSShGB_H9CAqohYoValzBs7ycp"/>
+<div class="absolute bottom-0 left-0 p-lg z-20 space-y-xs w-full">
+<span class="text-tertiary font-label-caps flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                    TRENDING NOW
+                </span>
+<h3 class="font-h1 text-h2 text-white leading-tight">Midnight Sessions Vol. 4</h3>
+<p class="text-on-background/70 font-body-md">Exclusive live recording from The Onyx Lounge</p>
+<div class="pt-sm flex gap-md">
+<button class="bg-secondary-container text-white px-xl py-sm rounded-lg font-h3 text-[14px] crimson-glow flex items-center gap-sm active:scale-95 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                        Play Now
+                    </button>
+</div>
+</div>
+</section>
+<!-- Recently Played -->
+<section>
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-h3 text-h3">Recently Played</h3>
+<span class="text-red-600 font-label-caps text-[10px]">VIEW ALL</span>
+</div>
+<div class="flex gap-md overflow-x-auto pb-4 no-scrollbar -mx-margin px-margin">
+<!-- Track 1 -->
+<div class="flex-shrink-0 w-36 space-y-sm">
+<div class="aspect-square rounded-lg glass-card p-1">
+<img alt="Album" class="w-full h-full object-cover rounded-md" data-alt="Abstract minimalist album art with deep charcoal textures and a single sharp crimson diagonal line" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOxiVGM1nd-eNhMjLVsblS3zZ4lNGci84t3yGF7y9Uy-PtrcOvfcHVRN5G2yvA0zFm1NirQqljquBJSFHd3s5kKLKd7AdNmryyRgHmjBYhMZFf2Bwe1E6Hcz00DdlxMqQLetCMWJYumK70jG5vxQYu_g_01Kd0FWIdzh7pz0GriijxmSVW_2wpLBXIe_VILHJYw4-s1RlDJFbAPdX_IkW0TRbPe0YiDFeJNWv2ZeJDnRvZ27axO0ZSRZ2RK_dZDJ63DiMMhuWhpywf"/>
+</div>
+<div class="px-1">
+<h4 class="font-h3 text-[14px] text-white truncate">Ethereal Drift</h4>
+<p class="text-on-surface-variant font-label-caps text-[10px] opacity-60">Lune Architects</p>
+</div>
+</div>
+<!-- Track 2 -->
+<div class="flex-shrink-0 w-36 space-y-sm">
+<div class="aspect-square rounded-lg glass-card p-1">
+<img alt="Album" class="w-full h-full object-cover rounded-md" data-alt="Close-up of high-end analog audio tubes glowing with a warm orange light in a dark room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0-cK8vCU0XW9ImvY7WuGS3sUr8md5leslKL6_JXAv4aI-IwMKaQyt82Rl3mNBd3bchzbiy_xHvUwVyDqhrupBhVQrlTphl733Wlzmetzp99nXkVmwEsW_g6vNQRMo4Ap-ED_zcXDXSv7kRv-Ky7TO7WniHL63K33Z9_WvDFlQPEtdpu9b1uS-1DsXzD44KXYODfgzjKjnUWmpwSxdvpwymPqF7qj1KkvSm5I3WCqdM434TVRn2Ey6WLrenREwZ4XZbgapz5RH-LoQ"/>
+</div>
+<div class="px-1">
+<h4 class="font-h3 text-[14px] text-white truncate">The Silent Way</h4>
+<p class="text-on-surface-variant font-label-caps text-[10px] opacity-60">Podcast • 45m</p>
+</div>
+</div>
+<!-- Track 3 -->
+<div class="flex-shrink-0 w-36 space-y-sm">
+<div class="aspect-square rounded-lg glass-card p-1">
+<img alt="Album" class="w-full h-full object-cover rounded-md" data-alt="Aerial view of dark city lights reflecting on a rainy pavement at night with bokeh lights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFMcQ54wFTY5wZEvTw6HaM79rPDSmBTRCv5hiQI_bo9zTOy_giwqncpOjgzsvsYL7xHWUmahUcOONHCi9X3RbPX12FSZCxbgxnIoSY5pkTLAnTf8pPoVUyCQjcp9mzHxG8fMdc3IDDmNiV4DXTEJG5IupgOW_wz-VPoV0CvdBkRj12CycA4yg2wjpvd4OdkooHXUGxkwnX_1SZ7nNZ2BqfavZErPWljpb4gMceQT4zjLbp7gPdYzdaIRzJOGgL2tTcFNzzl7Aq6G8V"/>
+</div>
+<div class="px-1">
+<h4 class="font-h3 text-[14px] text-white truncate">Inner Peace</h4>
+<p class="text-on-surface-variant font-label-caps text-[10px] opacity-60">Sermon • Pastor Joel</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Recommended Grid (Bento Style) -->
+<section class="pb-12">
+<h3 class="font-h3 text-h3 mb-md">Recommended</h3>
+<div class="grid grid-cols-2 gap-md">
+<div class="col-span-2 glass-card rounded-xl p-md flex items-center gap-lg">
+<div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+<img alt="Recommended" class="w-full h-full object-cover" data-alt="Moody macro shot of gold leaf details on a black textured background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqvrP79XqNAd9uAu3ZWELnIUUhQkzRQvE6QqbJH4QqJMdJG2gO7mbD-Ur7OMNvWkW1eET4B3FNc9N9mjNXjcyunQkJoSFEvYxPImvJ1u7lxN5gu3ADaYgwnbwSsecX0dhHbcdSRR-JvElD5pLdpS4FZkXHVvMruLOCHiMyneEmpTyK0tOshF9Se6JkguYc-nB9hRqfFZFhF45laqKbouOJ8m6I2WCPeDzIFqUea-jr7g44IVaVg5zHieoi4FhIVmcQcxNtMOwCifFU"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between">
+<span class="text-tertiary font-label-caps text-[8px] border border-tertiary/20 px-2 py-0.5 rounded-full">EXCLUSIVE</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">more_vert</span>
+</div>
+<h4 class="text-white font-h3 text-[16px] mt-1">Foundations of Jazz</h4>
+<p class="text-on-surface-variant text-sm opacity-60">Curated Playlist</p>
+</div>
+</div>
+<div class="glass-card rounded-xl p-md space-y-sm relative overflow-hidden">
+<div class="absolute -right-2 -top-2 w-12 h-12 bg-red-600/10 blur-xl"></div>
+<span class="material-symbols-outlined text-red-600">favorite</span>
+<h4 class="text-white font-h3 text-[14px]">Daily High-Fi Mix</h4>
+<p class="text-on-surface-variant text-[11px] opacity-60">Updated 2h ago</p>
+</div>
+<div class="glass-card rounded-xl p-md space-y-sm">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">podcasts</span>
+<h4 class="text-white font-h3 text-[14px]">Deep Tech Talk</h4>
+<p class="text-on-surface-variant text-[11px] opacity-60">New Episode</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Mini Player -->
+<div class="fixed bottom-20 left-4 right-4 z-50 glass-card rounded-xl h-16 flex items-center px-4 gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+<div class="w-10 h-10 rounded-lg overflow-hidden">
+<img alt="Now Playing" class="w-full h-full object-cover" data-alt="Minimalist geometric art with dark tones and a glowing red sphere in the center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALx5YcLXDo2axYxnEtoIgSwC6u1q3obf5KrSX2YNyY2JhcU39zPsten5J4YsQ1eXDWGDAhjhpVjOIdp6PiBWfbyTbYv630jmPwiL2hf3CUw0bZWEwwmmbmjyqOVs7lDPVJpjdZskNV6D0aY4sdI-xIGn-aiNqNEoJG_q87OquvX8NmMSuQK2PFfoQo5xr3AqeexR55GrGpVv8cj_ZrfNRl098Bxeh8uRFUj--ZD9g3qPDSecIUkkjglj8YRsNF4RVSVULyeNZ5tkDT"/>
+</div>
+<div class="flex-1 overflow-hidden">
+<h5 class="text-white font-h3 text-[14px] truncate">Ethereal Drift</h5>
+<p class="text-red-600 font-label-caps text-[9px]">LUNE ARCHITECTS</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface active:scale-90 transition-transform">
+<span class="material-symbols-outlined">skip_next</span>
+</button>
+<button class="w-10 h-10 bg-secondary-container text-white rounded-full flex items-center justify-center crimson-glow active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pause</span>
+</button>
+</div>
+<!-- Progress Bar -->
+<div class="absolute bottom-0 left-0 w-full h-[2px] bg-white/10 rounded-b-xl overflow-hidden">
+<div class="h-full bg-red-600 w-1/3"></div>
+</div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-20 pb-safe bg-[#1A1A1D]/90 backdrop-blur-2xl border-t border-white/5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] rounded-t-2xl">
+<a class="flex flex-col items-center justify-center text-red-600 after:content-[''] after:w-1 after:h-1 after:bg-red-600 after:rounded-full after:mt-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="library_music">library_music</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-neutral-500 opacity-60 hover:opacity-100 transition-opacity active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-manrope text-[10px] uppercase font-semibold tracking-tighter mt-1">Profile</span>
+</a>
+</nav>
+</body></html>
