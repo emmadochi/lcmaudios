@@ -628,7 +628,9 @@
   </div>
 
   <script>
-    const API_BASE = 'http://localhost:5000/api/v1';
+    const API_BASE = window.location.origin.includes('localhost')
+      ? 'http://localhost:5000/api/v1'
+      : `${window.location.origin}/api/v1`;
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

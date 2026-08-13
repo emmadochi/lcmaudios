@@ -9,8 +9,9 @@ class ApiService {
   static const String _liveCloudUrl = 'https://lcmaudios.onrender.com/api/v1';
   static const String _localUrl = 'http://localhost:5000/api/v1';
 
+  // Always use the live cloud URL if configured, enabling emulator & device to stream live tracks
   static String get baseUrl {
-    if (kReleaseMode && _liveCloudUrl.startsWith('https://')) {
+    if (_liveCloudUrl.startsWith('https://')) {
       return _liveCloudUrl;
     }
     return _localUrl;
