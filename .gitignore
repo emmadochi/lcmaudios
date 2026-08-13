@@ -25,3 +25,10 @@ lcm_audios_app/android/.gradle/
 # Uploads directory contents (preserve folder structure)
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Backend env secrets
+backend/.env
+
+# Encrypted DRM offline audio files
+*.lcmdrm
+*.enc

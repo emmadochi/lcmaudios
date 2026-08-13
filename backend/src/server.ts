@@ -14,11 +14,20 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve File Uploads Static Directory
+// Serve File Uploads Static Directory (audio, artwork, HLS segments)
 const uploadsPath = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
+// Set correct MIME types for HLS streaming
+app.use('/uploads', (req, res, next) => {
+  if (req.path.endsWith('.m3u8')) {
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+  } else if (req.path.endsWith('.ts')) {
+    res.setHeader('Content-Type', 'video/mp2t');
+  }
+  next();
+});
 app.use('/uploads', express.static(uploadsPath));
 
 // API Routes
@@ -82,8 +91,8 @@ if (fs.existsSync(flutterWebBuildPath)) {
   });
 }
 
-// Start Server
-if (process.env.NODE_ENV !== 'test') {
+// Start Server only if executed directly (not when imported in tests)
+if (require.main === module && process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[LCM AUDIOS BACKEND] Server running on http://localhost:${PORT}`);
     console.log(`[LCM AUDIOS BACKEND] Admin Dashboard: http://localhost:${PORT}/admin`);

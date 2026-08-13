@@ -1,21 +1,25 @@
-# Use Node 20 LTS Alpine base image
+# ─── Stage 1: Builder ────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package descriptors
+# Copy package descriptors and prisma schema first (layer caching)
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# Install dependencies
+# Install ALL dependencies (incl. devDeps for tsc + prisma generate)
 RUN npm install
 
-# Copy application source code
+# Generate Prisma client from schema
+RUN npx prisma generate
+
+# Copy remaining source
 COPY . .
 
-# Compile TypeScript to JavaScript
+# Compile TypeScript → dist/
 RUN npm run build
 
-# --- Production Stage ---
+# ─── Stage 2: Production runner ───────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
 WORKDIR /app
@@ -23,14 +27,22 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5000
 
+# Copy package descriptors and prisma schema
 COPY package*.json ./
-RUN npm install --only=production
+COPY prisma ./prisma/
 
-# Copy compiled JavaScript and public static assets
+# Production-only install + regenerate Prisma client
+RUN npm install --omit=dev
+RUN npx prisma generate
+
+# Copy compiled JS, static assets
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
+
+# Create upload directories (populated at runtime)
+RUN mkdir -p uploads/audio uploads/artwork uploads/hls
 
 EXPOSE 5000
 
-# Start compiled Node server
-CMD ["node", "dist/server.js"]
+# Startup: run pending DB migrations then start server
+# prisma migrate deploy is idempotent — safe on every container start
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]

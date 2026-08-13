@@ -13,6 +13,7 @@ class AppColors {
   static const Color accentPurple = Color(0xFF8B5CF6); // Worship Purple
   static const Color accentGold = Color(0xFFF59E0B); // Devotional Gold
   static const Color accentCyan = Color(0xFF06B6D4); // Study Cyan
+  static const Color secondary = Color(0xFFF59E0B); // Devotional Gold
 
   // Text & Icons
   static const Color textPrimary = Color(0xFFFAFAFA);

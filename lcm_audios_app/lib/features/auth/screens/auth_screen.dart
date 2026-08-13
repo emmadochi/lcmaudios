@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/audio_player_service.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 import '../../../main.dart';
 
@@ -33,6 +35,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   void _handleAuthSubmit() {
+    final name = _nameController.text.trim();
+    final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+    if (name.isNotEmpty) {
+      playerService.setUserName(name);
+    }
     // Navigate to Onboarding after successful login/signup
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),

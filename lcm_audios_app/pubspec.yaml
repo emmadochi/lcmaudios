@@ -39,6 +39,13 @@ dependencies:
   audioplayers: ^6.6.0
   cached_network_image: ^3.4.1
   percent_indicator: ^4.2.5
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
+  path_provider: ^2.1.5
+  # AES-256 encryption for DRM offline playback protection
+  encrypt: ^5.0.3
+  # Real-time network connectivity detection for telemetry flush
+  connectivity_plus: ^6.1.4
 
 dev_dependencies:
   flutter_test:

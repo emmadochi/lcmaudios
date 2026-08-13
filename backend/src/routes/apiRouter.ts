@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { register, login, getMe } from '../controllers/authController';
 import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
 import { getNotes, createNote } from '../controllers/noteController';
+import { logTelemetry } from '../controllers/telemetryController';
 import {
   uploadMedia,
   createTrackAdmin,
@@ -25,6 +26,17 @@ apiRouter.get('/auth/me', getMe);
 apiRouter.get('/tracks', getTracks);
 apiRouter.get('/tracks/:id', getTrackById);
 apiRouter.get('/tracks/:id/lyrics', getLyrics);
+apiRouter.post(
+  '/tracks/upload',
+  uploadMediaMiddleware.fields([
+    { name: 'audioFile', maxCount: 1 },
+    { name: 'artworkFile', maxCount: 1 },
+  ]),
+  uploadMedia
+);
+
+// DRM Telemetry Stream Logging
+apiRouter.post('/telemetry', logTelemetry);
 
 // Sermon Notes Routes
 apiRouter.get('/notes', getNotes);

@@ -3,15 +3,49 @@ import 'package:provider/provider.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/audio_player_service.dart';
+import '../../../services/offline_storage_service.dart';
 
-class DownloadsScreen extends StatelessWidget {
+class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key});
+
+  @override
+  State<DownloadsScreen> createState() => _DownloadsScreenState();
+}
+
+class _DownloadsScreenState extends State<DownloadsScreen> {
+  bool _isSyncingTelemetry = false;
+
+  Future<void> _syncOfflineTelemetry() async {
+    setState(() {
+      _isSyncingTelemetry = true;
+    });
+
+    final flushedCount = await OfflineStorageService.flushPendingTelemetry();
+    if (!mounted) return;
+
+    setState(() {
+      _isSyncingTelemetry = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          flushedCount > 0
+              ? 'Flushed $flushedCount stream telemetry events to creator royalty ledger.'
+              : 'Offline telemetry fully synced with cloud backend.',
+        ),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
         final downloadedTracks = playerService.allTracks.where((t) => t.isDownloaded).toList();
+        final double estimatedMbUsed = downloadedTracks.length * 18.5; // ~18.5MB per lossless FLAC
+        final double percentUsed = (estimatedMbUsed / 1000.0).clamp(0.0, 1.0);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -25,6 +59,19 @@ class DownloadsScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            actions: [
+              IconButton(
+                icon: _isSyncingTelemetry
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      )
+                    : const Icon(Icons.sync_rounded, color: AppColors.primary),
+                tooltip: 'Sync Offline Stream Telemetry',
+                onPressed: () => _syncOfflineTelemetry(),
+              ),
+            ],
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -58,12 +105,18 @@ class DownloadsScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.success.withValues(alpha: 0.2),
+                              color: playerService.isOnline
+                                  ? AppColors.success.withValues(alpha: 0.2)
+                                  : AppColors.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Synced',
-                              style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold),
+                            child: Text(
+                              playerService.isOnline ? 'Online / Synced' : 'Offline Mode',
+                              style: TextStyle(
+                                color: playerService.isOnline ? AppColors.success : AppColors.primary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -71,7 +124,7 @@ class DownloadsScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       LinearPercentIndicator(
                         lineHeight: 8,
-                        percent: 0.25,
+                        percent: percentUsed > 0 ? percentUsed : 0.02,
                         backgroundColor: AppColors.surfaceLight,
                         progressColor: AppColors.offlineBadge,
                         barRadius: const Radius.circular(4),
@@ -82,12 +135,12 @@ class DownloadsScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${downloadedTracks.length} Tracks Downloaded',
+                            '${downloadedTracks.length} Tracks Offline Available',
                             style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           ),
-                          const Text(
-                            '245 MB / 1.0 GB Allocated',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                          Text(
+                            '${estimatedMbUsed.toStringAsFixed(1)} MB / 1.0 GB Allocated',
+                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -96,13 +149,27 @@ class DownloadsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                const Text(
-                  'Downloaded Tracks',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Downloaded Tracks',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (downloadedTracks.isNotEmpty)
+                      Text(
+                        'AES-256 Encrypted',
+                        style: TextStyle(
+                          color: AppColors.offlineBadge.withValues(alpha: 0.8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 10),
 
@@ -135,9 +202,18 @@ class DownloadsScreen extends StatelessWidget {
                                   '${track.artist} • Encrypted FLAC',
                                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                                 ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.play_circle_outline_rounded, color: AppColors.primary, size: 28),
-                                  onPressed: () => playerService.playTrack(track),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.white38, size: 20),
+                                      onPressed: () => playerService.toggleDownload(track.id),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.play_circle_outline_rounded, color: AppColors.primary, size: 28),
+                                      onPressed: () => playerService.playTrack(track),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );

@@ -24,6 +24,8 @@ class SpiritualIntent {
     required this.accentColor,
   });
 
+  String get subtitle => description;
+
   static const List<SpiritualIntent> categories = [
     SpiritualIntent(
       category: IntentCategory.all,

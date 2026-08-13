@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/models/spiritual_intent.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/audio_player_service.dart';
+import 'intent_playlist_screen.dart';
 
 class ExploreScreen extends StatelessWidget {
   const ExploreScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final intents = SpiritualIntent.categories.where((i) => i.category != IntentCategory.all).toList();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -16,58 +22,140 @@ class ExploreScreen extends StatelessWidget {
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Trending Intent Categories',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildExploreCategoryCard('Morning Devotion', '24 Tracks', Icons.wb_sunny_rounded, AppColors.accentGold),
-            _buildExploreCategoryCard('Sanctuary atmosphere', '18 Tracks', Icons.auto_awesome_rounded, AppColors.accentPurple),
-            _buildExploreCategoryCard('Warfare Prayers', '30 Tracks', Icons.shield_rounded, AppColors.primary),
-            _buildExploreCategoryCard('Bible Study', '15 Tracks', Icons.menu_book_rounded, AppColors.accentCyan),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExploreCategoryCard(String title, String tracks, IconData icon, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
+      body: Consumer<AudioPlayerService>(
+        builder: (context, playerService, child) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+                // Connectivity status banner
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: playerService.isOnline
+                        ? AppColors.success.withValues(alpha: 0.15)
+                        : AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: playerService.isOnline ? AppColors.success : AppColors.primary,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        playerService.isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                        color: playerService.isOnline ? AppColors.success : AppColors.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        playerService.isOnline ? 'Connected to LCMAudios Streaming Cloud' : 'Offline Mode — Playing local seed catalog',
+                        style: TextStyle(
+                          color: playerService.isOnline ? AppColors.success : Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Text(
+                  'Spiritual Intent Playlists',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Text(tracks, style: const TextStyle(color: AppColors.primary, fontSize: 12)),
+                const Text(
+                  'Curated soundscapes tuned to your daily devotion & prayer state',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+
+                // Intent Cards
+                ...intents.map((intent) {
+                  final trackCount = playerService.allTracks
+                      .where((t) => t.intentCategory == intent.category)
+                      .length;
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => IntentPlaylistScreen(intent: intent),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.glassBorder),
+                        boxShadow: [
+                          BoxShadow(
+                            color: intent.accentColor.withValues(alpha: 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: intent.accentColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: intent.accentColor.withValues(alpha: 0.3)),
+                            ),
+                            child: Icon(intent.icon, color: intent.accentColor, size: 30),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  intent.title,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  intent.subtitle,
+                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '$trackCount curated tracks',
+                                  style: TextStyle(
+                                    color: intent.accentColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 16),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ],
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 16),
-        ],
+          );
+        },
       ),
     );
   }

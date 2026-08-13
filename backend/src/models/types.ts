@@ -64,3 +64,11 @@ export interface AnalyticsSummary {
   topCategories: { category: string; count: number; percentage: number }[];
   topTracks: Track[];
 }
+
+export interface TelemetryEvent {
+  id: string;
+  trackId: string;
+  durationPlayedSeconds: number;
+  timestamp: string;
+  createdAt: string;
+}

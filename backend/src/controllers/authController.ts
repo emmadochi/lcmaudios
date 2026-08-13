@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { MockDatabase } from '../data/mockDatabase';
-import { User } from '../models/types';
+import { dbClient } from '../data/dbClient';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'lcm_audios_faith_secret_key_2026';
 
@@ -15,8 +14,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const db = MockDatabase.getInstance();
-    const existingUser = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const existingUser = await dbClient.findUserByEmail(email);
 
     if (existingUser) {
       res.status(409).json({ error: 'User with this email already exists.' });
@@ -26,16 +24,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const newUser: User = {
-      id: `usr_${Date.now()}`,
-      email: email.toLowerCase(),
+    const newUser = await dbClient.createUser({
+      email,
       passwordHash,
       fullName,
-      intentPreferences: intentPreferences || ['morningDevotion'],
-      createdAt: new Date().toISOString(),
-    };
-
-    db.users.push(newUser);
+      intentPreferences,
+    });
 
     const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -63,8 +57,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const db = MockDatabase.getInstance();
-    const user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const user = await dbClient.findUserByEmail(email);
 
     if (!user) {
       res.status(401).json({ error: 'Invalid credentials.' });
@@ -105,8 +98,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
 
-    const db = MockDatabase.getInstance();
-    const user = db.users.find((u) => u.id === decoded.id);
+    const user = await dbClient.findUserById(decoded.id);
 
     if (!user) {
       res.status(404).json({ error: 'User not found.' });

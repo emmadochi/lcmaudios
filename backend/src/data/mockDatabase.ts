@@ -1,4 +1,4 @@
-import { Track, User, SermonNote, CategoryItem } from '../models/types';
+import { Track, User, SermonNote, CategoryItem, TelemetryEvent } from '../models/types';
 import bcrypt from 'bcryptjs';
 
 export class MockDatabase {
@@ -8,6 +8,7 @@ export class MockDatabase {
   public tracks: Track[] = [];
   public notes: SermonNote[] = [];
   public categories: CategoryItem[] = [];
+  public telemetryEvents: TelemetryEvent[] = [];
 
   private constructor() {
     this.seedData();

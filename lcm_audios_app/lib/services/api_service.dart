@@ -57,6 +57,18 @@ class ApiService {
     return [];
   }
 
+  // Check API connectivity status
+  static Future<bool> checkHealth() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/health')).timeout(
+        const Duration(seconds: 3),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // Create a timestamped sermon note
   static Future<bool> saveSermonNote({
     required String trackId,
@@ -72,9 +84,25 @@ class ApiService {
           'timestampSeconds': timestampSeconds,
           'noteText': noteText,
         }),
-      );
+      ).timeout(const Duration(seconds: 5));
       return response.statusCode == 201;
     } catch (e) {
+      return false;
+    }
+  }
+
+  // Send stream telemetry data to backend for creator accounting
+  static Future<bool> syncTelemetry(List<Map<String, dynamic>> events) async {
+    if (events.isEmpty) return true;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/telemetry'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'events': events}),
+      ).timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('[ApiService] Telemetry sync error: $e');
       return false;
     }
   }
@@ -88,17 +116,17 @@ class ApiService {
         artist: 'Nathaniel Bassey & LCM Worship',
         albumArtUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        duration: 342,
+        duration: const Duration(seconds: 342),
         subgenre: 'Deep Worship',
         intentCategory: IntentCategory.deepWorship,
-        mediaType: 'song',
+        mediaType: MediaType.song,
         isFavorite: true,
-        lyrics: [
-          LyricLine(id: 'l1', trackId: 'track_1', timestampSeconds: 0, text: '[Instrumental Prelude]'),
-          LyricLine(id: 'l2', trackId: 'track_1', timestampSeconds: 12, text: 'Let your glory fill this sacred place'),
-          LyricLine(id: 'l3', trackId: 'track_1', timestampSeconds: 24, text: 'We bow in awe before your throne of grace'),
-          LyricLine(id: 'l4', trackId: 'track_1', timestampSeconds: 38, text: 'Holy Holy, Almighty is the Lord'),
-          LyricLine(id: 'l5', trackId: 'track_1', timestampSeconds: 52, text: 'Forever faithful is your holy word'),
+        lyrics: const [
+          LyricLine(timestampSeconds: 0, text: '[Instrumental Prelude]'),
+          LyricLine(timestampSeconds: 12, text: 'Let your glory fill this sacred place'),
+          LyricLine(timestampSeconds: 24, text: 'We bow in awe before your throne of grace'),
+          LyricLine(timestampSeconds: 38, text: 'Holy Holy, Almighty is the Lord'),
+          LyricLine(timestampSeconds: 52, text: 'Forever faithful is your holy word'),
         ],
       ),
       AudioTrack(
@@ -107,14 +135,14 @@ class ApiService {
         artist: 'Pastor Enoch Adeboye',
         albumArtUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        duration: 1110,
+        duration: const Duration(seconds: 1110),
         subgenre: 'Spoken Sermon',
         intentCategory: IntentCategory.morningDevotion,
-        mediaType: 'sermon',
-        lyrics: [
-          LyricLine(id: 'l6', trackId: 'track_2', timestampSeconds: 0, text: 'Welcome to this morning devotional broadcast.'),
-          LyricLine(id: 'l7', trackId: 'track_2', timestampSeconds: 15, text: 'Lamentations 3:22 tells us His mercies are new every morning.'),
-          LyricLine(id: 'l8', trackId: 'track_2', timestampSeconds: 40, text: 'Speak to your day before the sun rises above the horizon.'),
+        mediaType: MediaType.sermon,
+        lyrics: const [
+          LyricLine(timestampSeconds: 0, text: 'Welcome to this morning devotional broadcast.'),
+          LyricLine(timestampSeconds: 15, text: 'Lamentations 3:22 tells us His mercies are new every morning.'),
+          LyricLine(timestampSeconds: 40, text: 'Speak to your day before the sun rises above the horizon.'),
         ],
       ),
     ];

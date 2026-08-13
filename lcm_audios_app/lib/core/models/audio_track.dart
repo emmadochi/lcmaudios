@@ -8,6 +8,13 @@ class LyricLine {
     required this.timestampSeconds,
     required this.text,
   });
+
+  factory LyricLine.fromJson(Map<String, dynamic> json) {
+    return LyricLine(
+      timestampSeconds: (json['timestampSeconds'] as num?)?.toDouble() ?? 0.0,
+      text: json['text'] as String? ?? '',
+    );
+  }
 }
 
 class SermonNote {
@@ -22,6 +29,23 @@ class SermonNote {
     required this.noteText,
     required this.createdAt,
   });
+
+  String get formattedTimestamp {
+    final minutes = (timestampSeconds / 60).floor().toString().padLeft(2, '0');
+    final seconds = (timestampSeconds % 60).floor().toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  factory SermonNote.fromJson(Map<String, dynamic> json) {
+    return SermonNote(
+      id: json['id'] as String? ?? '',
+      timestampSeconds: (json['timestampSeconds'] as num?)?.toDouble() ?? 0.0,
+      noteText: json['noteText'] as String? ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }
 
 enum MediaType {
@@ -60,6 +84,46 @@ class AudioTrack {
     this.lyrics = const [],
     this.notes = const [],
   });
+
+  String get formattedDuration {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  factory AudioTrack.fromJson(Map<String, dynamic> json) {
+    IntentCategory parseIntent(String? val) {
+      if (val == null) return IntentCategory.all;
+      return IntentCategory.values.firstWhere(
+        (e) => e.name.toLowerCase() == val.toLowerCase(),
+        orElse: () => IntentCategory.all,
+      );
+    }
+
+    MediaType parseMediaType(String? val) {
+      if (val == null) return MediaType.song;
+      return MediaType.values.firstWhere(
+        (e) => e.name.toLowerCase() == val.toLowerCase(),
+        orElse: () => MediaType.song,
+      );
+    }
+
+    return AudioTrack(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      artist: json['artist'] as String? ?? '',
+      albumArtUrl: json['albumArtUrl'] as String? ?? '',
+      audioUrl: json['audioUrl'] as String? ?? '',
+      duration: Duration(seconds: (json['durationSeconds'] as num?)?.toInt() ?? json['duration'] as int? ?? 180),
+      subgenre: json['subgenre'] as String? ?? 'Worship',
+      intentCategory: parseIntent(json['intentCategory'] as String?),
+      mediaType: parseMediaType(json['mediaType'] as String?),
+      isDownloaded: json['isDownloaded'] as bool? ?? false,
+      isFavorite: json['isFavorite'] as bool? ?? false,
+      lyrics: (json['lyrics'] as List?)?.map((e) => LyricLine.fromJson(e)).toList() ?? [],
+      notes: (json['notes'] as List?)?.map((e) => SermonNote.fromJson(e)).toList() ?? [],
+    );
+  }
 
   AudioTrack copyWith({
     bool? isDownloaded,

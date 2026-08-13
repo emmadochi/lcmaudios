@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
 
+import 'sermon_notes_screen.dart';
+
 class FullPlayerScreen extends StatefulWidget {
   const FullPlayerScreen({super.key});
 
@@ -161,6 +163,18 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                         ),
                         Row(
                           children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_note_rounded, color: AppColors.secondary),
+                              tooltip: 'Open Notes & Lyrics Workspace',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SermonNotesScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                             IconButton(
                               icon: Icon(
                                 track.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,

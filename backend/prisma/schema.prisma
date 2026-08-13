@@ -76,3 +76,12 @@ model Playlist {
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model TelemetryEvent {
+  id                    String   @id @default(uuid())
+  trackId               String
+  durationPlayedSeconds Float
+  timestamp             DateTime @default(now())
+  createdAt             DateTime @default(now())
+}
+

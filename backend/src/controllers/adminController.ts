@@ -1,16 +1,27 @@
 import { Request, Response } from 'express';
-import { MockDatabase } from '../data/mockDatabase';
+import { dbClient } from '../data/dbClient';
+import { HlsTranscoder } from '../services/hlsTranscoder';
 import { Track, LyricLine, IntentCategory, MediaType, CategoryItem } from '../models/types';
+import path from 'path';
 
-export const uploadMedia = (req: Request, res: Response): void => {
+export const uploadMedia = async (req: Request, res: Response): Promise<void> => {
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     let audioUrl = '';
     let albumArtUrl = '';
+    let hlsUrl = '';
 
     if (files && files['audioFile'] && files['audioFile'][0]) {
-      audioUrl = `http://localhost:5000/uploads/audio/${files['audioFile'][0].filename}`;
+      const audioFile = files['audioFile'][0];
+      audioUrl = `http://localhost:5000/uploads/audio/${audioFile.filename}`;
+
+      // Automatically trigger FFmpeg HLS stream packaging
+      const trackTempId = `hls_${Date.now()}`;
+      const transcodeRes = await HlsTranscoder.transcodeToHls(audioFile.path, trackTempId);
+      if (transcodeRes.success) {
+        hlsUrl = transcodeRes.hlsUrl;
+      }
     }
 
     if (files && files['artworkFile'] && files['artworkFile'][0]) {
@@ -18,16 +29,17 @@ export const uploadMedia = (req: Request, res: Response): void => {
     }
 
     res.status(200).json({
-      message: 'Files uploaded successfully.',
+      message: 'Files uploaded and processed successfully.',
       audioUrl,
       albumArtUrl,
+      hlsUrl: hlsUrl || audioUrl, // Fallback to direct MP3 URL if HLS not available
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to upload media files.' });
   }
 };
 
-export const createTrackAdmin = (req: Request, res: Response): void => {
+export const createTrackAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, artist, audioUrl, albumArtUrl, duration, subgenre, intentCategory, mediaType, lyrics } = req.body;
 
@@ -65,41 +77,37 @@ export const createTrackAdmin = (req: Request, res: Response): void => {
       createdAt: new Date().toISOString(),
     };
 
-    const db = MockDatabase.getInstance();
-    db.tracks.unshift(newTrack);
+    const saved = await dbClient.createTrack(newTrack);
 
     res.status(201).json({
-      message: 'Track ingested successfully and published to live endpoints.',
-      track: newTrack,
+      message: 'Track ingested successfully and published to live database.',
+      track: saved,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create track.' });
   }
 };
 
-export const deleteTrackAdmin = (req: Request, res: Response): void => {
+export const deleteTrackAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const db = MockDatabase.getInstance();
-
-    const idx = db.tracks.findIndex((t) => t.id === id);
-    if (idx === -1) {
+    const deleted = await dbClient.deleteTrack(id);
+    if (!deleted) {
       res.status(404).json({ error: 'Track not found.' });
       return;
     }
 
-    const deleted = db.tracks.splice(idx, 1);
-    res.status(200).json({ message: 'Track deleted successfully.', deletedTrack: deleted[0] });
+    res.status(200).json({ message: 'Track deleted successfully.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete track.' });
   }
 };
 
 // --- ANALYTICS CONTROLLER ---
-export const getAnalyticsAdmin = (req: Request, res: Response): void => {
+export const getAnalyticsAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const db = MockDatabase.getInstance();
-    const tracks = db.tracks;
+    const tracks = await dbClient.getTracks();
+    const notes = await dbClient.getNotes();
 
     let totalStreams = 0;
     const categoryCounts: { [key: string]: number } = {};
@@ -120,10 +128,10 @@ export const getAnalyticsAdmin = (req: Request, res: Response): void => {
 
     res.status(200).json({
       analytics: {
-        totalStreams: totalStreams + 4890, // Include baseline streams
+        totalStreams: totalStreams + 4890,
         activeListeners: 1240,
         totalListeningHours: 854,
-        totalNotesTaken: db.notes.length + 320,
+        totalNotesTaken: notes.length + 320,
         topCategories,
         topTracks: sortedTracks,
       },
@@ -136,8 +144,8 @@ export const getAnalyticsAdmin = (req: Request, res: Response): void => {
 // --- CATEGORY MANAGEMENT CONTROLLERS ---
 export const getCategoriesAdmin = (req: Request, res: Response): void => {
   try {
-    const db = MockDatabase.getInstance();
-    res.status(200).json({ categories: db.categories });
+    const categories = dbClient.getCategories();
+    res.status(200).json({ categories });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories.' });
   }
@@ -152,21 +160,16 @@ export const createCategoryAdmin = (req: Request, res: Response): void => {
       return;
     }
 
-    const db = MockDatabase.getInstance();
-    const newCategory: CategoryItem = {
-      id: `cat_${Date.now()}`,
+    const category = dbClient.createCategory({
       categoryKey: categoryKey.trim(),
       title: title.trim(),
       description: description ? description.trim() : '',
       icon: icon || 'auto_awesome_rounded',
       accentColor: accentColor || '#E63946',
-      trackCount: 0,
       isActive: true,
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    db.categories.push(newCategory);
-    res.status(201).json({ message: 'Category created successfully.', category: newCategory });
+    res.status(201).json({ message: 'Category created successfully.', category });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create category.' });
   }
@@ -177,21 +180,14 @@ export const updateCategoryAdmin = (req: Request, res: Response): void => {
     const { id } = req.params;
     const { title, description, icon, accentColor, isActive } = req.body;
 
-    const db = MockDatabase.getInstance();
-    const cat = db.categories.find((c) => c.id === id);
+    const updated = dbClient.updateCategory(id, { title, description, icon, accentColor, isActive });
 
-    if (!cat) {
+    if (!updated) {
       res.status(404).json({ error: 'Category not found.' });
       return;
     }
 
-    if (title !== undefined) cat.title = title.trim();
-    if (description !== undefined) cat.description = description.trim();
-    if (icon !== undefined) cat.icon = icon;
-    if (accentColor !== undefined) cat.accentColor = accentColor;
-    if (isActive !== undefined) cat.isActive = Boolean(isActive);
-
-    res.status(200).json({ message: 'Category updated successfully.', category: cat });
+    res.status(200).json({ message: 'Category updated successfully.', category: updated });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update category.' });
   }
@@ -200,16 +196,14 @@ export const updateCategoryAdmin = (req: Request, res: Response): void => {
 export const deleteCategoryAdmin = (req: Request, res: Response): void => {
   try {
     const { id } = req.params;
-    const db = MockDatabase.getInstance();
+    const deleted = dbClient.deleteCategory(id);
 
-    const idx = db.categories.findIndex((c) => c.id === id);
-    if (idx === -1) {
+    if (!deleted) {
       res.status(404).json({ error: 'Category not found.' });
       return;
     }
 
-    const deleted = db.categories.splice(idx, 1);
-    res.status(200).json({ message: 'Category deleted successfully.', category: deleted[0] });
+    res.status(200).json({ message: 'Category deleted successfully.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete category.' });
   }
