@@ -591,7 +591,7 @@
         </div>
 
         <div style="margin-top: 32px;">
-          <button class="btn" style="width: 100%; justify-content: center; padding: 16px;" onclick="publishTrack()">
+          <button id="publishBtn" class="btn" style="width: 100%; justify-content: center; padding: 16px;" onclick="publishTrack()">
             🚀 PUBLISH TO LIVE STREAMING API
           </button>
         </div>
@@ -877,6 +877,7 @@
     }
 
     async function publishTrack() {
+      const publishBtn = document.getElementById('publishBtn');
       const title = document.getElementById('title').value;
       const artist = document.getElementById('artist').value;
       const intentCategory = document.getElementById('intentCategory').value;
@@ -892,42 +893,51 @@
         return;
       }
 
+      if (publishBtn) {
+        publishBtn.disabled = true;
+        publishBtn.innerText = '⏳ Uploading audio & packaging stream... (Please wait)';
+      }
+
       let audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
       let albumArtUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80';
 
-      if (audioFile || artworkFile) {
-        const formData = new FormData();
-        if (audioFile) formData.append('audioFile', audioFile);
-        if (artworkFile) formData.append('artworkFile', artworkFile);
+      try {
+        if (audioFile || artworkFile) {
+          const formData = new FormData();
+          if (audioFile) formData.append('audioFile', audioFile);
+          if (artworkFile) formData.append('artworkFile', artworkFile);
 
-        try {
           const uploadRes = await fetch(`${API_BASE}/admin/upload`, {
             method: 'POST',
             body: formData,
           });
+
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text();
+            throw new Error(`Upload failed (${uploadRes.status}): ${errText}`);
+          }
+
           const uploadData = await uploadRes.json();
           if (uploadData.audioUrl) audioUrl = uploadData.audioUrl;
           if (uploadData.albumArtUrl) albumArtUrl = uploadData.albumArtUrl;
-        } catch (e) {}
-      }
-
-      const lyricRows = document.querySelectorAll('.lyric-row');
-      const lyrics = [];
-      lyricRows.forEach(row => {
-        const sec = parseFloat(row.querySelector('.lyric-time').value) || 0;
-        const text = row.querySelector('.lyric-text').value.trim();
-        if (text) {
-          lyrics.push({ timestampSeconds: sec, text });
         }
-      });
 
-      const payload = {
-        title, artist, intentCategory, subgenre, mediaType,
-        duration: parseInt(duration) || 300,
-        audioUrl, albumArtUrl, lyrics,
-      };
+        const lyricRows = document.querySelectorAll('.lyric-row');
+        const lyrics = [];
+        lyricRows.forEach(row => {
+          const sec = parseFloat(row.querySelector('.lyric-time').value) || 0;
+          const text = row.querySelector('.lyric-text').value.trim();
+          if (text) {
+            lyrics.push({ timestampSeconds: sec, text });
+          }
+        });
 
-      try {
+        const payload = {
+          title, artist, intentCategory, subgenre, mediaType,
+          duration: parseInt(duration) || 300,
+          audioUrl, albumArtUrl, lyrics,
+        };
+
         const res = await fetch(`${API_BASE}/admin/tracks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -935,11 +945,20 @@
         });
 
         if (res.ok) {
-          alert('🚀 Track published successfully to live streaming API!');
+          alert('🚀 Sermon published successfully and saved to database!');
           switchTab('catalog');
+        } else {
+          const errData = await res.json();
+          alert(`Error saving track: ${errData.error || 'Unknown error'}`);
         }
       } catch (e) {
-        alert('Failed to connect to API server');
+        console.error('Publish error:', e);
+        alert(`Failed to publish sermon: ${e.message}`);
+      } finally {
+        if (publishBtn) {
+          publishBtn.disabled = false;
+          publishBtn.innerText = '🚀 PUBLISH TO LIVE STREAMING API';
+        }
       }
     }
 

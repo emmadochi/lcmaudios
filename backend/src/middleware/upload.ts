@@ -32,6 +32,6 @@ const storage = multer.diskStorage({
 export const uploadMediaMiddleware = multer({
   storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // Max 100 MB per file
+    fileSize: 250 * 1024 * 1024, // Max 250 MB per file (supports 2+ hour sermons)
   },
 });
