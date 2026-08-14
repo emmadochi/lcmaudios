@@ -17,6 +17,27 @@ class ApiService {
     return _localUrl;
   }
 
+  // Fetch spiritual intent categories dynamically from cloud
+  static Future<List<SpiritualIntent>> fetchCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/categories'),
+      ).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data['categories'] ?? [];
+        if (list.isNotEmpty) {
+          final fetched = list.map((json) => SpiritualIntent.fromJson(json)).toList();
+          return fetched;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Categories fetch error: $e');
+    }
+    return SpiritualIntent.defaultCategories;
+  }
+
   // Fetch catalog of audio tracks with optional intent category filter
   static Future<List<AudioTrack>> fetchTracks({IntentCategory? intent}) async {
     try {

@@ -18,7 +18,7 @@ class IntentPlaylistScreen extends StatelessWidget {
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
         final List<AudioTrack> tracks = playerService.allTracks
-            .where((t) => t.intentCategory == intent.category)
+            .where((t) => t.matchesCategoryKey(intent.categoryKey))
             .toList();
 
         return Scaffold(

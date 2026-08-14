@@ -21,6 +21,9 @@ class AudioPlayerService extends ChangeNotifier {
   Duration _duration = Duration.zero;
   IntentCategory _selectedIntent = IntentCategory.all;
 
+  List<SpiritualIntent> _categories = List.from(SpiritualIntent.defaultCategories);
+  String _selectedCategoryKey = 'all';
+
   // ─── Telemetry metering state ────────────────────────────────────────────
   /// Position at last telemetry checkpoint for delta calculation.
   Duration _lastTelemetryPosition = Duration.zero;
@@ -49,6 +52,8 @@ class AudioPlayerService extends ChangeNotifier {
   Duration get position => _position;
   Duration get duration => _duration;
   IntentCategory get selectedIntent => _selectedIntent;
+  String get selectedCategoryKey => _selectedCategoryKey;
+  List<SpiritualIntent> get categories => _categories;
   String get userName => _userName;
   int get listenCount => _listenCount;
   Map<String, double> get downloadProgress => Map.unmodifiable(_downloadProgress);
@@ -64,8 +69,15 @@ class AudioPlayerService extends ChangeNotifier {
   int get userProgressPercentage => (userProgress * 100).round();
 
   List<AudioTrack> get filteredTracks {
-    if (_selectedIntent == IntentCategory.all) return _allTracks;
-    return _allTracks.where((t) => t.intentCategory == _selectedIntent).toList();
+    if (_selectedCategoryKey == 'all' && _selectedIntent == IntentCategory.all) {
+      return _allTracks;
+    }
+    return _allTracks.where((t) {
+      if (_selectedCategoryKey != 'all') {
+        return t.matchesCategoryKey(_selectedCategoryKey);
+      }
+      return t.intentCategory == _selectedIntent;
+    }).toList();
   }
 
   // ─── Constructor ──────────────────────────────────────────────────────────
@@ -163,10 +175,20 @@ class AudioPlayerService extends ChangeNotifier {
     _lastTelemetryPosition = Duration.zero;
   }
 
-  // ─── Playback ─────────────────────────────────────────────────────────────
+  // ─── Playback & Filtering ────────────────────────────────────────────────
   void setIntentFilter(IntentCategory category) {
     _selectedIntent = category;
+    _selectedCategoryKey = category.name;
     notifyListeners();
+  }
+
+  void setCategoryFilter(String categoryKey) {
+    _selectedCategoryKey = categoryKey;
+    notifyListeners();
+  }
+
+  Future<void> refreshAll() async {
+    await _loadTracksAndStorage();
   }
 
   Future<void> playTrack(AudioTrack track) async {
@@ -335,8 +357,13 @@ class AudioPlayerService extends ChangeNotifier {
     final connectivityResult = await Connectivity().checkConnectivity();
     _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
 
-    // Fetch live tracks or fall back to seed data
+    // Fetch live tracks and categories or fall back to seed data
     if (_isOnline) {
+      final fetchedCats = await ApiService.fetchCategories();
+      if (fetchedCats.isNotEmpty) {
+        _categories = fetchedCats;
+      }
+
       final apiTracks = await ApiService.fetchTracks();
       if (apiTracks.isNotEmpty) {
         _allTracks = apiTracks;

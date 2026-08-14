@@ -57,7 +57,8 @@ apiRouter.delete('/admin/tracks/:id', deleteTrackAdmin);
 // Admin Analytics Dashboard Routes
 apiRouter.get('/admin/analytics', getAnalyticsAdmin);
 
-// Admin Intent Categories Management Routes
+// Intent Categories Routes (Public & Admin)
+apiRouter.get('/categories', getCategoriesAdmin);
 apiRouter.get('/admin/categories', getCategoriesAdmin);
 apiRouter.post('/admin/categories', createCategoryAdmin);
 apiRouter.put('/admin/categories/:id', updateCategoryAdmin);

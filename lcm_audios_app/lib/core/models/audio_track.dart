@@ -63,6 +63,7 @@ class AudioTrack {
   final Duration duration;
   final String subgenre;
   final IntentCategory intentCategory;
+  final String categoryKey;
   final MediaType mediaType;
   final bool isDownloaded;
   final bool isFavorite;
@@ -78,6 +79,7 @@ class AudioTrack {
     required this.duration,
     required this.subgenre,
     required this.intentCategory,
+    this.categoryKey = '',
     required this.mediaType,
     this.isDownloaded = false,
     this.isFavorite = false,
@@ -91,12 +93,24 @@ class AudioTrack {
     return '$minutes:$seconds';
   }
 
+  bool matchesCategoryKey(String targetKey) {
+    if (targetKey.toLowerCase() == 'all') return true;
+    final cleanTarget = targetKey.toLowerCase().replaceAll(' ', '');
+    final cleanCatKey = categoryKey.toLowerCase().replaceAll(' ', '');
+    final cleanEnum = intentCategory.name.toLowerCase();
+
+    return cleanCatKey == cleanTarget || cleanEnum == cleanTarget;
+  }
+
   factory AudioTrack.fromJson(Map<String, dynamic> json) {
+    final rawKey = (json['intentCategory'] as String? ?? '').trim();
+
     IntentCategory parseIntent(String? val) {
       if (val == null) return IntentCategory.all;
+      final clean = val.toLowerCase().replaceAll(' ', '');
       return IntentCategory.values.firstWhere(
-        (e) => e.name.toLowerCase() == val.toLowerCase(),
-        orElse: () => IntentCategory.all,
+        (e) => e.name.toLowerCase() == clean,
+        orElse: () => IntentCategory.custom,
       );
     }
 
@@ -116,7 +130,8 @@ class AudioTrack {
       audioUrl: json['audioUrl'] as String? ?? '',
       duration: Duration(seconds: (json['durationSeconds'] as num?)?.toInt() ?? json['duration'] as int? ?? 180),
       subgenre: json['subgenre'] as String? ?? 'Worship',
-      intentCategory: parseIntent(json['intentCategory'] as String?),
+      intentCategory: parseIntent(rawKey),
+      categoryKey: rawKey,
       mediaType: parseMediaType(json['mediaType'] as String?),
       isDownloaded: json['isDownloaded'] as bool? ?? false,
       isFavorite: json['isFavorite'] as bool? ?? false,
@@ -139,6 +154,7 @@ class AudioTrack {
       duration: duration,
       subgenre: subgenre,
       intentCategory: intentCategory,
+      categoryKey: categoryKey,
       mediaType: mediaType,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       isFavorite: isFavorite ?? this.isFavorite,
