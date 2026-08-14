@@ -20,12 +20,11 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
       const audioFile = files['audioFile'][0];
       audioUrl = `${serverBaseUrl}/uploads/audio/${audioFile.filename}`;
 
-      // Automatically trigger FFmpeg HLS stream packaging
+      // Trigger FFmpeg HLS stream packaging asynchronously in background (non-blocking)
       const trackTempId = `hls_${Date.now()}`;
-      const transcodeRes = await HlsTranscoder.transcodeToHls(audioFile.path, trackTempId);
-      if (transcodeRes.success) {
-        hlsUrl = transcodeRes.hlsUrl;
-      }
+      HlsTranscoder.transcodeToHls(audioFile.path, trackTempId, serverBaseUrl).catch((err) => {
+        console.warn('[HLS] Background transcode notice:', err);
+      });
     }
 
     if (files && files['artworkFile'] && files['artworkFile'][0]) {
@@ -36,7 +35,7 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
       message: 'Files uploaded and processed successfully.',
       audioUrl,
       albumArtUrl,
-      hlsUrl: hlsUrl || audioUrl, // Fallback to direct MP3 URL if HLS not available
+      hlsUrl: audioUrl,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to upload media files.' });

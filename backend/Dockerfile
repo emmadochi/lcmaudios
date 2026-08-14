@@ -24,6 +24,9 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Install native FFmpeg package for Alpine Linux
+RUN apk add --no-cache ffmpeg
+
 ENV NODE_ENV=production
 ENV PORT=5000
 
