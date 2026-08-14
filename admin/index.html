@@ -590,7 +590,22 @@
           <!-- Lyric rows added dynamically -->
         </div>
 
-        <div style="margin-top: 32px;">
+        <!-- Real-time Upload & Processing Progress Bar -->
+        <div id="uploadProgressContainer" style="display: none; margin-top: 24px; background: var(--surface-light); border: 1px solid var(--border); border-radius: 14px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span id="uploadStatusText" style="font-size: 13px; font-weight: 600; color: var(--text);">Preparing upload...</span>
+            <span id="uploadPercentage" style="font-size: 14px; font-weight: 800; color: var(--primary);">0%</span>
+          </div>
+          <div style="background: rgba(255,255,255,0.08); height: 10px; border-radius: 6px; overflow: hidden; position: relative;">
+            <div id="uploadProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #e63946, #ff758c); border-radius: 6px; transition: width 0.2s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+            <span id="uploadBytesText">0 MB / 0 MB</span>
+            <span id="uploadEtaText">Streaming to PostgreSQL Cloud</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px;">
           <button id="publishBtn" class="btn" style="width: 100%; justify-content: center; padding: 16px;" onclick="publishTrack()">
             🚀 PUBLISH TO LIVE STREAMING API
           </button>
@@ -878,6 +893,13 @@
 
     async function publishTrack() {
       const publishBtn = document.getElementById('publishBtn');
+      const progressContainer = document.getElementById('uploadProgressContainer');
+      const progressBar = document.getElementById('uploadProgressBar');
+      const progressPercentage = document.getElementById('uploadPercentage');
+      const statusText = document.getElementById('uploadStatusText');
+      const bytesText = document.getElementById('uploadBytesText');
+      const etaText = document.getElementById('uploadEtaText');
+
       const title = document.getElementById('title').value;
       const artist = document.getElementById('artist').value;
       const intentCategory = document.getElementById('intentCategory').value;
@@ -895,7 +917,16 @@
 
       if (publishBtn) {
         publishBtn.disabled = true;
-        publishBtn.innerText = '⏳ Uploading audio & packaging stream... (Please wait)';
+        publishBtn.innerText = '⏳ Ingesting & Uploading Media...';
+      }
+
+      if (progressContainer) {
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressPercentage.innerText = '0%';
+        statusText.innerText = 'Uploading media files to cloud...';
+        bytesText.innerText = '0 MB / 0 MB';
+        etaText.innerText = 'Starting upload stream';
       }
 
       let audioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
@@ -907,20 +938,54 @@
           if (audioFile) formData.append('audioFile', audioFile);
           if (artworkFile) formData.append('artworkFile', artworkFile);
 
-          const uploadRes = await fetch(`${API_BASE}/admin/upload`, {
-            method: 'POST',
-            body: formData,
+          // Upload via XMLHttpRequest to get live byte-level upload progress
+          const uploadData = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${API_BASE}/admin/upload`);
+
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                const loadedMB = (event.loaded / (1024 * 1024)).toFixed(1);
+                const totalMB = (event.total / (1024 * 1024)).toFixed(1);
+
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressPercentage) progressPercentage.innerText = `${percent}%`;
+                if (bytesText) bytesText.innerText = `${loadedMB} MB / ${totalMB} MB`;
+
+                if (percent < 100) {
+                  if (statusText) statusText.innerText = `Uploading audio file (${percent}%)...`;
+                  if (etaText) etaText.innerText = 'Transferring bytes to server';
+                } else {
+                  if (statusText) statusText.innerText = '⚡ Audio uploaded! Packaging HLS streaming playlist on server...';
+                  if (etaText) etaText.innerText = 'Server processing (transcoding & hashing)';
+                }
+              }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const data = JSON.parse(xhr.responseText);
+                  resolve(data);
+                } catch (err) {
+                  reject(new Error('Invalid server JSON response'));
+                }
+              } else {
+                reject(new Error(`Server error (${xhr.status}): ${xhr.responseText || 'Upload failed'}`));
+              }
+            };
+
+            xhr.onerror = () => reject(new Error('Network error during file upload'));
+            xhr.send(formData);
           });
 
-          if (!uploadRes.ok) {
-            const errText = await uploadRes.text();
-            throw new Error(`Upload failed (${uploadRes.status}): ${errText}`);
-          }
-
-          const uploadData = await uploadRes.json();
           if (uploadData.audioUrl) audioUrl = uploadData.audioUrl;
           if (uploadData.albumArtUrl) albumArtUrl = uploadData.albumArtUrl;
         }
+
+        if (statusText) statusText.innerText = '💾 Saving sermon metadata to PostgreSQL database...';
+        if (etaText) etaText.innerText = 'Writing to live database';
 
         const lyricRows = document.querySelectorAll('.lyric-row');
         const lyrics = [];
@@ -945,6 +1010,12 @@
         });
 
         if (res.ok) {
+          if (statusText) statusText.innerText = '🎉 Sermon published successfully!';
+          if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.style.background = 'linear-gradient(90deg, #10B981, #34D399)';
+          }
+          if (progressPercentage) progressPercentage.innerText = '100%';
           alert('🚀 Sermon published successfully and saved to database!');
           switchTab('catalog');
         } else {
@@ -953,6 +1024,7 @@
         }
       } catch (e) {
         console.error('Publish error:', e);
+        if (statusText) statusText.innerText = `❌ Error: ${e.message}`;
         alert(`Failed to publish sermon: ${e.message}`);
       } finally {
         if (publishBtn) {
