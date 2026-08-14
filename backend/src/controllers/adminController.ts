@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { dbClient } from '../data/dbClient';
 import { HlsTranscoder } from '../services/hlsTranscoder';
+import { S3StorageService } from '../services/s3StorageService';
 import { Track, LyricLine, IntentCategory, MediaType, CategoryItem } from '../models/types';
 import path from 'path';
 
@@ -14,11 +15,18 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
 
     let audioUrl = '';
     let albumArtUrl = '';
-    let hlsUrl = '';
 
     if (files && files['audioFile'] && files['audioFile'][0]) {
       const audioFile = files['audioFile'][0];
-      audioUrl = `${serverBaseUrl}/uploads/audio/${audioFile.filename}`;
+
+      // Upload to AWS S3 (or fallback to server URL)
+      const uploadRes = await S3StorageService.uploadFile(
+        audioFile.path,
+        'audio',
+        audioFile.filename,
+        serverBaseUrl
+      );
+      audioUrl = uploadRes.url;
 
       // Trigger FFmpeg HLS stream packaging asynchronously in background (non-blocking)
       const trackTempId = `hls_${Date.now()}`;
@@ -28,7 +36,14 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
     }
 
     if (files && files['artworkFile'] && files['artworkFile'][0]) {
-      albumArtUrl = `${serverBaseUrl}/uploads/artwork/${files['artworkFile'][0].filename}`;
+      const artworkFile = files['artworkFile'][0];
+      const uploadRes = await S3StorageService.uploadFile(
+        artworkFile.path,
+        'artwork',
+        artworkFile.filename,
+        serverBaseUrl
+      );
+      albumArtUrl = uploadRes.url;
     }
 
     res.status(200).json({
