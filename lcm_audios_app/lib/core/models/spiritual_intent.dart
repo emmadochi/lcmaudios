@@ -177,7 +177,7 @@ class SpiritualIntent {
     SpiritualIntent(
       id: 'cat_8',
       categoryKey: 'Tithe',
-      title: 'Tithe & Kingdom Wealth',
+      title: 'Tithe',
       description: 'Covenant financial prosperity & stewardship',
       icon: Icons.payments_rounded,
       accentColor: Color(0xFFF59E0B),

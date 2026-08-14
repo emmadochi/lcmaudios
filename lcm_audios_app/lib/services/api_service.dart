@@ -21,7 +21,7 @@ class ApiService {
   static Future<List<SpiritualIntent>> fetchCategories() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/categories'),
+        Uri.parse('$baseUrl/admin/categories'),
       ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
