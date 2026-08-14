@@ -8,13 +8,17 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
+    // Derive public base URL from the incoming request so it works both locally and on Render
+    const serverBaseUrl = process.env.SERVER_BASE_URL ||
+      `${req.protocol}://${req.get('host')}`;
+
     let audioUrl = '';
     let albumArtUrl = '';
     let hlsUrl = '';
 
     if (files && files['audioFile'] && files['audioFile'][0]) {
       const audioFile = files['audioFile'][0];
-      audioUrl = `http://localhost:5000/uploads/audio/${audioFile.filename}`;
+      audioUrl = `${serverBaseUrl}/uploads/audio/${audioFile.filename}`;
 
       // Automatically trigger FFmpeg HLS stream packaging
       const trackTempId = `hls_${Date.now()}`;
@@ -25,7 +29,7 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
     }
 
     if (files && files['artworkFile'] && files['artworkFile'][0]) {
-      albumArtUrl = `http://localhost:5000/uploads/artwork/${files['artworkFile'][0].filename}`;
+      albumArtUrl = `${serverBaseUrl}/uploads/artwork/${files['artworkFile'][0].filename}`;
     }
 
     res.status(200).json({

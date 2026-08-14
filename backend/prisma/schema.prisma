@@ -10,13 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum IntentCategory {
-  morningDevotion
-  deepWorship
-  warfarePrayers
-  studyFocus
-}
-
 enum MediaType {
   song
   sermon
@@ -35,16 +28,17 @@ model User {
 }
 
 model Track {
-  id             String         @id @default(uuid())
+  id             String       @id @default(uuid())
   title          String
   artist         String
   albumArtUrl    String
   audioUrl       String
   duration       Int
   subgenre       String
-  intentCategory IntentCategory @default(morningDevotion)
-  mediaType      MediaType      @default(song)
-  createdAt      DateTime       @default(now())
+  intentCategory String       @default("morningDevotion")
+  mediaType      MediaType    @default(song)
+  playCount      Int          @default(0)
+  createdAt      DateTime     @default(now())
   lyrics         LyricLine[]
   notes          SermonNote[]
 }
@@ -84,4 +78,3 @@ model TelemetryEvent {
   timestamp             DateTime @default(now())
   createdAt             DateTime @default(now())
 }
-

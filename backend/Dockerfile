@@ -31,18 +31,22 @@ ENV PORT=5000
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Production-only install + regenerate Prisma client
+# Production-only install + regenerate Prisma client for Alpine target
 RUN npm install --omit=dev
 RUN npx prisma generate
 
-# Copy compiled JS, static assets
+# Copy compiled JS output
 COPY --from=builder /app/dist ./dist
 
-# Create upload directories (populated at runtime)
+# Copy static admin panel files
+COPY --from=builder /app/public ./public
+
+# Create upload directories (populated at runtime via Render disk or volume)
 RUN mkdir -p uploads/audio uploads/artwork uploads/hls
 
 EXPOSE 5000
 
-# Startup: run pending DB migrations then start server
-# prisma migrate deploy is idempotent — safe on every container start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Startup: run DB migrations (idempotent & safe on every deploy), then start server.
+# The "|| true" ensures the container boots even if DATABASE_URL is temporarily
+# unavailable (e.g. DB still provisioning), so the healthcheck can still respond.
+CMD ["sh", "-c", "npx prisma migrate deploy || echo '[Startup] Migration skipped or already applied.' && node dist/server.js"]

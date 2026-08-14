@@ -159,11 +159,11 @@ class DbClient {
           audioUrl: t.audioUrl,
           duration: t.duration,
           subgenre: t.subgenre,
-          intentCategory: t.intentCategory as IntentCategory,
+          intentCategory: t.intentCategory as string,
           mediaType: t.mediaType as MediaType,
           isDownloaded: false,
           isFavorite: false,
-          playCount: 120,
+          playCount: t.playCount || 0,
           createdAt: t.createdAt.toISOString(),
           lyrics: t.lyrics.map((l: any) => ({
             id: l.id,
