@@ -64,6 +64,7 @@ class MockDataService {
       mediaType: MediaType.sermon,
       isDownloaded: true,
       isFavorite: false,
+      isPremium: true,
       lyrics: const [
         LyricLine(timestampSeconds: 0, text: 'Lift up your heads, O ye gates!'),
         LyricLine(timestampSeconds: 20, text: 'Every stronghold contrary to your destiny is broken now.'),

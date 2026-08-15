@@ -41,6 +41,7 @@ export interface Track {
   mediaType: MediaType;
   isDownloaded?: boolean;
   isFavorite?: boolean;
+  isPremium?: boolean;
   playCount?: number;
   lyrics: LyricLine[];
   notes?: SermonNote[];

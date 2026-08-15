@@ -59,7 +59,7 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
 
 export const createTrackAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { title, artist, audioUrl, albumArtUrl, duration, subgenre, intentCategory, mediaType, lyrics } = req.body;
+    const { title, artist, audioUrl, albumArtUrl, duration, subgenre, intentCategory, mediaType, isPremium, lyrics } = req.body;
 
     if (!title || !artist || !audioUrl || !intentCategory) {
       res.status(400).json({ error: 'title, artist, audioUrl, and intentCategory are required fields.' });
@@ -90,6 +90,7 @@ export const createTrackAdmin = async (req: Request, res: Response): Promise<voi
       mediaType: (mediaType as MediaType) || 'song',
       isDownloaded: false,
       isFavorite: false,
+      isPremium: isPremium === true || isPremium === 'true',
       playCount: 1,
       lyrics: parsedLyrics,
       createdAt: new Date().toISOString(),
@@ -103,6 +104,36 @@ export const createTrackAdmin = async (req: Request, res: Response): Promise<voi
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create track.' });
+  }
+};
+
+export const updateTrackAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, artist, subgenre, intentCategory, mediaType, isPremium, duration, albumArtUrl, lyrics } = req.body;
+
+    const updated = await dbClient.updateTrack(id, {
+      title,
+      artist,
+      subgenre,
+      intentCategory,
+      mediaType,
+      isPremium: isPremium !== undefined ? (isPremium === true || isPremium === 'true') : undefined,
+      duration: duration ? Number(duration) : undefined,
+      albumArtUrl,
+    });
+
+    if (!updated) {
+      res.status(404).json({ error: 'Track not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'Track updated successfully.',
+      track: updated,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update track.' });
   }
 };
 

@@ -4,8 +4,15 @@ import { getTracks, getTrackById, getLyrics } from '../controllers/trackControll
 import { getNotes, createNote } from '../controllers/noteController';
 import { logTelemetry } from '../controllers/telemetryController';
 import {
+  initializePayment,
+  verifyPayment,
+  handleWebhook,
+  getPartnerLedgerAdmin,
+} from '../controllers/paymentController';
+import {
   uploadMedia,
   createTrackAdmin,
+  updateTrackAdmin,
   deleteTrackAdmin,
   getAnalyticsAdmin,
   getCategoriesAdmin,
@@ -21,6 +28,12 @@ const apiRouter = Router();
 apiRouter.post('/auth/register', register);
 apiRouter.post('/auth/login', login);
 apiRouter.get('/auth/me', getMe);
+
+// Paystack Covenant Partner Payments
+apiRouter.post('/payments/initialize', initializePayment);
+apiRouter.get('/payments/verify/:reference', verifyPayment);
+apiRouter.post('/payments/webhook', handleWebhook);
+apiRouter.get('/admin/partners/ledger', getPartnerLedgerAdmin);
 
 // Tracks & Intent Discovery Routes
 apiRouter.get('/tracks', getTracks);
@@ -52,6 +65,7 @@ apiRouter.post(
   uploadMedia
 );
 apiRouter.post('/admin/tracks', createTrackAdmin);
+apiRouter.put('/admin/tracks/:id', updateTrackAdmin);
 apiRouter.delete('/admin/tracks/:id', deleteTrackAdmin);
 
 // Admin Analytics Dashboard Routes

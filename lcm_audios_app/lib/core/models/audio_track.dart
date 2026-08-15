@@ -67,6 +67,7 @@ class AudioTrack {
   final MediaType mediaType;
   final bool isDownloaded;
   final bool isFavorite;
+  final bool isPremium;
   final List<LyricLine> lyrics;
   final List<SermonNote> notes;
 
@@ -83,6 +84,7 @@ class AudioTrack {
     required this.mediaType,
     this.isDownloaded = false,
     this.isFavorite = false,
+    this.isPremium = false,
     this.lyrics = const [],
     this.notes = const [],
   });
@@ -135,6 +137,7 @@ class AudioTrack {
       mediaType: parseMediaType(json['mediaType'] as String?),
       isDownloaded: json['isDownloaded'] as bool? ?? false,
       isFavorite: json['isFavorite'] as bool? ?? false,
+      isPremium: json['isPremium'] as bool? ?? false,
       lyrics: (json['lyrics'] as List?)?.map((e) => LyricLine.fromJson(e)).toList() ?? [],
       notes: (json['notes'] as List?)?.map((e) => SermonNote.fromJson(e)).toList() ?? [],
     );
@@ -143,6 +146,7 @@ class AudioTrack {
   AudioTrack copyWith({
     bool? isDownloaded,
     bool? isFavorite,
+    bool? isPremium,
     List<SermonNote>? notes,
   }) {
     return AudioTrack(
@@ -158,6 +162,7 @@ class AudioTrack {
       mediaType: mediaType,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       isFavorite: isFavorite ?? this.isFavorite,
+      isPremium: isPremium ?? this.isPremium,
       lyrics: lyrics,
       notes: notes ?? this.notes,
     );

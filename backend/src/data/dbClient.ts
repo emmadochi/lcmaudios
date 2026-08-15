@@ -278,6 +278,53 @@ class DbClient {
     return trackData;
   }
 
+  public async updateTrack(id: string, updateData: Partial<Track>): Promise<Track | null> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const updated = await this.prisma.track.update({
+          where: { id },
+          data: {
+            title: updateData.title,
+            artist: updateData.artist,
+            subgenre: updateData.subgenre,
+            intentCategory: updateData.intentCategory,
+            mediaType: updateData.mediaType,
+            duration: updateData.duration,
+            albumArtUrl: updateData.albumArtUrl,
+          },
+          include: { lyrics: true },
+        });
+        return {
+          id: updated.id,
+          title: updated.title,
+          artist: updated.artist,
+          albumArtUrl: updated.albumArtUrl,
+          audioUrl: updated.audioUrl,
+          duration: updated.duration,
+          subgenre: updated.subgenre,
+          intentCategory: updated.intentCategory as IntentCategory,
+          mediaType: updated.mediaType as MediaType,
+          createdAt: updated.createdAt.toISOString(),
+          lyrics: updated.lyrics.map((l: any) => ({
+            id: l.id,
+            trackId: l.trackId,
+            timestampSeconds: l.timestampSeconds,
+            text: l.text,
+          })),
+        };
+      } catch (e) {
+        console.error('[DB Client] Prisma updateTrack error:', e);
+      }
+    }
+    const mock = MockDatabase.getInstance();
+    const idx = mock.tracks.findIndex((t: Track) => t.id === id);
+    if (idx !== -1) {
+      mock.tracks[idx] = { ...mock.tracks[idx], ...updateData };
+      return mock.tracks[idx];
+    }
+    return null;
+  }
+
   public async deleteTrack(id: string): Promise<boolean> {
     if (this.isPrismaConnected && this.prisma) {
       try {

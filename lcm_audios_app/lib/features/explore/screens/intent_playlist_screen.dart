@@ -4,6 +4,7 @@ import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/audio_player_service.dart';
+import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class IntentPlaylistScreen extends StatelessWidget {
   final SpiritualIntent intent;
@@ -143,21 +144,39 @@ class IntentPlaylistScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
-                        icon: const Icon(Icons.download_rounded, size: 20),
-                        label: const Text('Download All'),
-                        onPressed: () {
-                          for (var t in tracks) {
-                            if (!t.isDownloaded) {
-                              playerService.toggleDownload(t.id);
-                            }
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Downloading ${tracks.length} tracks for offline play'),
-                              backgroundColor: AppColors.surface,
-                            ),
-                          );
-                        },
+                        icon: const Icon(Icons.download_for_offline_rounded, size: 20, color: AppColors.offlineBadge),
+                        label: Text(
+                          tracks.every((t) => t.isDownloaded) ? 'All Downloaded' : 'Download All (${tracks.where((t) => !t.isDownloaded).length})',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        onPressed: tracks.every((t) => t.isDownloaded)
+                            ? null
+                            : () async {
+                                if (!playerService.isCovenantPartner && playerService.hasReachedDownloadLimit) {
+                                  CovenantPartnerPaywallSheet.show(
+                                    context,
+                                    sourceFeature: 'Batch Playlist Downloads',
+                                  );
+                                  return;
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Starting offline DRM download for ${tracks.length} tracks...'),
+                                    backgroundColor: AppColors.surface,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                                final count = await playerService.batchDownloadTracks(tracks);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Saved $count tracks to AES-256 encrypted storage.'),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
                       ),
                     ],
                   ),
@@ -210,15 +229,41 @@ class IntentPlaylistScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                title: Text(
-                                  track.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isCurrent ? AppColors.primary : AppColors.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        track.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    if (track.isPremium) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFFFFDF79), Color(0xFFD4AF37)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          '👑 EXCLUSIVE',
+                                          style: TextStyle(
+                                            color: Color(0xFF140D1E),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 subtitle: Text(
                                   '${track.artist} • ${track.formattedDuration}',

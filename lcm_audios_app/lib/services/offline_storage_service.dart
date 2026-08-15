@@ -206,6 +206,49 @@ class OfflineStorageService {
     }
   }
 
+  /// Calculate the total size in bytes of all encrypted `.lcmdrm` files stored locally.
+  static Future<int> getTotalCacheSizeBytes() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      if (!await dir.exists()) return 0;
+
+      int totalBytes = 0;
+      final files = dir.listSync();
+      for (final entity in files) {
+        if (entity is File && entity.path.endsWith('.lcmdrm')) {
+          totalBytes += await entity.length();
+        }
+      }
+      return totalBytes;
+    } catch (e) {
+      debugPrint('[DRM] Error calculating cache size: $e');
+      return 0;
+    }
+  }
+
+  /// Purge all downloaded encrypted files from disk and reset the registry.
+  static Future<bool> clearAllCache() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      if (await dir.exists()) {
+        final files = dir.listSync();
+        for (final entity in files) {
+          if (entity is File && entity.path.endsWith('.lcmdrm')) {
+            await entity.delete();
+          }
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_downloadedIdsKey);
+      debugPrint('[DRM] 🧹 Purged all offline DRM files.');
+      return true;
+    } catch (e) {
+      debugPrint('[DRM] Clear cache error: $e');
+      return false;
+    }
+  }
+
   // ─── Telemetry Queue ─────────────────────────────────────────────────────
 
   /// Queue a playback metering event for later batch sync to the backend.

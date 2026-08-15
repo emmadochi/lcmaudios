@@ -1,16 +1,29 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
+import '../core/models/custom_playlist.dart';
 import 'api_service.dart';
 import 'mock_data_service.dart';
 import 'offline_storage_service.dart';
+import 'audio_handler.dart';
+
+enum RepeatMode {
+  off,
+  all,
+  one,
+}
 
 class AudioPlayerService extends ChangeNotifier {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  LcmAudioHandler? _audioHandler;
+  LcmAudioHandler? get audioHandler => _audioHandler;
 
   List<AudioTrack> _allTracks = [];
   AudioTrack? _currentTrack;
@@ -23,6 +36,21 @@ class AudioPlayerService extends ChangeNotifier {
 
   List<SpiritualIntent> _categories = List.from(SpiritualIntent.defaultCategories);
   String _selectedCategoryKey = 'all';
+
+  // ─── Custom Playlists & Active Queue State ────────────────────────────────
+  List<CustomPlaylist> _customPlaylists = [];
+  List<CustomPlaylist> get customPlaylists => _customPlaylists;
+
+  List<AudioTrack> _queue = [];
+  List<AudioTrack> get queue => _queue;
+  int _currentQueueIndex = 0;
+  int get currentQueueIndex => _currentQueueIndex;
+
+  bool _isShuffle = false;
+  bool get isShuffle => _isShuffle;
+
+  RepeatMode _repeatMode = RepeatMode.off;
+  RepeatMode get repeatMode => _repeatMode;
 
   // ─── Playback Speed & Sleep Timer State ───────────────────────────────────
   double _playbackSpeed = 1.0;
@@ -54,6 +82,91 @@ class AudioPlayerService extends ChangeNotifier {
 
   String _userName = 'Grace Worshipper';
   int _listenCount = 3;
+
+  // ─── Mini Player Visibility State ─────────────────────────────────────────
+  bool _isMiniPlayerDismissed = false;
+  bool get isMiniPlayerDismissed => _isMiniPlayerDismissed;
+
+  void dismissMiniPlayer() {
+    _isMiniPlayerDismissed = true;
+    notifyListeners();
+  }
+
+  void showMiniPlayer() {
+    _isMiniPlayerDismissed = false;
+    notifyListeners();
+  }
+
+  // ─── Covenant Partner (Premium Tier) State & Access Control ───────────────
+  bool _isCovenantPartner = false;
+  bool get isCovenantPartner => _isCovenantPartner;
+
+  String? _partnerPlanType;
+  String? get partnerPlanType => _partnerPlanType;
+
+  String? _partnerPaymentRef;
+  String? get partnerPaymentRef => _partnerPaymentRef;
+
+  String? _partnerReceiptNo;
+  String? get partnerReceiptNo => _partnerReceiptNo;
+
+  String? _partnerExpiryDate;
+  String? get partnerExpiryDate => _partnerExpiryDate;
+
+  bool _previewLimitReached = false;
+  bool get previewLimitReached => _previewLimitReached;
+
+  void resetPreviewLimit() {
+    _previewLimitReached = false;
+    notifyListeners();
+  }
+
+  int get maxFreeDownloads => 3;
+  int get currentDownloadCount => _allTracks.where((t) => t.isDownloaded).length;
+  bool get hasReachedDownloadLimit => !_isCovenantPartner && currentDownloadCount >= maxFreeDownloads;
+
+  bool isTrackAccessible(AudioTrack track) => _isCovenantPartner || !track.isPremium;
+
+  Future<void> activatePartnerTier(
+    bool active, {
+    String? planType,
+    String? reference,
+    String? receiptNumber,
+    String? expiryDate,
+  }) async {
+    _isCovenantPartner = active;
+    _previewLimitReached = false;
+    if (active) {
+      _partnerPlanType   = planType ?? _partnerPlanType ?? 'monthly';
+      _partnerPaymentRef = reference ?? _partnerPaymentRef;
+      _partnerReceiptNo  = receiptNumber ?? _partnerReceiptNo;
+      _partnerExpiryDate = expiryDate ?? _partnerExpiryDate;
+    } else {
+      _partnerPlanType   = null;
+      _partnerPaymentRef = null;
+      _partnerReceiptNo  = null;
+      _partnerExpiryDate = null;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_covenant_partner', active);
+      if (active) {
+        if (_partnerPlanType != null) await prefs.setString('partner_plan_type', _partnerPlanType!);
+        if (_partnerPaymentRef != null) await prefs.setString('partner_payment_ref', _partnerPaymentRef!);
+        if (_partnerReceiptNo != null) await prefs.setString('partner_receipt_no', _partnerReceiptNo!);
+        if (_partnerExpiryDate != null) await prefs.setString('partner_expiry_date', _partnerExpiryDate!);
+      } else {
+        await prefs.remove('partner_plan_type');
+        await prefs.remove('partner_payment_ref');
+        await prefs.remove('partner_receipt_no');
+        await prefs.remove('partner_expiry_date');
+      }
+    } catch (e) {
+      debugPrint('[Partner] Save error: $e');
+    }
+    notifyListeners();
+  }
 
   // ─── Getters ──────────────────────────────────────────────────────────────
   List<AudioTrack> get allTracks => _allTracks;
@@ -102,13 +215,26 @@ class AudioPlayerService extends ChangeNotifier {
     return (points / 100.0).clamp(0.1, 1.0);
   }
 
+  // ─── Offline Mode Only Filter ─────────────────────────────────────────────
+  bool _isOfflineModeOnly = false;
+  bool get isOfflineModeOnly => _isOfflineModeOnly;
+
+  void toggleOfflineModeOnly() {
+    _isOfflineModeOnly = !_isOfflineModeOnly;
+    notifyListeners();
+  }
+
   int get userProgressPercentage => (userProgress * 100).round();
 
   List<AudioTrack> get filteredTracks {
-    if (_selectedCategoryKey == 'all' && _selectedIntent == IntentCategory.all) {
-      return _allTracks;
+    List<AudioTrack> base = _allTracks;
+    if (_isOfflineModeOnly) {
+      base = base.where((t) => t.isDownloaded).toList();
     }
-    return _allTracks.where((t) {
+    if (_selectedCategoryKey == 'all' && _selectedIntent == IntentCategory.all) {
+      return base;
+    }
+    return base.where((t) {
       if (_selectedCategoryKey != 'all') {
         return t.matchesCategoryKey(_selectedCategoryKey);
       }
@@ -120,10 +246,53 @@ class AudioPlayerService extends ChangeNotifier {
   AudioPlayerService() {
     _initAudioContext();
     _allTracks    = List.from(MockDataService.sampleTracks);
-    _currentTrack = _allTracks.isNotEmpty ? _allTracks[0] : null;
+    _currentTrack = null;
+    _initAudioHandler();
     _initPlayerListeners();
     _initConnectivityListener();
     _loadTracksAndStorage();
+  }
+
+  // ─── System AudioService Lock Screen / Media Session ──────────────────────
+  Future<void> _initAudioHandler() async {
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => LcmAudioHandler(),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.lcmaudios.playback',
+          androidNotificationChannelName: 'LCM Audios Playback',
+          androidNotificationChannelDescription: 'Live playback controls & lock screen media metadata',
+          androidNotificationIcon: 'mipmap/ic_launcher',
+          androidShowNotificationBadge: true,
+          androidStopForegroundOnPause: true,
+        ),
+      );
+
+      _audioHandler!.onPlay = () => togglePlayPause();
+      _audioHandler!.onPause = () => togglePlayPause();
+      _audioHandler!.onSeek = (pos) => seekTo(pos);
+      _audioHandler!.onSkipNext = () => skipNext();
+      _audioHandler!.onSkipPrevious = () => skipPrevious();
+      _audioHandler!.onStop = () => _audioPlayer.stop();
+
+      if (_currentTrack != null) {
+        _audioHandler!.updateMediaItemFromTrack(_currentTrack!, _duration);
+        _syncAudioHandler();
+      }
+    } catch (e) {
+      debugPrint('[AudioHandler] Init error: $e');
+    }
+  }
+
+  void _syncAudioHandler() {
+    if (_audioHandler == null) return;
+    _audioHandler!.updatePlayerState(
+      isPlaying: _isPlaying,
+      position: _position,
+      duration: _duration,
+      speed: _playbackSpeed,
+      isBuffering: _isBuffering,
+    );
   }
 
   // ─── Background Audio Context ─────────────────────────────────────────────
@@ -168,6 +337,7 @@ class AudioPlayerService extends ChangeNotifier {
         _startTelemetryTimer();
       }
 
+      _syncAudioHandler();
       notifyListeners();
     });
 
@@ -175,6 +345,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (_sleepTimerEndAtTrack) {
         _sleepTimerEndAtTrack = false;
         _audioPlayer.pause();
+        _syncAudioHandler();
         notifyListeners();
       } else {
         skipNext();
@@ -183,17 +354,34 @@ class AudioPlayerService extends ChangeNotifier {
 
     _durationSubscription = _audioPlayer.onDurationChanged.listen((d) {
       _duration = d;
+      if (_currentTrack != null) {
+        _audioHandler?.updateMediaItemFromTrack(_currentTrack!, d);
+      }
+      _syncAudioHandler();
       notifyListeners();
     });
 
     _positionSubscription = _audioPlayer.onPositionChanged.listen((p) {
       _position = p;
+
+      // 45-Second Anointed Preview Lock for Free Tier
+      if (_currentTrack != null && _currentTrack!.isPremium && !_isCovenantPartner) {
+        if (_position.inSeconds >= 45 && !_previewLimitReached) {
+          _previewLimitReached = true;
+          _audioPlayer.pause();
+          _syncAudioHandler();
+          notifyListeners();
+          return;
+        }
+      }
+
       // Periodically persist position every 5 seconds
       final now = DateTime.now();
       if (_lastPositionSaveTime == null || now.difference(_lastPositionSaveTime!).inSeconds >= 5) {
         _lastPositionSaveTime = now;
         _persistCurrentPosition();
       }
+      _syncAudioHandler();
       notifyListeners();
     });
   }
@@ -352,6 +540,7 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> resumeTrack(AudioTrack track, {Duration? startAt}) async {
+    _isMiniPlayerDismissed = false;
     await playTrack(track);
     if (startAt != null && startAt > Duration.zero) {
       await Future.delayed(const Duration(milliseconds: 300));
@@ -367,9 +556,30 @@ class AudioPlayerService extends ChangeNotifier {
     }
   }
 
-  Future<void> playTrack(AudioTrack track) async {
+  Future<void> playTrack(AudioTrack track, {bool updateQueue = true}) async {
+    _isMiniPlayerDismissed = false;
     _currentTrack = track;
     _resetTelemetry();
+
+    if (updateQueue) {
+      final existingIdx = _queue.indexWhere((t) => t.id == track.id);
+      if (existingIdx != -1) {
+        _currentQueueIndex = existingIdx;
+      } else {
+        if (_queue.isEmpty) {
+          _queue = List.from(filteredTracks.isNotEmpty ? filteredTracks : [track]);
+          _currentQueueIndex = _queue.indexWhere((t) => t.id == track.id);
+          if (_currentQueueIndex == -1) {
+            _queue.insert(0, track);
+            _currentQueueIndex = 0;
+          }
+        } else {
+          _queue.insert(_currentQueueIndex + 1, track);
+          _currentQueueIndex++;
+        }
+      }
+    }
+
     notifyListeners();
 
     try {
@@ -388,8 +598,10 @@ class AudioPlayerService extends ChangeNotifier {
         _isBuffering = false;
         if (decryptedBytes != null && decryptedBytes.isNotEmpty) {
           debugPrint('[Player] 🔐 Offline DRM playback: ${track.id} (${decryptedBytes.length} bytes)');
+          _audioHandler?.updateMediaItemFromTrack(track, track.duration);
           await _audioPlayer.play(BytesSource(decryptedBytes));
           _startTelemetryTimer();
+          _syncAudioHandler();
           return;
         }
       }
@@ -397,9 +609,11 @@ class AudioPlayerService extends ChangeNotifier {
       // Fallback: stream from network
       _isBuffering = true;
       notifyListeners();
+      _audioHandler?.updateMediaItemFromTrack(track, track.duration);
       await _audioPlayer.play(UrlSource(track.audioUrl));
       _isBuffering = false;
       _startTelemetryTimer();
+      _syncAudioHandler();
     } catch (e) {
       _isBuffering = false;
       debugPrint('[Player] Error: $e');
@@ -412,6 +626,7 @@ class AudioPlayerService extends ChangeNotifier {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
+      _isMiniPlayerDismissed = false;
       if (_position > Duration.zero) {
         await _audioPlayer.resume();
       } else {
@@ -427,18 +642,151 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> skipNext() async {
-    final list = filteredTracks;
-    if (list.isEmpty) return;
-    final nextIdx = (list.indexWhere((t) => t.id == _currentTrack?.id) + 1) % list.length;
-    await playTrack(list[nextIdx]);
+    if (_repeatMode == RepeatMode.one && _currentTrack != null) {
+      await seekTo(Duration.zero);
+      await _audioPlayer.resume();
+      return;
+    }
+
+    if (_queue.isNotEmpty) {
+      if (_isShuffle && _queue.length > 1) {
+        int nextRandomIdx;
+        do {
+          nextRandomIdx = Random().nextInt(_queue.length);
+        } while (nextRandomIdx == _currentQueueIndex && _queue.length > 1);
+        _currentQueueIndex = nextRandomIdx;
+        await playTrack(_queue[_currentQueueIndex], updateQueue: false);
+        return;
+      }
+
+      if (_currentQueueIndex + 1 < _queue.length) {
+        _currentQueueIndex++;
+        await playTrack(_queue[_currentQueueIndex], updateQueue: false);
+      } else if (_repeatMode == RepeatMode.all) {
+        _currentQueueIndex = 0;
+        await playTrack(_queue[0], updateQueue: false);
+      } else {
+        // Reached end of queue without repeat all
+        await _audioPlayer.pause();
+        await seekTo(Duration.zero);
+      }
+    } else {
+      final list = filteredTracks;
+      if (list.isEmpty) return;
+      final nextIdx = (list.indexWhere((t) => t.id == _currentTrack?.id) + 1) % list.length;
+      await playTrack(list[nextIdx]);
+    }
   }
 
   Future<void> skipPrevious() async {
-    final list = filteredTracks;
-    if (list.isEmpty) return;
-    final prevIdx =
-        (list.indexWhere((t) => t.id == _currentTrack?.id) - 1 + list.length) % list.length;
-    await playTrack(list[prevIdx]);
+    if (_position.inSeconds > 4) {
+      await seekTo(Duration.zero);
+      return;
+    }
+
+    if (_queue.isNotEmpty) {
+      if (_currentQueueIndex > 0) {
+        _currentQueueIndex--;
+        await playTrack(_queue[_currentQueueIndex], updateQueue: false);
+      } else if (_repeatMode == RepeatMode.all) {
+        _currentQueueIndex = _queue.length - 1;
+        await playTrack(_queue[_currentQueueIndex], updateQueue: false);
+      } else {
+        await seekTo(Duration.zero);
+      }
+    } else {
+      final list = filteredTracks;
+      if (list.isEmpty) return;
+      final prevIdx =
+          (list.indexWhere((t) => t.id == _currentTrack?.id) - 1 + list.length) % list.length;
+      await playTrack(list[prevIdx]);
+    }
+  }
+
+  // ─── Queue Management ─────────────────────────────────────────────────────
+  void toggleShuffle() {
+    _isShuffle = !_isShuffle;
+    notifyListeners();
+  }
+
+  void cycleRepeatMode() {
+    switch (_repeatMode) {
+      case RepeatMode.off:
+        _repeatMode = RepeatMode.all;
+        break;
+      case RepeatMode.all:
+        _repeatMode = RepeatMode.one;
+        break;
+      case RepeatMode.one:
+        _repeatMode = RepeatMode.off;
+        break;
+    }
+    notifyListeners();
+  }
+
+  void setQueue(List<AudioTrack> newQueue, {int startIndex = 0}) {
+    _queue = List.from(newQueue);
+    _currentQueueIndex = startIndex.clamp(0, _queue.isNotEmpty ? _queue.length - 1 : 0);
+    notifyListeners();
+  }
+
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _queue.length) return;
+    if (newIndex > _queue.length) newIndex = _queue.length;
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, item);
+    if (_currentTrack != null) {
+      _currentQueueIndex = _queue.indexWhere((t) => t.id == _currentTrack!.id);
+    }
+    notifyListeners();
+  }
+
+  void removeFromQueue(int index) {
+    if (index < 0 || index >= _queue.length) return;
+    _queue.removeAt(index);
+    if (_currentTrack != null) {
+      _currentQueueIndex = _queue.indexWhere((t) => t.id == _currentTrack!.id);
+      if (_currentQueueIndex == -1 && _queue.isNotEmpty) {
+        _currentQueueIndex = 0;
+      }
+    }
+    notifyListeners();
+  }
+
+  void addToQueueNext(AudioTrack track) {
+    if (_queue.isEmpty) {
+      _queue = [track];
+      _currentQueueIndex = 0;
+    } else {
+      final insertIndex = (_currentQueueIndex + 1).clamp(0, _queue.length);
+      _queue.insert(insertIndex, track);
+    }
+    notifyListeners();
+  }
+
+  void addToQueueEnd(AudioTrack track) {
+    _queue.add(track);
+    notifyListeners();
+  }
+
+  void clearQueue() {
+    if (_currentTrack != null) {
+      _queue = [_currentTrack!];
+      _currentQueueIndex = 0;
+    } else {
+      _queue.clear();
+      _currentQueueIndex = 0;
+    }
+    notifyListeners();
+  }
+
+  Future<void> playFromQueue(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    _currentQueueIndex = index;
+    await playTrack(_queue[index], updateQueue: false);
   }
 
   // ─── Favorites ────────────────────────────────────────────────────────────
@@ -452,9 +800,9 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   // ─── Downloads ────────────────────────────────────────────────────────────
-  Future<void> toggleDownload(String trackId) async {
+  Future<bool> toggleDownload(String trackId) async {
     final idx = _allTracks.indexWhere((t) => t.id == trackId);
-    if (idx == -1) return;
+    if (idx == -1) return false;
 
     final track = _allTracks[idx];
 
@@ -466,8 +814,15 @@ class AudioPlayerService extends ChangeNotifier {
         if (_currentTrack?.id == trackId) _currentTrack = _allTracks[idx];
         _downloadProgress.remove(trackId);
         notifyListeners();
+        return true;
       }
+      return false;
     } else {
+      // Check free download tier limit (3 downloads max for free users)
+      if (hasReachedDownloadLimit) {
+        return false;
+      }
+
       // Stream download with progress
       _downloadProgress[trackId] = 0.0;
       notifyListeners();
@@ -487,11 +842,58 @@ class AudioPlayerService extends ChangeNotifier {
       }
       _downloadProgress.remove(trackId);
       notifyListeners();
+      return success;
     }
   }
 
   /// Returns [0.0 – 1.0] if a download is in progress, or null otherwise.
   double? getDownloadProgressFor(String trackId) => _downloadProgress[trackId];
+
+  /// Download multiple tracks sequentially with real-time progress.
+  Future<int> batchDownloadTracks(List<AudioTrack> tracks) async {
+    final toDownload = tracks.where((t) => !t.isDownloaded).toList();
+    if (toDownload.isEmpty) return 0;
+
+    int successCount = 0;
+    for (final track in toDownload) {
+      _downloadProgress[track.id] = 0.0;
+      notifyListeners();
+
+      final success = await OfflineStorageService.downloadEncryptedTrack(
+        track.id,
+        track.audioUrl,
+        onProgress: (p) {
+          _downloadProgress[track.id] = p;
+          notifyListeners();
+        },
+      );
+
+      if (success) {
+        successCount++;
+        final idx = _allTracks.indexWhere((t) => t.id == track.id);
+        if (idx != -1) {
+          _allTracks[idx] = _allTracks[idx].copyWith(isDownloaded: true);
+          if (_currentTrack?.id == track.id) _currentTrack = _allTracks[idx];
+        }
+      }
+      _downloadProgress.remove(track.id);
+      notifyListeners();
+    }
+    return successCount;
+  }
+
+  /// Purge all offline DRM downloads from local storage.
+  Future<void> clearAllOfflineCache() async {
+    await OfflineStorageService.clearAllCache();
+    for (int i = 0; i < _allTracks.length; i++) {
+      _allTracks[i] = _allTracks[i].copyWith(isDownloaded: false);
+    }
+    if (_currentTrack != null) {
+      _currentTrack = _currentTrack!.copyWith(isDownloaded: false);
+    }
+    _downloadProgress.clear();
+    notifyListeners();
+  }
 
   // ─── Profile / User ───────────────────────────────────────────────────────
   Future<void> setUserName(String name) async {
@@ -528,11 +930,115 @@ class AudioPlayerService extends ChangeNotifier {
     );
   }
 
+  // ─── Custom User Playlists ────────────────────────────────────────────────
+  static const String _customPlaylistsKey = 'lcm_user_custom_playlists';
+
+  Future<void> _loadCustomPlaylists() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawList = prefs.getStringList(_customPlaylistsKey) ?? [];
+      if (rawList.isEmpty) {
+        // Seed initial default playlists if none exist
+        _customPlaylists = [
+          CustomPlaylist(
+            id: 'pl_default_1',
+            title: 'Midnight Prayers & Warfare',
+            description: 'Intense declarations, midnight chants & deliverance sermons',
+            trackIds: _allTracks.take(3).map((t) => t.id).toList(),
+            createdAt: DateTime.now().subtract(const Duration(days: 2)),
+          ),
+          CustomPlaylist(
+            id: 'pl_default_2',
+            title: 'Atmosphere for Healing & Faith',
+            description: 'Calm instrumental worship and faith-building teachings',
+            trackIds: _allTracks.skip(1).take(2).map((t) => t.id).toList(),
+            createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+        ];
+        await _saveCustomPlaylists();
+      } else {
+        _customPlaylists = rawList
+            .map((str) => CustomPlaylist.fromJson(json.decode(str) as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[Playlists] Load error: $e');
+    }
+  }
+
+  Future<void> _saveCustomPlaylists() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawList = _customPlaylists.map((pl) => json.encode(pl.toJson())).toList();
+      await prefs.setStringList(_customPlaylistsKey, rawList);
+    } catch (e) {
+      debugPrint('[Playlists] Save error: $e');
+    }
+  }
+
+  Future<CustomPlaylist> createPlaylist(String title, String description) async {
+    final newPl = CustomPlaylist(
+      id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+      title: title.trim(),
+      description: description.trim(),
+      trackIds: [],
+      createdAt: DateTime.now(),
+    );
+    _customPlaylists.insert(0, newPl);
+    await _saveCustomPlaylists();
+    notifyListeners();
+    return newPl;
+  }
+
+  Future<void> addTrackToPlaylist(String playlistId, String trackId) async {
+    final idx = _customPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx == -1) return;
+
+    if (!_customPlaylists[idx].trackIds.contains(trackId)) {
+      final updatedTrackIds = List<String>.from(_customPlaylists[idx].trackIds)..add(trackId);
+      _customPlaylists[idx] = _customPlaylists[idx].copyWith(trackIds: updatedTrackIds);
+      await _saveCustomPlaylists();
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeTrackFromPlaylist(String playlistId, String trackId) async {
+    final idx = _customPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx == -1) return;
+
+    final updatedTrackIds = List<String>.from(_customPlaylists[idx].trackIds)..remove(trackId);
+    _customPlaylists[idx] = _customPlaylists[idx].copyWith(trackIds: updatedTrackIds);
+    await _saveCustomPlaylists();
+    notifyListeners();
+  }
+
+  Future<void> deletePlaylist(String playlistId) async {
+    _customPlaylists.removeWhere((p) => p.id == playlistId);
+    await _saveCustomPlaylists();
+    notifyListeners();
+  }
+
+  Future<void> playCustomPlaylist(CustomPlaylist playlist, {int startIndex = 0}) async {
+    final tracks = _allTracks.where((t) => playlist.trackIds.contains(t.id)).toList();
+    if (tracks.isEmpty) return;
+
+    setQueue(tracks, startIndex: startIndex);
+    final targetTrack = tracks[startIndex.clamp(0, tracks.length - 1)];
+    await playTrack(targetTrack, updateQueue: false);
+  }
+
   // ─── Initialisation ───────────────────────────────────────────────────────
   Future<void> _loadTracksAndStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    _userName    = prefs.getString('user_name') ?? 'Grace Worshipper';
-    _listenCount = prefs.getInt('user_listen_count') ?? 3;
+    _userName          = prefs.getString('user_name') ?? 'Grace Worshipper';
+    _listenCount       = prefs.getInt('user_listen_count') ?? 3;
+    _isCovenantPartner = prefs.getBool('is_covenant_partner') ?? false;
+    if (_isCovenantPartner) {
+      _partnerPlanType   = prefs.getString('partner_plan_type') ?? 'monthly';
+      _partnerPaymentRef = prefs.getString('partner_payment_ref');
+      _partnerReceiptNo  = prefs.getString('partner_receipt_no');
+      _partnerExpiryDate = prefs.getString('partner_expiry_date');
+    }
 
     // Restore last played track and position
     _lastPlayedTrackId = prefs.getString('last_played_track_id');
@@ -553,11 +1059,11 @@ class AudioPlayerService extends ChangeNotifier {
       final apiTracks = await ApiService.fetchTracks();
       if (apiTracks.isNotEmpty) {
         _allTracks = apiTracks;
-        if (_currentTrack == null || _allTracks.every((t) => t.id != _currentTrack!.id)) {
-          _currentTrack = _allTracks.first;
-        }
       }
     }
+
+    // Load custom user playlists
+    await _loadCustomPlaylists();
 
     // Sync downloaded state from local storage
     final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
@@ -567,7 +1073,17 @@ class AudioPlayerService extends ChangeNotifier {
       }
     }
 
-    if (_currentTrack != null) {
+    // Restore pending track state if available
+    if (_lastPlayedTrackId != null) {
+      final idx = _allTracks.indexWhere((t) => t.id == _lastPlayedTrackId);
+      if (idx != -1) {
+        _currentTrack = _allTracks[idx];
+        _position = _lastPlayedPosition;
+        if (_currentTrack!.duration > Duration.zero) {
+          _duration = _currentTrack!.duration;
+        }
+      }
+    } else if (_currentTrack != null) {
       final idx = _allTracks.indexWhere((t) => t.id == _currentTrack!.id);
       if (idx != -1) _currentTrack = _allTracks[idx];
     }

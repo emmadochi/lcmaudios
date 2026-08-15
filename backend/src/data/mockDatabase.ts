@@ -108,6 +108,7 @@ export class MockDatabase {
         mediaType: 'song',
         isDownloaded: true,
         isFavorite: true,
+        isPremium: false,
         playCount: 1420,
         createdAt: new Date().toISOString(),
         lyrics: [
@@ -132,6 +133,7 @@ export class MockDatabase {
         mediaType: 'sermon',
         isDownloaded: false,
         isFavorite: true,
+        isPremium: false,
         playCount: 980,
         createdAt: new Date().toISOString(),
         lyrics: [
@@ -143,7 +145,7 @@ export class MockDatabase {
       },
       {
         id: 'track_3',
-        title: 'Warfare & Spiritual Breakthrough',
+        title: 'Warfare & Spiritual Breakthrough (Intensive)',
         artist: 'Apostle Joshua Selman',
         albumArtUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80',
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
@@ -153,6 +155,7 @@ export class MockDatabase {
         mediaType: 'sermon',
         isDownloaded: true,
         isFavorite: false,
+        isPremium: true,
         playCount: 1850,
         createdAt: new Date().toISOString(),
         lyrics: [
@@ -173,6 +176,7 @@ export class MockDatabase {
         mediaType: 'song',
         isDownloaded: false,
         isFavorite: true,
+        isPremium: false,
         playCount: 640,
         createdAt: new Date().toISOString(),
         lyrics: [

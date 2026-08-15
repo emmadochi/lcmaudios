@@ -162,6 +162,7 @@ class ExploreScreen extends StatelessWidget {
                       ),
                     );
                   }),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

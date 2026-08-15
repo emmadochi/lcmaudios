@@ -65,6 +65,7 @@ class PremiumScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 120),
           ],
         ),
       ),

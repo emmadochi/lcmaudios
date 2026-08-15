@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
+import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
+import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +32,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSearchDialog(BuildContext context, AudioPlayerService playerService) {
+    String selectedFilter = 'All';
+    final filterChips = ['All', 'Sermons', 'Worship', 'Warfare', 'Prayer', 'Downloaded', 'With Notes'];
+    final quickSuggestions = [
+      'Apostle Joshua Selman',
+      'Deep Worship',
+      'Warfare & Deliverance',
+      'Morning Devotion',
+      'Atmosphere of Grace',
+      'Healing',
+    ];
+
+    String formatDuration(Duration d) {
+      final m = d.inMinutes.toString().padLeft(2, '0');
+      final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+      return '$m:$s';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -39,49 +58,154 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
-          final results = playerService.allTracks.where((t) {
-            final query = _searchQuery.toLowerCase();
-            return t.title.toLowerCase().contains(query) ||
-                t.artist.toLowerCase().contains(query) ||
-                t.subgenre.toLowerCase().contains(query);
-          }).toList();
+          final query = _searchQuery.trim().toLowerCase();
+
+          // Filter tracks based on query and selected category chip
+          final List<Map<String, dynamic>> searchResultsWithMetadata = [];
+
+          for (final track in playerService.allTracks) {
+            // Check chip filter
+            bool passesChipFilter = true;
+            switch (selectedFilter) {
+              case 'Sermons':
+                passesChipFilter = track.subgenre.toLowerCase().contains('sermon') ||
+                    track.subgenre.toLowerCase().contains('apostle') ||
+                    track.intentCategory == IntentCategory.studyFocus;
+                break;
+              case 'Worship':
+                passesChipFilter = track.intentCategory == IntentCategory.deepWorship ||
+                    track.subgenre.toLowerCase().contains('worship') ||
+                    track.subgenre.toLowerCase().contains('chant');
+                break;
+              case 'Warfare':
+                passesChipFilter = track.intentCategory == IntentCategory.warfarePrayers ||
+                    track.subgenre.toLowerCase().contains('warfare') ||
+                    track.subgenre.toLowerCase().contains('deliverance');
+                break;
+              case 'Prayer':
+                passesChipFilter = track.intentCategory == IntentCategory.warfarePrayers ||
+                    track.subgenre.toLowerCase().contains('prayer') ||
+                    track.subgenre.toLowerCase().contains('intercession');
+                break;
+              case 'Downloaded':
+                passesChipFilter = track.isDownloaded;
+                break;
+              case 'With Notes':
+                passesChipFilter = track.notes.isNotEmpty;
+                break;
+              case 'All':
+              default:
+                passesChipFilter = true;
+            }
+
+            if (!passesChipFilter) continue;
+
+            // If query is empty, add all tracks matching chip filter
+            if (query.isEmpty) {
+              searchResultsWithMetadata.add({
+                'track': track,
+                'matchedLyric': null,
+              });
+              continue;
+            }
+
+            // Deep text matching: Title, Artist, Subgenre, Intent
+            final titleMatch = track.title.toLowerCase().contains(query);
+            final artistMatch = track.artist.toLowerCase().contains(query);
+            final subgenreMatch = track.subgenre.toLowerCase().contains(query);
+            final categoryMatch = track.intentCategory.name.toLowerCase().contains(query);
+
+            // Lyrics search
+            String? matchedLyricText;
+            for (final lyric in track.lyrics) {
+              if (lyric.text.toLowerCase().contains(query)) {
+                matchedLyricText = lyric.text;
+                break;
+              }
+            }
+
+            if (titleMatch || artistMatch || subgenreMatch || categoryMatch || matchedLyricText != null) {
+              searchResultsWithMetadata.add({
+                'track': track,
+                'matchedLyric': matchedLyricText,
+              });
+            }
+          }
 
           return Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            padding: const EdgeInsets.all(20),
+            height: MediaQuery.of(context).size.height * 0.85,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Top Handle & Header
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
-                    const Icon(Icons.search_rounded, color: AppColors.primary),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                    ),
                     const SizedBox(width: 10),
                     const Text(
-                      'Search Catalog',
+                      'Search & Discover',
                       style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                      icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 22),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
+
+                // Search Input Field
                 TextField(
                   controller: _searchController,
-                  autofocus: true,
-                  style: const TextStyle(color: Colors.white),
+                  autofocus: false,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'Search songs, sermons, artists or subgenres...',
-                    hintStyle: const TextStyle(color: AppColors.textMuted),
+                    hintText: 'Search sermons, worship, ministers, lyrics...',
+                    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
                     filled: true,
                     fillColor: AppColors.surfaceLight,
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.cancel_rounded, color: Colors.white54, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setModalState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.5)),
                     ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
                   onChanged: (val) {
                     setModalState(() {
@@ -89,58 +213,294 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Search Results (${results.length})',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                const SizedBox(height: 12),
+
+                // Filter Chips Row
+                SizedBox(
+                  height: 34,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filterChips.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final chip = filterChips[index];
+                      final isSelected = selectedFilter == chip;
+                      return ChoiceChip(
+                        label: Text(
+                          chip,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surfaceLight,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: isSelected ? AppColors.primary : AppColors.glassBorder,
+                          ),
+                        ),
+                        onSelected: (selected) {
+                          setModalState(() {
+                            selectedFilter = chip;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Quick Discovery Suggestion Tags (if search query is empty)
+                if (_searchQuery.isEmpty) ...[
+                  const Text(
+                    'POPULAR SEARCHES & TOPICS',
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: quickSuggestions.map((suggestion) {
+                      return InkWell(
+                        onTap: () {
+                          _searchController.text = suggestion;
+                          setModalState(() {
+                            _searchQuery = suggestion;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.7)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 12),
+                              const SizedBox(width: 5),
+                              Text(
+                                suggestion,
+                                style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+
+                // Results Counter Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${searchResultsWithMetadata.length} Tracks ${selectedFilter != 'All' ? '($selectedFilter)' : ''}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      InkWell(
+                        onTap: () {
+                          _searchController.clear();
+                          setModalState(() {
+                            _searchQuery = '';
+                            selectedFilter = 'All';
+                          });
+                        },
+                        child: const Text(
+                          'Reset Filters',
+                          style: TextStyle(color: AppColors.primary, fontSize: 11.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
+
+                // Search Results List View
                 Expanded(
-                  child: results.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No tracks match your query.',
-                            style: TextStyle(color: AppColors.textMuted),
+                  child: searchResultsWithMetadata.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'No matching tracks found',
+                                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Try another keyword, preacher name or spiritual intent.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                              ),
+                            ],
                           ),
                         )
                       : ListView.builder(
-                          itemCount: results.length,
+                          itemCount: searchResultsWithMetadata.length,
                           itemBuilder: (context, index) {
-                            final track = results[index];
+                            final item = searchResultsWithMetadata[index];
+                            final AudioTrack track = item['track'];
+                            final String? matchedLyric = item['matchedLyric'];
+                            final isCurrentlyActive = playerService.currentTrack?.id == track.id;
+                            final isPlaying = isCurrentlyActive && playerService.isPlaying;
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceLight,
-                                borderRadius: BorderRadius.circular(12),
+                                color: isCurrentlyActive
+                                    ? AppColors.primary.withValues(alpha: 0.12)
+                                    : AppColors.surfaceLight,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isCurrentlyActive
+                                      ? AppColors.primary.withValues(alpha: 0.6)
+                                      : AppColors.glassBorder.withValues(alpha: 0.5),
+                                ),
                               ),
                               child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                   child: CachedNetworkImage(
                                     imageUrl: track.albumArtUrl,
-                                    width: 44,
-                                    height: 44,
+                                    width: 48,
+                                    height: 48,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
-                                      width: 44,
-                                      height: 44,
+                                      width: 48,
+                                      height: 48,
                                       color: AppColors.surface,
                                       child: const Icon(Icons.music_note, color: Colors.white54),
                                     ),
                                   ),
                                 ),
-                                title: Text(
-                                  track.title,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        track.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: isCurrentlyActive ? AppColors.primary : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13.5,
+                                        ),
+                                      ),
+                                    ),
+                                    if (track.isPremium) ...[
+                                      const SizedBox(width: 4),
+                                      InkWell(
+                                        onTap: () => CovenantPartnerPaywallSheet.show(
+                                          context,
+                                          sourceFeature: track.title,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFFFFDF79), Color(0xFFD4AF37)],
+                                            ),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            '👑 EXCLUSIVE',
+                                            style: TextStyle(
+                                              color: Color(0xFF140D1E),
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    if (track.isDownloaded) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.download_done_rounded, color: Color(0xFF10B981), size: 14),
+                                    ],
+                                    if (track.notes.isNotEmpty) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondary.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          '${track.notes.length} notes',
+                                          style: const TextStyle(color: AppColors.secondary, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                subtitle: Text(
-                                  '${track.artist} • ${track.subgenre}',
-                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${track.artist} • ${track.subgenre} • ${formatDuration(track.duration)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                                    ),
+                                    if (matchedLyric != null) ...[
+                                      const SizedBox(height: 3),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.format_quote_rounded, color: AppColors.primary, size: 11),
+                                          const SizedBox(width: 3),
+                                          Expanded(
+                                            child: Text(
+                                              '"$matchedLyric"',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.8),
+                                                fontSize: 11,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 28),
+                                  icon: Icon(
+                                    isPlaying
+                                        ? Icons.pause_circle_filled_rounded
+                                        : Icons.play_circle_fill_rounded,
+                                    color: AppColors.primary,
+                                    size: 32,
+                                  ),
                                   onPressed: () {
-                                    playerService.playTrack(track);
+                                    if (isCurrentlyActive) {
+                                      playerService.togglePlayPause();
+                                    } else {
+                                      playerService.playTrack(track);
+                                    }
                                     Navigator.pop(ctx);
                                   },
                                 ),
@@ -175,8 +535,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Image.asset(
                   'assets/images/logoIcon.png',
-                  height: 32,
-                  width: 32,
+                  height: 36,
+                  width: 36,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(width: 10),
@@ -394,15 +754,47 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                 ),
-                                title: Text(
-                                  track.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isCurrentPlaying ? AppColors.primary : AppColors.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        track.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: isCurrentPlaying ? AppColors.primary : AppColors.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    if (track.isPremium) ...[
+                                      const SizedBox(width: 6),
+                                      InkWell(
+                                        onTap: () => CovenantPartnerPaywallSheet.show(
+                                          context,
+                                          sourceFeature: track.title,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFFFFDF79), Color(0xFFD4AF37)],
+                                            ),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            '👑 EXCLUSIVE',
+                                            style: TextStyle(
+                                              color: Color(0xFF140D1E),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 subtitle: Text(
                                   '${track.artist} • ${track.subgenre}',

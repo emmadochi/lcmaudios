@@ -73,74 +73,93 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             children: _screens,
           ),
 
-          // Floating Player + Bottom Navigation Bar Container
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Floating Audio Player Card
-              const MiniPlayerBar(),
+          // Unified Integrated Player & Bottom Navigation Dock
+          Consumer<AudioPlayerService>(
+            builder: (context, playerService, child) {
+              final track = playerService.currentTrack;
+              final bool showMiniPlayer = track != null && !playerService.isMiniPlayerDismissed;
 
-              // 5-Item Custom Bottom Navigation Bar
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141722).withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: AppColors.glassBorder),
-                  boxShadow: const [
+                  color: const Color(0xFF141722).withValues(alpha: 0.98),
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: showMiniPlayer
+                        ? AppColors.primary.withValues(alpha: 0.45)
+                        : AppColors.glassBorder.withValues(alpha: 0.8),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 16,
-                      offset: Offset(0, -4),
+                      color: showMiniPlayer
+                          ? AppColors.primaryGlow.withValues(alpha: 0.3)
+                          : Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      offset: const Offset(0, -3),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: BottomNavigationBar(
-                    currentIndex: _currentIndex,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    selectedItemColor: AppColors.primary,
-                    unselectedItemColor: Colors.white54,
-                    selectedFontSize: 11,
-                    unselectedFontSize: 11,
-                    type: BottomNavigationBarType.fixed,
-                    onTap: (index) {
-                      setState(() {
-                        _currentIndex = index;
-                      });
-                    },
-                    items: const [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.home_filled),
-                        label: 'Home',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.explore_outlined),
-                        label: 'Explore',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Badge(
-                          label: Text('↓', style: TextStyle(fontSize: 9, color: Colors.white)),
-                          backgroundColor: AppColors.primary,
-                          child: Icon(Icons.library_books_rounded),
+                  borderRadius: BorderRadius.circular(26),
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeInOutCubic,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Integrated Mini Player Bar (collapses smoothly when dismissed or stopped)
+                        if (showMiniPlayer)
+                          const MiniPlayerBar(),
+
+                        // 5-Item Custom Bottom Navigation Bar
+                        BottomNavigationBar(
+                          currentIndex: _currentIndex,
+                          backgroundColor: Colors.transparent,
+                          elevation: 0,
+                          selectedItemColor: AppColors.primary,
+                          unselectedItemColor: Colors.white54,
+                          selectedFontSize: 11,
+                          unselectedFontSize: 11,
+                          type: BottomNavigationBarType.fixed,
+                          onTap: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                            });
+                          },
+                          items: const [
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.home_filled),
+                              label: 'Home',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.explore_outlined),
+                              label: 'Explore',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Badge(
+                                label: Text('↓', style: TextStyle(fontSize: 9, color: Colors.white)),
+                                backgroundColor: AppColors.primary,
+                                child: Icon(Icons.library_books_rounded),
+                              ),
+                              label: 'Library',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.person_outline_rounded),
+                              label: 'Profile',
+                            ),
+                            BottomNavigationBarItem(
+                              icon: Icon(Icons.diamond_outlined),
+                              label: 'Premium',
+                            ),
+                          ],
                         ),
-                        label: 'Library',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.person_outline_rounded),
-                        label: 'Profile',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.diamond_outlined),
-                        label: 'Premium',
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),

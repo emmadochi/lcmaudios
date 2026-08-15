@@ -129,6 +129,51 @@ class ApiService {
     }
   }
 
+  // ─── Paystack Covenant Partner Payments ──────────────────────────────
+  static Future<Map<String, dynamic>?> initializePaystackPayment({
+    required String email,
+    required String planType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/initialize'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'planType': planType,
+        }),
+      ).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data'];
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Paystack init error: $e');
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> verifyPaystackPayment(String reference) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/payments/verify/$reference'),
+      ).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data'];
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Paystack verify error: $e');
+    }
+    return null;
+  }
+
   // Fallback seed tracks when offline
   static List<AudioTrack> _getFallbackTracks() {
     return [
