@@ -145,6 +145,25 @@ class ProfileScreen extends StatelessWidget {
                     (route) => false,
                   );
                 }, isDanger: true),
+                const SizedBox(height: 24),
+                // Brand Footer
+                Center(
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/logo2White.png',
+                        height: 38,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Version 1.0.0 • Kingdom Audio Sanctuary',
+                        style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

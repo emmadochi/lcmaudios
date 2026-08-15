@@ -68,39 +68,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App Brand Logo & Title
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryGlow.withValues(alpha: 0.8),
-                          blurRadius: 24,
-                          spreadRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.graphic_eq_rounded, color: Colors.white, size: 40),
-                  ),
-                  const SizedBox(height: 16),
-                  RichText(
-                    text: const TextSpan(
-                      text: 'LCM ',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: 'AUDIOS',
-                          style: TextStyle(color: AppColors.primary),
-                        ),
-                      ],
-                    ),
+                  // App Brand Logo
+                  Image.asset(
+                    'assets/images/logo2White.png',
+                    height: 85,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 6),
                   const Text(

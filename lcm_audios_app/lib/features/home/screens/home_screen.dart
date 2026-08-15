@@ -173,20 +173,18 @@ class _HomeScreenState extends State<HomeScreen> {
             elevation: 0,
             title: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.white10,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.church_rounded, color: Colors.white, size: 22),
+                Image.asset(
+                  'assets/images/logoIcon.png',
+                  height: 32,
+                  width: 32,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 const Text(
                   'LCM AUDIOS',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.1,
                   ),
