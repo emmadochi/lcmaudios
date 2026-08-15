@@ -24,6 +24,18 @@ class AudioPlayerService extends ChangeNotifier {
   List<SpiritualIntent> _categories = List.from(SpiritualIntent.defaultCategories);
   String _selectedCategoryKey = 'all';
 
+  // ─── Playback Speed & Sleep Timer State ───────────────────────────────────
+  double _playbackSpeed = 1.0;
+  Duration? _sleepTimerDuration;
+  int _sleepTimerSecondsLeft = 0;
+  Timer? _sleepTimer;
+  bool _sleepTimerEndAtTrack = false;
+
+  // ─── "Continue Listening" Resume Memory ───────────────────────────────────
+  String? _lastPlayedTrackId;
+  Duration _lastPlayedPosition = Duration.zero;
+  DateTime? _lastPositionSaveTime;
+
   // ─── Telemetry metering state ────────────────────────────────────────────
   /// Position at last telemetry checkpoint for delta calculation.
   Duration _lastTelemetryPosition = Duration.zero;
@@ -56,7 +68,31 @@ class AudioPlayerService extends ChangeNotifier {
   List<SpiritualIntent> get categories => _categories;
   String get userName => _userName;
   int get listenCount => _listenCount;
+  double get playbackSpeed => _playbackSpeed;
+  Duration? get sleepTimerDuration => _sleepTimerDuration;
+  int get sleepTimerSecondsLeft => _sleepTimerSecondsLeft;
+  bool get isSleepTimerActive => _sleepTimerSecondsLeft > 0 || _sleepTimerEndAtTrack;
+  bool get sleepTimerEndAtTrack => _sleepTimerEndAtTrack;
   Map<String, double> get downloadProgress => Map.unmodifiable(_downloadProgress);
+
+  String get formattedSleepTimerRemaining {
+    if (_sleepTimerEndAtTrack) return 'End of Track';
+    if (_sleepTimerSecondsLeft <= 0) return 'Off';
+    final m = (_sleepTimerSecondsLeft / 60).floor().toString().padLeft(2, '0');
+    final s = (_sleepTimerSecondsLeft % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  AudioTrack? get lastPlayedTrack {
+    if (_lastPlayedTrackId == null) return null;
+    try {
+      return _allTracks.firstWhere((t) => t.id == _lastPlayedTrackId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Duration get lastPlayedPosition => _lastPlayedPosition;
 
   double get userProgress {
     int downloadedCount = _allTracks.where((t) => t.isDownloaded).length;
@@ -82,11 +118,37 @@ class AudioPlayerService extends ChangeNotifier {
 
   // ─── Constructor ──────────────────────────────────────────────────────────
   AudioPlayerService() {
+    _initAudioContext();
     _allTracks    = List.from(MockDataService.sampleTracks);
     _currentTrack = _allTracks.isNotEmpty ? _allTracks[0] : null;
     _initPlayerListeners();
     _initConnectivityListener();
     _loadTracksAndStorage();
+  }
+
+  // ─── Background Audio Context ─────────────────────────────────────────────
+  void _initAudioContext() {
+    try {
+      AudioPlayer.global.setAudioContext(AudioContext(
+        android: const AudioContextAndroid(
+          isSpeakerphoneOn: true,
+          stayAwake: true,
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: const {
+            AVAudioSessionOptions.defaultToSpeaker,
+            AVAudioSessionOptions.allowAirPlay,
+            AVAudioSessionOptions.allowBluetooth,
+          },
+        ),
+      ));
+    } catch (e) {
+      debugPrint('[Player] AudioContext setup: $e');
+    }
   }
 
   // ─── Player listeners ─────────────────────────────────────────────────────
@@ -97,15 +159,26 @@ class AudioPlayerService extends ChangeNotifier {
       _isBuffering = false;
 
       if (wasPlaying && !_isPlaying) {
-        // Paused or stopped — flush partial session telemetry immediately
+        // Paused or stopped — flush partial session telemetry immediately & persist position
         _flushSessionTelemetry();
         _telemetryTimer?.cancel();
+        _persistCurrentPosition();
       } else if (!wasPlaying && _isPlaying) {
         // Resumed — restart 30-second metering timer
         _startTelemetryTimer();
       }
 
       notifyListeners();
+    });
+
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (_sleepTimerEndAtTrack) {
+        _sleepTimerEndAtTrack = false;
+        _audioPlayer.pause();
+        notifyListeners();
+      } else {
+        skipNext();
+      }
     });
 
     _durationSubscription = _audioPlayer.onDurationChanged.listen((d) {
@@ -115,8 +188,31 @@ class AudioPlayerService extends ChangeNotifier {
 
     _positionSubscription = _audioPlayer.onPositionChanged.listen((p) {
       _position = p;
+      // Periodically persist position every 5 seconds
+      final now = DateTime.now();
+      if (_lastPositionSaveTime == null || now.difference(_lastPositionSaveTime!).inSeconds >= 5) {
+        _lastPositionSaveTime = now;
+        _persistCurrentPosition();
+      }
       notifyListeners();
     });
+  }
+
+  // ─── Position Persistence ("Continue Listening") ──────────────────────────
+  Future<void> _persistCurrentPosition() async {
+    if (_currentTrack == null) return;
+    if (_position.inSeconds < 5) return; // Don't save first 5 seconds
+    _lastPlayedTrackId = _currentTrack!.id;
+    _lastPlayedPosition = _position;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_played_track_id', _lastPlayedTrackId!);
+      await prefs.setInt('last_played_position_sec_${_currentTrack!.id}', _position.inSeconds);
+      await prefs.setInt('last_played_position_sec', _position.inSeconds);
+    } catch (e) {
+      debugPrint('[Player] Position persist error: $e');
+    }
   }
 
   // ─── Connectivity ─────────────────────────────────────────────────────────
@@ -175,6 +271,70 @@ class AudioPlayerService extends ChangeNotifier {
     _lastTelemetryPosition = Duration.zero;
   }
 
+  // ─── Playback Speed Controls ──────────────────────────────────────────────
+  Future<void> setPlaybackSpeed(double speed) async {
+    _playbackSpeed = speed;
+    await _audioPlayer.setPlaybackRate(speed);
+    notifyListeners();
+  }
+
+  // ─── Sleep Timer Controls ─────────────────────────────────────────────────
+  void setSleepTimer(Duration? duration) {
+    _sleepTimer?.cancel();
+    _sleepTimerEndAtTrack = false;
+    _sleepTimerDuration = duration;
+
+    if (duration == null) {
+      _sleepTimerSecondsLeft = 0;
+      notifyListeners();
+      return;
+    }
+
+    _sleepTimerSecondsLeft = duration.inSeconds;
+    notifyListeners();
+
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_sleepTimerSecondsLeft > 1) {
+        _sleepTimerSecondsLeft--;
+        notifyListeners();
+      } else {
+        _sleepTimerSecondsLeft = 0;
+        _sleepTimerDuration = null;
+        timer.cancel();
+        _audioPlayer.pause();
+        notifyListeners();
+      }
+    });
+  }
+
+  void setSleepTimerEndAtTrack() {
+    _sleepTimer?.cancel();
+    _sleepTimerDuration = null;
+    _sleepTimerSecondsLeft = 0;
+    _sleepTimerEndAtTrack = true;
+    notifyListeners();
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTimerDuration = null;
+    _sleepTimerSecondsLeft = 0;
+    _sleepTimerEndAtTrack = false;
+    notifyListeners();
+  }
+
+  // ─── Relative Seek Helper (Rewind / Fast-Forward) ─────────────────────────
+  Future<void> seekRelative(int secondsDelta) async {
+    final target = _position + Duration(seconds: secondsDelta);
+    if (target < Duration.zero) {
+      await seekTo(Duration.zero);
+    } else if (target > _duration) {
+      await seekTo(_duration);
+    } else {
+      await seekTo(target);
+    }
+  }
+
   // ─── Playback & Filtering ────────────────────────────────────────────────
   void setIntentFilter(IntentCategory category) {
     _selectedIntent = category;
@@ -191,6 +351,22 @@ class AudioPlayerService extends ChangeNotifier {
     await _loadTracksAndStorage();
   }
 
+  Future<void> resumeTrack(AudioTrack track, {Duration? startAt}) async {
+    await playTrack(track);
+    if (startAt != null && startAt > Duration.zero) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      await seekTo(startAt);
+    } else {
+      // Check saved position for this track
+      final prefs = await SharedPreferences.getInstance();
+      final savedSec = prefs.getInt('last_played_position_sec_${track.id}') ?? 0;
+      if (savedSec > 5) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        await seekTo(Duration(seconds: savedSec));
+      }
+    }
+  }
+
   Future<void> playTrack(AudioTrack track) async {
     _currentTrack = track;
     _resetTelemetry();
@@ -198,6 +374,11 @@ class AudioPlayerService extends ChangeNotifier {
 
     try {
       await _audioPlayer.stop();
+
+      // Set playback speed rate
+      if (_playbackSpeed != 1.0) {
+        await _audioPlayer.setPlaybackRate(_playbackSpeed);
+      }
 
       // Attempt encrypted offline playback first
       if (track.isDownloaded) {
@@ -353,6 +534,11 @@ class AudioPlayerService extends ChangeNotifier {
     _userName    = prefs.getString('user_name') ?? 'Grace Worshipper';
     _listenCount = prefs.getInt('user_listen_count') ?? 3;
 
+    // Restore last played track and position
+    _lastPlayedTrackId = prefs.getString('last_played_track_id');
+    final savedPosSec  = prefs.getInt('last_played_position_sec') ?? 0;
+    _lastPlayedPosition = Duration(seconds: savedPosSec);
+
     // Check initial connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
     _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
@@ -400,6 +586,7 @@ class AudioPlayerService extends ChangeNotifier {
   void dispose() {
     _flushSessionTelemetry(); // Capture final partial session
     _telemetryTimer?.cancel();
+    _sleepTimer?.cancel();
     _durationSubscription?.cancel();
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
