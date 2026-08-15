@@ -227,9 +227,9 @@ export const createCategoryAdmin = (req: Request, res: Response): void => {
 export const updateCategoryAdmin = (req: Request, res: Response): void => {
   try {
     const { id } = req.params;
-    const { title, description, icon, accentColor, isActive } = req.body;
+    const { title, categoryKey, description, icon, accentColor, isActive } = req.body;
 
-    const updated = dbClient.updateCategory(id, { title, description, icon, accentColor, isActive });
+    const updated = dbClient.updateCategory(id, { title, categoryKey, description, icon, accentColor, isActive });
 
     if (!updated) {
       res.status(404).json({ error: 'Category not found.' });

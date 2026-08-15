@@ -435,7 +435,15 @@ class DbClient {
   // --- CATEGORIES OPERATIONS ---
   public getCategories(): CategoryItem[] {
     const mock = MockDatabase.getInstance();
-    return mock.categories;
+    return mock.categories.map((c) => {
+      const count = mock.tracks.filter(
+        (t) => t.intentCategory === c.categoryKey || t.intentCategory === c.title
+      ).length;
+      return {
+        ...c,
+        trackCount: count,
+      };
+    });
   }
 
   public createCategory(cat: Omit<CategoryItem, 'id' | 'createdAt' | 'trackCount'>): CategoryItem {
@@ -445,8 +453,8 @@ class DbClient {
       categoryKey: cat.categoryKey,
       title: cat.title,
       description: cat.description,
-      icon: cat.icon,
-      accentColor: cat.accentColor,
+      icon: cat.icon || 'auto_awesome_rounded',
+      accentColor: cat.accentColor || '#E63946',
       trackCount: 0,
       isActive: cat.isActive !== undefined ? cat.isActive : true,
       createdAt: new Date().toISOString(),
@@ -459,7 +467,20 @@ class DbClient {
     const mock = MockDatabase.getInstance();
     const cat = mock.categories.find((c: CategoryItem) => c.id === id);
     if (!cat) return null;
+    const oldKey = cat.categoryKey;
+    const oldTitle = cat.title;
+
     Object.assign(cat, updates);
+
+    // If key or title changed, cascade to existing tracks
+    if (updates.categoryKey && updates.categoryKey !== oldKey) {
+      mock.tracks.forEach((t) => {
+        if (t.intentCategory === oldKey || t.intentCategory === oldTitle) {
+          t.intentCategory = updates.categoryKey!;
+        }
+      });
+    }
+
     return cat;
   }
 

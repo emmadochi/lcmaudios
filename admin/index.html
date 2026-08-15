@@ -742,28 +742,63 @@
 
   <!-- Category Modal -->
   <div class="modal-overlay" id="categoryModal">
-    <div class="modal-card">
-      <h3 style="margin-bottom: 16px;" id="modalTitle">Create Intent Category</h3>
+    <div class="modal-card" style="max-width: 520px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="modalTitle" style="font-size: 18px; font-weight: 800; color: #fff;">Create Intent Category</h3>
+        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 14px;" onclick="closeCategoryModal()">✕</button>
+      </div>
       <input type="hidden" id="editCatId" />
+      
+      <!-- Live Preview Box -->
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
+        <div style="font-size: 10.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Live App Preview</div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="previewDot" class="color-dot" style="background: #E63946; box-shadow: 0 0 10px #E63946;"></span>
+            <span id="previewTitle" style="font-weight: 700; font-size: 14px; color: #fff;">Category Title</span>
+          </div>
+          <span id="previewKey" class="category-key" style="font-size: 11px;">category_slug</span>
+        </div>
+        <p id="previewDesc" style="font-size: 12px; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">Category description & spiritual focus</p>
+      </div>
+
       <div class="form-group" style="margin-bottom: 12px;">
         <label>Category Title *</label>
-        <input type="text" id="catTitle" placeholder="e.g. Deliverance & Healing" required />
+        <input type="text" id="catTitle" placeholder="e.g. Deliverance & Spiritual Warfare" oninput="handleCategoryTitleChange(this.value)" required />
       </div>
+
       <div class="form-group" style="margin-bottom: 12px;">
         <label>Category Key (Slug) *</label>
-        <input type="text" id="catKey" placeholder="e.g. deliverance" required />
+        <input type="text" id="catKey" placeholder="e.g. deliverance" oninput="updateCategoryPreview()" required />
+        <small style="font-size: 11px; color: var(--text-muted);">Unique identifier used in API and mobile routing</small>
       </div>
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label>Description</label>
-        <input type="text" id="catDesc" placeholder="e.g. Prayers & scripture for freedom" />
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Description / Spiritual Theme</label>
+        <input type="text" id="catDesc" placeholder="e.g. Strategic prayers and teachings for spiritual victory" oninput="updateCategoryPreview()" />
       </div>
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label>Accent Color</label>
-        <input type="color" id="catColor" value="#E63946" style="height: 44px; padding: 4px; width: 100%; cursor: pointer;" />
+
+      <!-- Accent Color Picker & Swatches -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Accent Theme Color</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #E63946;" onclick="selectCategoryColor('#E63946')">🔴 Warfare</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #D4AF37;" onclick="selectCategoryColor('#D4AF37')">👑 Kingdom</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #8B5CF6;" onclick="selectCategoryColor('#8B5CF6')">💜 Grace</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #06B6D4;" onclick="selectCategoryColor('#06B6D4')">🌊 Living Water</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #10B981;" onclick="selectCategoryColor('#10B981')">🌿 Healing</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #F59E0B;" onclick="selectCategoryColor('#F59E0B')">🔥 Fire</button>
+          <button type="button" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; border-color: #EC4899;" onclick="selectCategoryColor('#EC4899')">🌸 Faith</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" id="catColor" value="#E63946" style="height: 40px; width: 60px; padding: 2px; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);" oninput="updateCategoryPreview()" />
+          <input type="text" id="catColorHex" value="#E63946" style="width: 120px; font-family: monospace;" oninput="handleHexInput(this.value)" placeholder="#E63946" />
+        </div>
       </div>
-      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
         <button class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
-        <button class="btn" onclick="saveCategory()">Save Category</button>
+        <button class="btn" id="saveCatBtn" onclick="saveCategory()">💾 Save Category</button>
       </div>
     </div>
   </div>
@@ -970,8 +1005,8 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
               <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">${cat.trackCount} Tracks</span>
               <div style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="editCategory('${cat.id}', '${cat.title}', '${cat.categoryKey}', '${cat.description || ''}', '${cat.accentColor}')">Edit</button>
-                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteCategory('${cat.id}')">Delete</button>
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="editCategory('${cat.id}', '${(cat.title || '').replace(/'/g, "\\'")}', '${(cat.categoryKey || '').replace(/'/g, "\\'")}', '${(cat.description || '').replace(/'/g, "\\'")}', '${cat.accentColor}')">Edit</button>
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteCategory('${cat.id}', '${(cat.title || '').replace(/'/g, "\\'")}', ${cat.trackCount || 0})">Delete</button>
               </div>
             </div>
           `;
@@ -982,22 +1017,70 @@
       }
     }
 
+    function updateCategoryPreview() {
+      const title = document.getElementById('catTitle').value.trim() || 'Category Title';
+      const key = document.getElementById('catKey').value.trim() || 'category_slug';
+      const desc = document.getElementById('catDesc').value.trim() || 'Category description & spiritual focus';
+      const color = document.getElementById('catColor').value || '#E63946';
+
+      document.getElementById('previewTitle').innerText = title;
+      document.getElementById('previewKey').innerText = key;
+      document.getElementById('previewDesc').innerText = desc;
+      document.getElementById('previewDot').style.background = color;
+      document.getElementById('previewDot').style.boxShadow = `0 0 10px ${color}`;
+      document.getElementById('catColorHex').value = color.toUpperCase();
+    }
+
+    function handleCategoryTitleChange(val) {
+      const id = document.getElementById('editCatId').value;
+      if (!id) {
+        // Auto generate slug for new category
+        const slug = val.toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+        document.getElementById('catKey').value = slug;
+      }
+      updateCategoryPreview();
+    }
+
+    function selectCategoryColor(hex) {
+      document.getElementById('catColor').value = hex;
+      document.getElementById('catColorHex').value = hex;
+      updateCategoryPreview();
+    }
+
+    function handleHexInput(hex) {
+      if (/^#[0-9A-F]{6}$/i.test(hex)) {
+        document.getElementById('catColor').value = hex;
+        updateCategoryPreview();
+      }
+    }
+
     function openCategoryModal() {
       document.getElementById('editCatId').value = '';
-      document.getElementById('modalTitle').innerText = 'Create Intent Category';
+      document.getElementById('modalTitle').innerText = '✨ Create Spiritual Intent Category';
       document.getElementById('catTitle').value = '';
       document.getElementById('catKey').value = '';
       document.getElementById('catDesc').value = '';
+      document.getElementById('catColor').value = '#E63946';
+      document.getElementById('catColorHex').value = '#E63946';
+      document.getElementById('saveCatBtn').innerText = '💾 Create Category';
+      updateCategoryPreview();
       document.getElementById('categoryModal').classList.add('active');
     }
 
     function editCategory(id, title, key, desc, color) {
       document.getElementById('editCatId').value = id;
-      document.getElementById('modalTitle').innerText = 'Edit Intent Category';
+      document.getElementById('modalTitle').innerText = '🏷️ Edit Intent Category';
       document.getElementById('catTitle').value = title;
       document.getElementById('catKey').value = key;
-      document.getElementById('catDesc').value = desc;
-      document.getElementById('catColor').value = color;
+      document.getElementById('catDesc').value = (desc && desc !== 'null') ? desc : '';
+      const validColor = (color && color.startsWith('#')) ? color : '#E63946';
+      document.getElementById('catColor').value = validColor;
+      document.getElementById('catColorHex').value = validColor.toUpperCase();
+      document.getElementById('saveCatBtn').innerText = '💾 Save Changes';
+      updateCategoryPreview();
       document.getElementById('categoryModal').classList.add('active');
     }
 
@@ -1007,29 +1090,71 @@
 
     async function saveCategory() {
       const id = document.getElementById('editCatId').value;
-      const title = document.getElementById('catTitle').value;
-      const categoryKey = document.getElementById('catKey').value;
-      const description = document.getElementById('catDesc').value;
+      const title = document.getElementById('catTitle').value.trim();
+      const categoryKey = document.getElementById('catKey').value.trim();
+      const description = document.getElementById('catDesc').value.trim();
       const accentColor = document.getElementById('catColor').value;
+      const saveBtn = document.getElementById('saveCatBtn');
 
       if (!title || !categoryKey) {
-        alert('Please enter Category Title and Key');
+        alert('Please enter both Category Title and Slug/Key.');
         return;
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerText = '⏳ Saving...';
       }
 
       const method = id ? 'PUT' : 'POST';
       const url = id ? `${API_BASE}/admin/categories/${id}` : `${API_BASE}/admin/categories`;
 
       try {
-        await fetch(url, {
+        const res = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, categoryKey, description, accentColor }),
         });
-        closeCategoryModal();
-        loadCategories();
+        const data = await res.json();
+        
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerText = id ? '💾 Save Changes' : '💾 Create Category';
+        }
+
+        if (res.ok) {
+          closeCategoryModal();
+          await loadCategories();
+          populateCategoryDropdown();
+        } else {
+          alert(`Error saving category: ${data.error || 'Unknown error'}`);
+        }
       } catch (e) {
-        alert('Failed to save category');
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerText = id ? '💾 Save Changes' : '💾 Create Category';
+        }
+        alert('Failed to save category. Please check server connection.');
+      }
+    }
+
+    async function deleteCategory(id, title, trackCount) {
+      const msg = trackCount > 0
+        ? `⚠️ Category "${title}" currently has ${trackCount} tracks assigned.\n\nAre you sure you want to delete it?`
+        : `Are you sure you want to delete category "${title}"?`;
+
+      if (!confirm(msg)) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/categories/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          await loadCategories();
+          populateCategoryDropdown();
+        } else {
+          const data = await res.json();
+          alert(`Error deleting category: ${data.error || 'Unknown error'}`);
+        }
+      } catch (e) {
+        alert('Failed to delete category.');
       }
     }
 
