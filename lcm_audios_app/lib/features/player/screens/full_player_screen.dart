@@ -1041,7 +1041,13 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
 
                         // Play/Pause Main Button
                         GestureDetector(
-                          onTap: () => playerService.togglePlayPause(),
+                          onTap: () {
+                            if (track.isPremium && !playerService.isCovenantPartner && playerService.previewLimitReached) {
+                              CovenantPartnerPaywallSheet.show(context, sourceFeature: track.title);
+                            } else {
+                              playerService.togglePlayPause();
+                            }
+                          },
                           child: Container(
                             width: 58,
                             height: 58,

@@ -366,12 +366,15 @@ class AudioPlayerService extends ChangeNotifier {
 
       // 45-Second Anointed Preview Lock for Free Tier
       if (_currentTrack != null && _currentTrack!.isPremium && !_isCovenantPartner) {
-        if (_position.inSeconds >= 45 && !_previewLimitReached) {
+        if (_position.inSeconds >= 45) {
           _previewLimitReached = true;
+          _position = const Duration(seconds: 45);
           _audioPlayer.pause();
           _syncAudioHandler();
           notifyListeners();
           return;
+        } else {
+          _previewLimitReached = false;
         }
       }
 
@@ -626,6 +629,14 @@ class AudioPlayerService extends ChangeNotifier {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
+      // If free user on premium track already reached or exceeded 45s limit, refuse resume
+      if (_currentTrack!.isPremium && !_isCovenantPartner && _position.inSeconds >= 45) {
+        _previewLimitReached = true;
+        _position = const Duration(seconds: 45);
+        await _audioPlayer.pause();
+        notifyListeners();
+        return;
+      }
       _isMiniPlayerDismissed = false;
       if (_position > Duration.zero) {
         await _audioPlayer.resume();
@@ -636,9 +647,24 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> seekTo(Duration newPosition) async {
-    await _audioPlayer.seek(newPosition);
-    // Reset telemetry checkpoint to avoid counting seek-skipped time
-    _lastTelemetryPosition = newPosition;
+    Duration target = newPosition;
+    if (_currentTrack != null && _currentTrack!.isPremium && !_isCovenantPartner) {
+      if (target.inSeconds >= 45) {
+        target = const Duration(seconds: 45);
+        _previewLimitReached = true;
+        await _audioPlayer.seek(target);
+        await _audioPlayer.pause();
+        _position = target;
+        _lastTelemetryPosition = target;
+        _syncAudioHandler();
+        notifyListeners();
+        return;
+      } else {
+        _previewLimitReached = false;
+      }
+    }
+    await _audioPlayer.seek(target);
+    _lastTelemetryPosition = target;
   }
 
   Future<void> skipNext() async {
