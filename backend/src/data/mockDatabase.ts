@@ -1,5 +1,7 @@
 import { Track, User, SermonNote, CategoryItem, TelemetryEvent } from '../models/types';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 
 export class MockDatabase {
   private static instance: MockDatabase;
@@ -10,8 +12,18 @@ export class MockDatabase {
   public categories: CategoryItem[] = [];
   public telemetryEvents: TelemetryEvent[] = [];
 
+  private static getStoragePath(): string {
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      try {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      } catch (_) {}
+    }
+    return path.join(uploadsDir, 'persistent_db.json');
+  }
+
   private constructor() {
-    this.seedData();
+    this.loadFromFile();
   }
 
   public static getInstance(): MockDatabase {
@@ -19,6 +31,45 @@ export class MockDatabase {
       MockDatabase.instance = new MockDatabase();
     }
     return MockDatabase.instance;
+  }
+
+  public saveToFile(): void {
+    try {
+      const filePath = MockDatabase.getStoragePath();
+      const payload = {
+        users: this.users,
+        tracks: this.tracks,
+        notes: this.notes,
+        categories: this.categories,
+        telemetryEvents: this.telemetryEvents,
+      };
+      fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[MockDatabase] Failed to save persistent_db.json:', err);
+    }
+  }
+
+  public loadFromFile(): void {
+    try {
+      const filePath = MockDatabase.getStoragePath();
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf-8');
+        const data = JSON.parse(raw);
+        if (data && Array.isArray(data.tracks)) {
+          this.users = Array.isArray(data.users) ? data.users : [];
+          this.tracks = Array.isArray(data.tracks) ? data.tracks : [];
+          this.notes = Array.isArray(data.notes) ? data.notes : [];
+          this.categories = Array.isArray(data.categories) ? data.categories : [];
+          this.telemetryEvents = Array.isArray(data.telemetryEvents) ? data.telemetryEvents : [];
+          console.log(`[MockDatabase] Loaded ${this.tracks.length} tracks and ${this.categories.length} categories from persistent storage.`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[MockDatabase] Could not read persistent_db.json, re-seeding default data:', err);
+    }
+    this.seedData();
+    this.saveToFile();
   }
 
   private seedData() {

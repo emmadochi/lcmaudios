@@ -119,6 +119,7 @@ class DbClient {
       createdAt: new Date().toISOString(),
     };
     mock.users.push(newUser);
+    mock.saveToFile();
     return newUser;
   }
 
@@ -275,6 +276,7 @@ class DbClient {
     }
     const mock = MockDatabase.getInstance();
     mock.tracks.unshift(trackData);
+    mock.saveToFile();
     return trackData;
   }
 
@@ -320,6 +322,7 @@ class DbClient {
     const idx = mock.tracks.findIndex((t: Track) => t.id === id);
     if (idx !== -1) {
       mock.tracks[idx] = { ...mock.tracks[idx], ...updateData };
+      mock.saveToFile();
       return mock.tracks[idx];
     }
     return null;
@@ -338,6 +341,7 @@ class DbClient {
     const idx = mock.tracks.findIndex((t: Track) => t.id === id);
     if (idx !== -1) {
       mock.tracks.splice(idx, 1);
+      mock.saveToFile();
       return true;
     }
     return false;
@@ -377,6 +381,7 @@ class DbClient {
       createdAt: new Date().toISOString(),
     };
     mock.notes.unshift(newNote);
+    mock.saveToFile();
     return newNote;
   }
 
@@ -429,6 +434,7 @@ class DbClient {
         createdAt: new Date().toISOString(),
       });
     });
+    mock.saveToFile();
     return events.length;
   }
 
@@ -460,6 +466,7 @@ class DbClient {
       createdAt: new Date().toISOString(),
     };
     mock.categories.push(newCat);
+    mock.saveToFile();
     return newCat;
   }
 
@@ -481,6 +488,7 @@ class DbClient {
       });
     }
 
+    mock.saveToFile();
     return cat;
   }
 
@@ -489,6 +497,7 @@ class DbClient {
     const idx = mock.categories.findIndex((c: CategoryItem) => c.id === id);
     if (idx !== -1) {
       mock.categories.splice(idx, 1);
+      mock.saveToFile();
       return true;
     }
     return false;
