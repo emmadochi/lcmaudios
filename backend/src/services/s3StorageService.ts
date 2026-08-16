@@ -9,9 +9,15 @@ export interface UploadResult {
 
 export class S3StorageService {
   private static s3Client: S3Client | null = null;
-  private static bucketName: string = process.env.AWS_S3_BUCKET_NAME || '';
-  private static cloudFrontDomain: string = process.env.CLOUDFRONT_DOMAIN || '';
-  private static region: string = process.env.AWS_REGION || 'us-east-1';
+  private static get bucketName(): string {
+    return process.env.AWS_S3_BUCKET_NAME || 'lcmaudios-media';
+  }
+  private static get cloudFrontDomain(): string {
+    return process.env.CLOUDFRONT_DOMAIN || process.env.AWS_CLOUDFRONT_DOMAIN || '';
+  }
+  private static get region(): string {
+    return process.env.AWS_REGION || 'us-east-2';
+  }
 
   private static getClient(): S3Client | null {
     if (!S3StorageService.s3Client && S3StorageService.isConfigured()) {
