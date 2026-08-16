@@ -25,12 +25,66 @@ class DbClient {
         await this.prisma.$connect();
         this.isPrismaConnected = true;
         console.log('[DB Client] Connected successfully to PostgreSQL database via Prisma.');
+        await this.autoSeedIfEmpty();
       } catch (err) {
         console.warn('[DB Client] PostgreSQL connection failed. Falling back to in-memory MockDatabase.', err);
         this.isPrismaConnected = false;
       }
     } else {
       console.log('[DB Client] DATABASE_URL not set. Running in resilient MockDatabase mode.');
+    }
+  }
+
+  private async autoSeedIfEmpty() {
+    if (!this.prisma) return;
+    try {
+      const trackCount = await this.prisma.track.count();
+      if (trackCount === 0) {
+        console.log('[DB Client] 🚀 Fresh PostgreSQL database detected. Seeding baseline tracks and demo data...');
+        const mock = MockDatabase.getInstance();
+
+        // Seed demo user
+        const userCount = await this.prisma.user.count();
+        if (userCount === 0 && mock.users.length > 0) {
+          const u = mock.users[0];
+          await this.prisma.user.create({
+            data: {
+              id: u.id,
+              email: u.email.toLowerCase(),
+              passwordHash: u.passwordHash,
+              fullName: u.fullName,
+              intentPreferences: u.intentPreferences || ['morningDevotion', 'deepWorship'],
+            },
+          });
+        }
+
+        // Seed initial tracks with lyrics
+        for (const t of mock.tracks) {
+          await this.prisma.track.create({
+            data: {
+              id: t.id,
+              title: t.title,
+              artist: t.artist,
+              albumArtUrl: t.albumArtUrl,
+              audioUrl: t.audioUrl,
+              duration: t.duration,
+              subgenre: t.subgenre,
+              intentCategory: t.intentCategory as any,
+              mediaType: (t.mediaType as any) || 'song',
+              playCount: t.playCount || 100,
+              lyrics: {
+                create: (t.lyrics || []).map((l) => ({
+                  timestampSeconds: l.timestampSeconds,
+                  text: l.text,
+                })),
+              },
+            },
+          });
+        }
+        console.log(`[DB Client] ✅ Successfully seeded ${mock.tracks.length} tracks with lyrics into PostgreSQL.`);
+      }
+    } catch (e) {
+      console.warn('[DB Client] Auto-seed notice:', e);
     }
   }
 
