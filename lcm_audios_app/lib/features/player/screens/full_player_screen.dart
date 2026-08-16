@@ -875,135 +875,162 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                     ),
                   ),
 
-                  // Player Utility Controls (Speed, Sleep Timer, 10s Rewind, 30s Forward)
+                  // Player Utility Controls (Speed, Sleep Timer, Playlist, Animated Download)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        // Playback Speed Pill
+                        // 1. Playback Speed Button (Clean badge)
                         InkWell(
                           onTap: () => _showPlaybackSpeedSheet(context, playerService),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            height: 38,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(16),
+                              color: playerService.playbackSpeed != 1.0
+                                  ? AppColors.primary.withValues(alpha: 0.15)
+                                  : AppColors.surfaceLight,
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: playerService.playbackSpeed != 1.0 ? AppColors.primary : Colors.white10,
+                                color: playerService.playbackSpeed != 1.0 ? AppColors.primary : Colors.white12,
+                                width: 1.2,
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.speed_rounded, size: 14, color: Colors.white70),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${playerService.playbackSpeed}x',
-                                  style: TextStyle(
-                                    color: playerService.playbackSpeed != 1.0 ? AppColors.primary : Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                            child: Center(
+                              child: Text(
+                                '${playerService.playbackSpeed}x',
+                                style: TextStyle(
+                                  color: playerService.playbackSpeed != 1.0 ? AppColors.primary : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
 
-                        // Sleep Timer Pill
+                        // 2. Sleep Timer Button (Icon-only with active Gold glow + mini badge)
                         InkWell(
                           onTap: () => _showSleepTimerSheet(context, playerService),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            height: 38,
+                            width: playerService.isSleepTimerActive ? null : 38,
+                            padding: playerService.isSleepTimerActive ? const EdgeInsets.symmetric(horizontal: 10) : EdgeInsets.zero,
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(16),
+                              color: playerService.isSleepTimerActive
+                                  ? AppColors.accentGold.withValues(alpha: 0.15)
+                                  : AppColors.surfaceLight,
+                              borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: playerService.isSleepTimerActive ? AppColors.accentGold : Colors.white10,
+                                color: playerService.isSleepTimerActive ? AppColors.accentGold : Colors.white12,
+                                width: 1.2,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.bedtime_rounded,
-                                  size: 14,
+                                  size: 18,
                                   color: playerService.isSleepTimerActive ? AppColors.accentGold : Colors.white70,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  playerService.isSleepTimerActive
-                                      ? playerService.formattedSleepTimerRemaining
-                                      : 'Sleep Timer',
-                                  style: TextStyle(
-                                    color: playerService.isSleepTimerActive ? AppColors.accentGold : Colors.white70,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                                if (playerService.isSleepTimerActive) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    playerService.formattedSleepTimerRemaining,
+                                    style: const TextStyle(
+                                      color: AppColors.accentGold,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
                         ),
 
-                        // Add to Playlist Pill
+                        // 3. Add to Playlist Button (Icon-only)
                         InkWell(
                           onTap: () => _showAddToPlaylistSheet(context, playerService, track),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            width: 38,
+                            height: 38,
                             decoration: BoxDecoration(
                               color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white10),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white12, width: 1.2),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(Icons.playlist_add_rounded, size: 15, color: Colors.white70),
-                                SizedBox(width: 4),
-                                Text('Playlist', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                              ],
+                            child: const Center(
+                              child: Icon(Icons.playlist_add_rounded, size: 20, color: Colors.white70),
                             ),
                           ),
                         ),
 
-                        // Download Action Pill
-                        InkWell(
-                          onTap: () => playerService.toggleDownload(track.id),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: track.isDownloaded ? const Color(0xFF10B981) : Colors.white10,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  track.isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
-                                  size: 14,
-                                  color: track.isDownloaded ? const Color(0xFF10B981) : Colors.white70,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  track.isDownloaded ? 'Downloaded' : 'Download',
-                                  style: TextStyle(
-                                    color: track.isDownloaded ? const Color(0xFF10B981) : Colors.white70,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                        // 4. Download Button (Icon with rotating ring + live percentage counter)
+                        Builder(
+                          builder: (context) {
+                            final progress = playerService.getDownloadProgressFor(track.id);
+                            final isDownloading = progress != null;
+                            final isDownloaded = track.isDownloaded;
+
+                            return InkWell(
+                              onTap: isDownloading ? null : () => playerService.toggleDownload(track.id),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                width: isDownloading ? 52 : 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: isDownloaded
+                                      ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                      : (isDownloading ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceLight),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isDownloaded
+                                        ? const Color(0xFF10B981)
+                                        : (isDownloading ? AppColors.primary : Colors.white12),
+                                    width: 1.2,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                                child: Center(
+                                  child: isDownloading
+                                      ? Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: 30,
+                                              height: 30,
+                                              child: CircularProgressIndicator(
+                                                value: progress > 0 ? progress : null,
+                                                strokeWidth: 2.2,
+                                                color: AppColors.primary,
+                                                backgroundColor: Colors.white10,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${(progress * 100).toInt()}%',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Icon(
+                                          isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
+                                          size: 19,
+                                          color: isDownloaded ? const Color(0xFF10B981) : Colors.white70,
+                                        ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -1097,7 +1124,24 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                               : playerService.repeatMode == RepeatMode.all
                                   ? 'Repeat: All'
                                   : 'Repeat: Off',
-                          onPressed: () => playerService.cycleRepeatMode(),
+                          onPressed: () {
+                            playerService.cycleRepeatMode();
+                            final modeName = playerService.repeatMode == RepeatMode.one
+                                ? 'Repeating Current Track 🔂'
+                                : playerService.repeatMode == RepeatMode.all
+                                    ? 'Repeating All Tracks 🔁'
+                                    : 'Repeat Off (Play Once) ➡️';
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(modeName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                backgroundColor: AppColors.surfaceLight,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

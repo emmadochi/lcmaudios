@@ -341,14 +341,20 @@ class AudioPlayerService extends ChangeNotifier {
       notifyListeners();
     });
 
-    _audioPlayer.onPlayerComplete.listen((_) {
+    _audioPlayer.onPlayerComplete.listen((_) async {
       if (_sleepTimerEndAtTrack) {
         _sleepTimerEndAtTrack = false;
-        _audioPlayer.pause();
+        await _audioPlayer.pause();
+        _syncAudioHandler();
+        notifyListeners();
+      } else if (_repeatMode == RepeatMode.one) {
+        // Repeat the exact same track from the start
+        await seekTo(Duration.zero);
+        await _audioPlayer.resume();
         _syncAudioHandler();
         notifyListeners();
       } else {
-        skipNext();
+        await skipNext();
       }
     });
 
@@ -699,8 +705,20 @@ class AudioPlayerService extends ChangeNotifier {
     } else {
       final list = filteredTracks;
       if (list.isEmpty) return;
-      final nextIdx = (list.indexWhere((t) => t.id == _currentTrack?.id) + 1) % list.length;
-      await playTrack(list[nextIdx]);
+      final currentIdx = list.indexWhere((t) => t.id == _currentTrack?.id);
+      if (currentIdx == -1) {
+        await playTrack(list.first);
+        return;
+      }
+      if (currentIdx + 1 < list.length) {
+        await playTrack(list[currentIdx + 1]);
+      } else if (_repeatMode == RepeatMode.all) {
+        await playTrack(list.first);
+      } else {
+        // Reached end of stream list without repeat all
+        await _audioPlayer.pause();
+        await seekTo(Duration.zero);
+      }
     }
   }
 
