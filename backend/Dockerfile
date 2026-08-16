@@ -1,7 +1,9 @@
 # ─── Stage 1: Builder ────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy package descriptors and prisma schema first (layer caching)
 COPY package*.json ./
@@ -20,12 +22,12 @@ COPY . .
 RUN npm run build
 
 # ─── Stage 2: Production runner ───────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
-# Install native FFmpeg package for Alpine Linux
-RUN apk add --no-cache ffmpeg
+# Install native FFmpeg and OpenSSL packages for Debian
+RUN apt-get update && apt-get install -y ffmpeg openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV PORT=5000
@@ -34,7 +36,7 @@ ENV PORT=5000
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Production-only install + regenerate Prisma client for Alpine target
+# Production-only install + regenerate Prisma client
 RUN npm install --omit=dev
 RUN npx prisma generate
 
@@ -50,6 +52,4 @@ RUN mkdir -p uploads/audio uploads/artwork uploads/hls
 EXPOSE 5000
 
 # Startup: run DB migrations (idempotent & safe on every deploy), then start server.
-# The "|| true" ensures the container boots even if DATABASE_URL is temporarily
-# unavailable (e.g. DB still provisioning), so the healthcheck can still respond.
 CMD ["sh", "-c", "npx prisma migrate deploy || echo '[Startup] Migration skipped or already applied.' && node dist/server.js"]
