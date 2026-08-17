@@ -177,6 +177,28 @@ class DbClient {
     return newUser;
   }
 
+  public async updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { passwordHash: newPasswordHash },
+        });
+        return true;
+      } catch (e) {
+        console.error('[DB Client] Prisma updateUserPassword error:', e);
+      }
+    }
+    const mock = MockDatabase.getInstance();
+    const idx = mock.users.findIndex((u: User) => u.id === userId);
+    if (idx !== -1) {
+      mock.users[idx].passwordHash = newPasswordHash;
+      mock.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
   // --- TRACK OPERATIONS ---
   public async getTracks(filter?: {
     intentCategory?: string;

@@ -37,8 +37,24 @@ class LcmAudiosApp extends StatelessWidget {
             ThemeData.dark().textTheme,
           ),
         ),
-        home: const AuthScreen(),
+        home: const AppEntryPoint(),
       ),
+    );
+  }
+}
+
+class AppEntryPoint extends StatelessWidget {
+  const AppEntryPoint({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AudioPlayerService>(
+      builder: (context, playerService, child) {
+        if (playerService.isAuthenticated) {
+          return const MainNavigationShell();
+        }
+        return const AuthScreen();
+      },
     );
   }
 }

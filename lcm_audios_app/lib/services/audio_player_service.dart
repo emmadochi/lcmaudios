@@ -81,7 +81,15 @@ class AudioPlayerService extends ChangeNotifier {
   StreamSubscription? _playerStateSubscription;
 
   String _userName = 'Grace Worshipper';
+  String? _userEmail;
+  String? _userId;
+  String? _jwtToken;
   int _listenCount = 3;
+
+  String? get userEmail => _userEmail;
+  String? get userId => _userId;
+  String? get jwtToken => _jwtToken;
+  bool get isAuthenticated => _jwtToken != null && _jwtToken!.isNotEmpty;
 
   // ─── Mini Player Visibility State ─────────────────────────────────────────
   bool _isMiniPlayerDismissed = false;
@@ -271,7 +279,7 @@ class AudioPlayerService extends ChangeNotifier {
       _audioHandler!.onPlay = () => togglePlayPause();
       _audioHandler!.onPause = () => togglePlayPause();
       _audioHandler!.onSeek = (pos) => seekTo(pos);
-      _audioHandler!.onSkipNext = () => skipNext();
+      _audioHandler!.onSkipNext = () => skipNext(userInitiated: true);
       _audioHandler!.onSkipPrevious = () => skipPrevious();
       _audioHandler!.onStop = () => _audioPlayer.stop();
 
@@ -348,11 +356,10 @@ class AudioPlayerService extends ChangeNotifier {
         _syncAudioHandler();
         notifyListeners();
       } else if (_repeatMode == RepeatMode.one) {
-        // Repeat the exact same track from the start
-        await seekTo(Duration.zero);
-        await _audioPlayer.resume();
-        _syncAudioHandler();
-        notifyListeners();
+        // Repeat the exact same track from the start seamlessly
+        if (_currentTrack != null) {
+          await playTrack(_currentTrack!, updateQueue: false);
+        }
       } else {
         await skipNext();
       }
@@ -594,6 +601,9 @@ class AudioPlayerService extends ChangeNotifier {
     try {
       await _audioPlayer.stop();
 
+      // Configure native looping for repeat-one
+      await _audioPlayer.setReleaseMode(_repeatMode == RepeatMode.one ? ReleaseMode.loop : ReleaseMode.stop);
+
       // Set playback speed rate
       if (_playbackSpeed != 1.0) {
         await _audioPlayer.setPlaybackRate(_playbackSpeed);
@@ -673,10 +683,9 @@ class AudioPlayerService extends ChangeNotifier {
     _lastTelemetryPosition = target;
   }
 
-  Future<void> skipNext() async {
-    if (_repeatMode == RepeatMode.one && _currentTrack != null) {
-      await seekTo(Duration.zero);
-      await _audioPlayer.resume();
+  Future<void> skipNext({bool userInitiated = false}) async {
+    if (!userInitiated && _repeatMode == RepeatMode.one && _currentTrack != null) {
+      await playTrack(_currentTrack!, updateQueue: false);
       return;
     }
 
@@ -753,7 +762,7 @@ class AudioPlayerService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cycleRepeatMode() {
+  Future<void> cycleRepeatMode() async {
     switch (_repeatMode) {
       case RepeatMode.off:
         _repeatMode = RepeatMode.all;
@@ -765,6 +774,7 @@ class AudioPlayerService extends ChangeNotifier {
         _repeatMode = RepeatMode.off;
         break;
     }
+    await _audioPlayer.setReleaseMode(_repeatMode == RepeatMode.one ? ReleaseMode.loop : ReleaseMode.stop);
     notifyListeners();
   }
 
@@ -888,6 +898,20 @@ class AudioPlayerService extends ChangeNotifier {
       notifyListeners();
       return success;
     }
+  }
+
+  Future<void> clearAllDownloads() async {
+    await OfflineStorageService.clearAllCache();
+    for (int i = 0; i < _allTracks.length; i++) {
+      if (_allTracks[i].isDownloaded) {
+        _allTracks[i] = _allTracks[i].copyWith(isDownloaded: false);
+      }
+    }
+    if (_currentTrack != null && _currentTrack!.isDownloaded) {
+      _currentTrack = _currentTrack!.copyWith(isDownloaded: false);
+    }
+    _downloadProgress.clear();
+    notifyListeners();
   }
 
   /// Returns [0.0 – 1.0] if a download is in progress, or null otherwise.
@@ -1074,9 +1098,15 @@ class AudioPlayerService extends ChangeNotifier {
   // ─── Initialisation ───────────────────────────────────────────────────────
   Future<void> _loadTracksAndStorage() async {
     final prefs = await SharedPreferences.getInstance();
+    _jwtToken          = prefs.getString('auth_jwt_token');
+    _userEmail         = prefs.getString('auth_user_email');
+    _userId            = prefs.getString('auth_user_id');
     _userName          = prefs.getString('user_name') ?? 'Grace Worshipper';
     _listenCount       = prefs.getInt('user_listen_count') ?? 3;
     _isCovenantPartner = prefs.getBool('is_covenant_partner') ?? false;
+    if (_userId != null && _userId!.isNotEmpty) {
+      OfflineStorageService.setDrmUserId(_userId!);
+    }
     if (_isCovenantPartner) {
       _partnerPlanType   = prefs.getString('partner_plan_type') ?? 'monthly';
       _partnerPaymentRef = prefs.getString('partner_payment_ref');
@@ -1138,6 +1168,47 @@ class AudioPlayerService extends ChangeNotifier {
       if (flushed > 0) debugPrint('[Telemetry] Startup flush: $flushed events.');
     }
 
+    notifyListeners();
+  }
+
+  // ─── Authentication Session Management ─────────────────────────────────────
+  Future<void> saveAuthSession({
+    required String token,
+    required String userId,
+    required String email,
+    required String fullName,
+  }) async {
+    _jwtToken = token;
+    _userId = userId;
+    _userEmail = email;
+    _userName = fullName;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_jwt_token', token);
+      await prefs.setString('auth_user_id', userId);
+      await prefs.setString('auth_user_email', email);
+      await prefs.setString('user_name', fullName);
+      await OfflineStorageService.setDrmUserId(userId);
+    } catch (e) {
+      debugPrint('[Auth] Session save error: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    _jwtToken = null;
+    _userId = null;
+    _userEmail = null;
+    _userName = 'Grace Worshipper';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_jwt_token');
+      await prefs.remove('auth_user_id');
+      await prefs.remove('auth_user_email');
+      await prefs.setString('user_name', 'Grace Worshipper');
+    } catch (e) {
+      debugPrint('[Auth] Logout error: $e');
+    }
     notifyListeners();
   }
 

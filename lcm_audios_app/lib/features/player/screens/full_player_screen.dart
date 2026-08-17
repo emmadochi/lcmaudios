@@ -1100,7 +1100,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                         // Skip Next
                         IconButton(
                           icon: const Icon(Icons.skip_next_rounded, color: AppColors.textPrimary, size: 32),
-                          onPressed: () => playerService.skipNext(),
+                          onPressed: () => playerService.skipNext(userInitiated: true),
                         ),
 
                         // 30s Fast-Forward

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "39253804126",
+    "project_id": "lcmaudios",
+    "storage_bucket": "lcmaudios.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:39253804126:android:e6c2f26e23e3c0a969a0cf",
+        "android_client_info": {
+          "package_name": "com.lcmaudios.lcm_audios_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "39253804126-idiuoftj6uo83pqu7e4ok1e5go2c5ur0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lcmaudios.lcm_audios_app",
+            "certificate_hash": "61162ed6fb0171f2cdd75e0c6553e4df50e9c24d"
+          }
+        },
+        {
+          "client_id": "39253804126-f61fdfn5hqdecn98bmbq0vbak9kadefd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG880poR6-ddRTtHOFm7eCHXdqMCyXU3o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "39253804126-f61fdfn5hqdecn98bmbq0vbak9kadefd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

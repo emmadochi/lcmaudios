@@ -17,12 +17,114 @@ class ApiService {
     return _localUrl;
   }
 
+  // ─── User Authentication & Registration ─────────────────────────────
+  static Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email.trim().toLowerCase(),
+          'password': password,
+        }),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'token': data['token'], 'user': data['user']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Login failed. Please check your credentials.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to streaming cloud. Please check your network connection.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String fullName,
+    List<String>? intentPreferences,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email.trim().toLowerCase(),
+          'password': password,
+          'fullName': fullName.trim(),
+          'intentPreferences': intentPreferences ?? ['morningDevotion', 'deepWorship'],
+        }),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'token': data['token'], 'user': data['user']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Registration failed.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to streaming cloud. Please check your network connection.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> loginWithGoogle({
+    required String email,
+    required String fullName,
+    String? googleId,
+    String? photoUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email.trim().toLowerCase(),
+          'fullName': fullName.trim(),
+          'googleId': googleId,
+          'photoUrl': photoUrl,
+        }),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'token': data['token'], 'user': data['user']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Google authentication failed.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to streaming cloud for Google sign-in.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getMe(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['user'];
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // Fetch spiritual intent categories dynamically from cloud
   static Future<List<SpiritualIntent>> fetchCategories() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/admin/categories'),
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -47,7 +149,7 @@ class ApiService {
       }
 
       final response = await http.get(Uri.parse(endpoint)).timeout(
-        const Duration(seconds: 8),
+        const Duration(seconds: 20),
       );
 
       if (response.statusCode == 200) {
