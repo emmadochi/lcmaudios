@@ -12,7 +12,7 @@
 ---
 
 ## 1. Executive Summary
-I am pleased to present the comprehensive technical, operational, and commercial architecture report for the **LCM Audios** streaming platform. Engineered as a flagship Christian media technology ecosystem, LCM Audios combines high-fidelity sermon streaming, interactive discipleship tools (timestamped note-taking and synchronized lyrics), and an automated recurring partnership monetization model (**"Covenant Partner Tier"**). 
+I am pleased to present the comprehensive technical, operational, and commercial architecture report for the **LCM Audios** streaming platform. Engineered as a flagship Christian media technology ecosystem, LCM Audios combines high-fidelity sermon streaming, interactive discipleship tools (timestamped note-taking and synchronized lyrics), and an automated recurring partnership monetization model (**"Covenant Partner Tier" at ₦2,500/month**). 
 
 Crucially, the entire infrastructure has been optimized to run at **$0.00/month in cloud overhead** while scaling to support over 2,000 sermons and tens of thousands of worshippers worldwide.
 
@@ -33,23 +33,24 @@ The platform is structured into core user-facing and administration capabilities
 
 ---
 
-## 3. The "Covenant Partner" Business & Monetization Model
+## 3. The "Covenant Partner" Business & Monetization Model (₦2,500 / Month)
 
 To ensure sustainable financial growth and support ministry expansion, missions, and high-quality production, LCM Audios integrates a two-tier subscription and giving model powered by Paystack:
 
 | Capability / Access | Free Tier ("Grace Worshipper") | Premium Tier ("Covenant Gold Partner") |
 | :--- | :--- | :--- |
-| **General Sermon Streaming** | Full Unlimited Streaming | Full Unlimited Streaming (Hi-Fi 320kbps) |
+| **General Sermon Streaming** | Full Unlimited Streaming | Full Unlimited Streaming (Hi-Fi 320kbps Studio Quality) |
 | **Exclusive Apostolic Masterclasses** | 30-Second Preview Limit | Full Unlimited Access (No Limits) |
 | **Encrypted Offline Downloads** | Up to 3 Tracks Maximum | Unlimited Offline Downloads Vault |
 | **Daily Morning Devotion Alarms** | Included (6:00 AM Alarm) | Included (Customizable Time Alarms) |
 | **Synchronized Lyrics & Notes** | Standard Access | Standard Access + PDF Notes Export |
-| **Ministry Impact & Giving Model** | Free / Evangelism Tier ($0.00) | **Monthly (₦1,500 / $5) or Annual (₦15,000 / $50) Seed** |
+| **Ministry Impact & Giving Model** | Free / Evangelism Tier ($0.00) | **Monthly (₦2,500 / Month) or Annual (₦24,000 / Year) Seed** |
 
-### 💡 Revenue & Ministry Impact Projections:
-* **Evangelism Funnel**: The Free Tier removes all barriers for new believers and searchers, driving massive viral adoption.
-* **Recurring Kingdom Revenue**: Converting just **500 dedicated worshippers** into Covenant Gold Partners (₦1,500/mo) generates **₦750,000 / month (₦9,000,000 / year)** in steady, automated operational funding with 0% server overhead.
-* **Automated Financial Governance**: Every partnership is verified via Paystack webhooks with instant digital receipts recorded in the admin ledger.
+### 💡 Revenue & Ministry Impact Projections (at ₦2,500 / Month):
+* **Evangelism Growth Engine**: The Free Tier eliminates entry friction for new converts and worshippers globally, driving wide-scale adoption.
+* **500 Covenant Gold Partners (₦2,500/mo)**: Generates **₦1,250,000 / month (₦15,000,000 / year)** in steady, automated ministry operational funding.
+* **1,000 Covenant Gold Partners (₦2,500/mo)**: Generates **₦2,500,000 / month (₦30,000,000 / year)** in dedicated kingdom expansion capital with **0% server overhead**.
+* **Automated Financial Governance**: Every transaction is verified via Paystack webhooks with instant digital receipts recorded in the admin ledger.
 
 ---
 
