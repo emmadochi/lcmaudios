@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe } from '../controllers/authController';
+import { register, login, getMe, googleAuth } from '../controllers/authController';
 import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
 import { getNotes, createNote } from '../controllers/noteController';
 import { logTelemetry } from '../controllers/telemetryController';
@@ -27,6 +27,7 @@ const apiRouter = Router();
 // Auth Routes
 apiRouter.post('/auth/register', register);
 apiRouter.post('/auth/login', login);
+apiRouter.post('/auth/google', googleAuth);
 apiRouter.get('/auth/me', getMe);
 
 // Paystack Covenant Partner Payments

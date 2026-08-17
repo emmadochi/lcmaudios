@@ -118,3 +118,46 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ error: 'Invalid or expired token.' });
   }
 };
+
+export const googleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, fullName, googleId, photoUrl } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: 'Email is required for Google authentication.' });
+      return;
+    }
+
+    let user = await dbClient.findUserByEmail(email);
+
+    if (!user) {
+      // Automatically register user using Google profile
+      const randomPassword = 'g_' + Math.random().toString(36).substring(2, 15);
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+      user = await dbClient.createUser({
+        email,
+        passwordHash,
+        fullName: fullName || email.split('@')[0],
+        intentPreferences: ['morningDevotion', 'deepWorship', 'warfare'],
+      });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '14d' });
+
+    res.status(200).json({
+      message: 'Google authentication successful.',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        intentPreferences: user.intentPreferences,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error during Google authentication.' });
+  }
+};
+
