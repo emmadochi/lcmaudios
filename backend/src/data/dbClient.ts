@@ -177,6 +177,28 @@ class DbClient {
     return newUser;
   }
 
+  public async getUsers(): Promise<User[]> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const dbUsers = await this.prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+        });
+        return dbUsers.map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          passwordHash: u.passwordHash,
+          fullName: u.fullName,
+          intentPreferences: u.intentPreferences as IntentCategory[],
+          createdAt: u.createdAt.toISOString(),
+        }));
+      } catch (e) {
+        console.error('[DB Client] Prisma getUsers error:', e);
+      }
+    }
+    const mock = MockDatabase.getInstance();
+    return mock.users;
+  }
+
   public async updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean> {
     if (this.isPrismaConnected && this.prisma) {
       try {

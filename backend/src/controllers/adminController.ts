@@ -163,14 +163,18 @@ export const getAnalyticsAdmin = async (req: Request, res: Response): Promise<vo
   try {
     const tracks = await dbClient.getTracks();
     const notes = await dbClient.getNotes();
+    const users = await dbClient.getUsers();
 
     let totalStreams = 0;
+    let totalListeningSeconds = 0;
     const categoryCounts: { [key: string]: number } = {};
 
     tracks.forEach((t) => {
-      const plays = t.playCount || 100;
+      const plays = t.playCount || 0;
       totalStreams += plays;
-      categoryCounts[t.intentCategory] = (categoryCounts[t.intentCategory] || 0) + plays;
+      totalListeningSeconds += plays * (t.duration || 300);
+      const catKey = t.categoryKey || t.intentCategory || 'Other';
+      categoryCounts[catKey] = (categoryCounts[catKey] || 0) + plays;
     });
 
     const topCategories = Object.keys(categoryCounts).map((cat) => ({
@@ -179,14 +183,15 @@ export const getAnalyticsAdmin = async (req: Request, res: Response): Promise<vo
       percentage: totalStreams > 0 ? Math.round((categoryCounts[cat] / totalStreams) * 100) : 0,
     }));
 
-    const sortedTracks = [...tracks].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 5);
+    const sortedTracks = [...tracks].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 10);
+    const totalListeningHours = Math.round(totalListeningSeconds / 3600);
 
     res.status(200).json({
       analytics: {
-        totalStreams: totalStreams + 4890,
-        activeListeners: 1240,
-        totalListeningHours: 854,
-        totalNotesTaken: notes.length + 320,
+        totalStreams: totalStreams,
+        activeListeners: users.length,
+        totalListeningHours: totalListeningHours > 0 ? totalListeningHours : Math.round(totalStreams * 0.2),
+        totalNotesTaken: notes.length,
         topCategories,
         topTracks: sortedTracks,
       },
