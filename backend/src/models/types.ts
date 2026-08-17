@@ -1,6 +1,16 @@
 export type IntentCategory = string;
 export type MediaType = 'song' | 'sermon' | 'podcast';
 
+export interface Minister {
+  id: string;
+  name: string;
+  role: string;
+  avatarUrl: string;
+  bio?: string;
+  sermonCount: number;
+  createdAt: string;
+}
+
 export interface CategoryItem {
   id: string;
   categoryKey: string;

@@ -101,6 +101,57 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email.trim().toLowerCase()}),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'], 'otp': data['otp']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to request password reset.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to server. Please check your connection.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email.trim().toLowerCase(),
+          'otp': otp.trim(),
+          'newPassword': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'token': data['token'],
+          'user': data['user'],
+        };
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Password reset failed.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to server. Please check your connection.'};
+    }
+  }
+
   static Future<Map<String, dynamic>?> getMe(String token) async {
     try {
       final response = await http.get(
@@ -274,6 +325,64 @@ class ApiService {
       debugPrint('[ApiService] Paystack verify error: $e');
     }
     return null;
+  }
+
+  // Fetch dynamic list of ministers from backend
+  static Future<List<Map<String, dynamic>>> fetchMinisters() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/ministers'),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data['ministers'] ?? [];
+        return list.map((m) => Map<String, dynamic>.from(m)).toList();
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Ministers fetch error: $e');
+    }
+    return _getFallbackMinisters();
+  }
+
+  static List<Map<String, dynamic>> _getFallbackMinisters() {
+    return [
+      {
+        'id': 'min_1',
+        'name': 'Pastor Martins Omonua',
+        'role': 'Lead Pastor, LCM',
+        'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        'avatarUrl': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'id': 'min_2',
+        'name': 'Apostle Joshua Selman',
+        'role': 'Koinonia Eternity',
+        'avatar': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
+        'avatarUrl': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'id': 'min_3',
+        'name': 'Pastor Enoch Adeboye',
+        'role': 'RCCG General Overseer',
+        'avatar': 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
+        'avatarUrl': 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'id': 'min_4',
+        'name': 'Nathaniel Bassey',
+        'role': 'Gospel Psalmist',
+        'avatar': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
+        'avatarUrl': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        'id': 'min_5',
+        'name': 'LCM Worship Sanctuary',
+        'role': 'Resident Choir & Orchestra',
+        'avatar': 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
+        'avatarUrl': 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
+      },
+    ];
   }
 
   // Fallback seed tracks when offline

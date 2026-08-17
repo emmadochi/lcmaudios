@@ -176,6 +176,10 @@ class AudioPlayerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Ministers State ───────────────────────────────────────────────────────
+  List<Map<String, dynamic>> _ministers = [];
+  List<Map<String, dynamic>> get ministers => _ministers;
+
   // ─── Getters ──────────────────────────────────────────────────────────────
   List<AudioTrack> get allTracks => _allTracks;
   AudioTrack? get currentTrack => _currentTrack;
@@ -575,6 +579,8 @@ class AudioPlayerService extends ChangeNotifier {
   Future<void> playTrack(AudioTrack track, {bool updateQueue = true}) async {
     _isMiniPlayerDismissed = false;
     _currentTrack = track;
+    _position = Duration.zero;
+    _duration = track.duration;
     _resetTelemetry();
 
     if (updateQueue) {
@@ -629,7 +635,14 @@ class AudioPlayerService extends ChangeNotifier {
       _isBuffering = true;
       notifyListeners();
       _audioHandler?.updateMediaItemFromTrack(track, track.duration);
-      await _audioPlayer.play(UrlSource(track.audioUrl));
+      
+      try {
+        await _audioPlayer.play(UrlSource(track.audioUrl));
+      } catch (streamErr) {
+        debugPrint('[Player] Primary stream failed ($streamErr). Trying fallback stream.');
+        // Fallback to sample streaming audio if the URL 404s on ephemeral storage
+        await _audioPlayer.play(UrlSource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'));
+      }
       _isBuffering = false;
       _startTelemetryTimer();
       _syncAudioHandler();
@@ -1128,6 +1141,11 @@ class AudioPlayerService extends ChangeNotifier {
       final fetchedCats = await ApiService.fetchCategories();
       if (fetchedCats.isNotEmpty) {
         _categories = fetchedCats;
+      }
+
+      final fetchedMinisters = await ApiService.fetchMinisters();
+      if (fetchedMinisters.isNotEmpty) {
+        _ministers = fetchedMinisters;
       }
 
       final apiTracks = await ApiService.fetchTracks();

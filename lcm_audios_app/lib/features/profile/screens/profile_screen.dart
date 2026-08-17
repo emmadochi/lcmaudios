@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/audio_player_service.dart';
+import '../../../services/notification_service.dart';
 import '../../auth/screens/auth_screen.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
@@ -17,6 +18,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   TimeOfDay _alarmTime = const TimeOfDay(hour: 6, minute: 0);
   bool _wifiOnlyDownload = true;
   String _audioQuality = 'High Fidelity (320 kbps)';
+
+  @override
+  void initState() {
+    super.initState();
+    final notif = NotificationService();
+    _morningAlarmEnabled = notif.isDevotionReminderEnabled;
+    _alarmTime = notif.devotionTime;
+  }
 
   void _showEditNameDialog(BuildContext context, AudioPlayerService playerService) {
     final controller = TextEditingController(text: playerService.userName);
@@ -100,13 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _morningAlarmEnabled = true;
       });
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Daily Morning Devotion alarm set for ${_alarmTime.format(context)} 🌅'),
-            backgroundColor: AppColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        await NotificationService().setDevotionSchedule(
+          enabled: true,
+          time: picked,
+          context: context,
         );
       }
     }

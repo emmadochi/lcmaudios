@@ -153,7 +153,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     });
 
     try {
-      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final googleSignIn = GoogleSignIn(
+        serverClientId: '39253804126-f61fdfn5hqdecn98bmbq0vbak9kadefd.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
+      );
       final account = await googleSignIn.signIn();
 
       if (account == null) {
@@ -195,12 +198,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     } catch (e) {
       debugPrint('[Google Auth Error] $e');
       final errorStr = e.toString();
-      if (errorStr.contains('10') || errorStr.contains('DEVELOPER_ERROR')) {
-        _showError('Google OAuth requires SHA-1 registration. Please sign in with Email or continue as Guest.');
-      } else if (errorStr.contains('network_error') || errorStr.contains('7')) {
+      if (errorStr.contains('network_error') || errorStr.contains('7')) {
         _showError('Network error connecting to Google Play Services.');
       } else {
-        _showError('Google Sign-In was not completed. Please try Email or Guest.');
+        _showError('Google Sign-In: $e');
       }
     } finally {
       if (mounted) {
@@ -209,6 +210,276 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         });
       }
     }
+  }
+
+  void _showForgotPasswordModal(BuildContext context) {
+    final emailCtrl = TextEditingController(text: _emailController.text.trim());
+    final otpCtrl = TextEditingController();
+    final newPasswordCtrl = TextEditingController();
+    int currentStep = 1; // 1 = Request OTP, 2 = Enter OTP & New Password
+    bool isModalLoading = false;
+    String? modalError;
+    String? generatedOtpHint;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  border: Border(top: BorderSide(color: AppColors.glassBorder)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentStep == 1 ? 'Reset Password' : 'Enter 6-Digit Code',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              currentStep == 1
+                                  ? 'Enter your email to receive a reset code'
+                                  : 'Enter the code and set your new password',
+                              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    if (modalError != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.redAccent, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                modalError!,
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    if (generatedOtpHint != null && currentStep == 2) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Verification Code: $generatedOtpHint',
+                                style: const TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    if (currentStep == 1) ...[
+                      _buildTextField(
+                        controller: emailCtrl,
+                        hint: 'Your registered email',
+                        icon: Icons.email_outlined,
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: isModalLoading
+                              ? null
+                              : () async {
+                                  final email = emailCtrl.text.trim();
+                                  if (email.isEmpty || !email.contains('@')) {
+                                    setModalState(() => modalError = 'Please enter a valid email address.');
+                                    return;
+                                  }
+                                  setModalState(() {
+                                    isModalLoading = true;
+                                    modalError = null;
+                                  });
+
+                                  final res = await ApiService.forgotPassword(email);
+                                  setModalState(() => isModalLoading = false);
+
+                                  if (res['success'] == true) {
+                                    setModalState(() {
+                                      currentStep = 2;
+                                      generatedOtpHint = res['otp']?.toString();
+                                    });
+                                  } else {
+                                    setModalState(() => modalError = res['error'] ?? 'Failed to send code.');
+                                  }
+                                },
+                          child: isModalLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('SEND 6-DIGIT CODE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ] else ...[
+                      _buildTextField(
+                        controller: otpCtrl,
+                        hint: '6-Digit Verification Code',
+                        icon: Icons.pin_rounded,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                        controller: newPasswordCtrl,
+                        hint: 'New Password (min. 6 chars)',
+                        icon: Icons.lock_outline_rounded,
+                        isPassword: true,
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: isModalLoading
+                              ? null
+                              : () async {
+                                  final otp = otpCtrl.text.trim();
+                                  final newPass = newPasswordCtrl.text.trim();
+                                  if (otp.length != 6) {
+                                    setModalState(() => modalError = 'Please enter the 6-digit code.');
+                                    return;
+                                  }
+                                  if (newPass.length < 6) {
+                                    setModalState(() => modalError = 'Password must be at least 6 characters.');
+                                    return;
+                                  }
+
+                                  setModalState(() {
+                                    isModalLoading = true;
+                                    modalError = null;
+                                  });
+
+                                  final res = await ApiService.resetPassword(
+                                    email: emailCtrl.text.trim(),
+                                    otp: otp,
+                                    newPassword: newPass,
+                                  );
+
+                                  setModalState(() => isModalLoading = false);
+
+                                  if (res['success'] == true) {
+                                    if (!context.mounted) return;
+                                    final token = res['token'] as String;
+                                    final user = res['user'] as Map<String, dynamic>;
+                                    final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+
+                                    await playerService.saveAuthSession(
+                                      token: token,
+                                      userId: user['id']?.toString() ?? 'usr_${DateTime.now().millisecondsSinceEpoch}',
+                                      email: user['email'] ?? emailCtrl.text.trim(),
+                                      fullName: user['fullName'] ?? 'Faith Worshipper',
+                                    );
+
+                                    if (context.mounted) {
+                                      Navigator.of(modalCtx).pop();
+                                      Navigator.of(context).pushReplacement(
+                                        MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+                                      );
+                                    }
+                                  } else {
+                                    setModalState(() => modalError = res['error'] ?? 'Reset failed.');
+                                  }
+                                },
+                          child: isModalLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('RESET PASSWORD & SIGN IN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _handleGuestEntry() {
@@ -322,19 +593,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: const Text('Password reset instructions will be sent to your email.'),
-                                            backgroundColor: AppColors.surfaceLight,
-                                            behavior: SnackBarBehavior.floating,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                        );
-                                      },
+                                      onPressed: () => _showForgotPasswordModal(context),
                                       child: const Text(
                                         'Forgot Password?',
-                                        style: TextStyle(color: AppColors.primary, fontSize: 12),
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),

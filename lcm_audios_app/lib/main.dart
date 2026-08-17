@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'core/theme/app_colors.dart';
 import 'services/audio_player_service.dart';
+import 'services/notification_service.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/explore/screens/explore_screen.dart';
@@ -11,8 +12,9 @@ import 'features/profile/screens/profile_screen.dart';
 import 'features/premium/screens/premium_screen.dart';
 import 'features/player/widgets/mini_player_bar.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   runApp(const LcmAudiosApp());
 }
 

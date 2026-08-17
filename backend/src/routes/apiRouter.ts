@@ -81,4 +81,20 @@ apiRouter.post('/admin/categories', createCategoryAdmin);
 apiRouter.put('/admin/categories/:id', updateCategoryAdmin);
 apiRouter.delete('/admin/categories/:id', deleteCategoryAdmin);
 
+// Ministers & Preachers Routes (Public & Admin)
+import {
+  getMinisters,
+  getMinisterById,
+  createMinisterAdmin,
+  updateMinisterAdmin,
+  deleteMinisterAdmin,
+} from '../controllers/ministerController';
+
+apiRouter.get('/ministers', getMinisters);
+apiRouter.get('/ministers/:id', getMinisterById);
+apiRouter.get('/admin/ministers', getMinisters);
+apiRouter.post('/admin/ministers', createMinisterAdmin);
+apiRouter.put('/admin/ministers/:id', updateMinisterAdmin);
+apiRouter.delete('/admin/ministers/:id', deleteMinisterAdmin);
+
 export default apiRouter;

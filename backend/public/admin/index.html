@@ -442,6 +442,7 @@
     </div>
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('analytics')">Analytics 📊</button>
+      <button class="tab-btn" onclick="switchTab('ministers')">Ministers & Preachers 🎙️</button>
       <button class="tab-btn" onclick="switchTab('categories')">Intent Categories 🏷️</button>
       <button class="tab-btn" onclick="switchTab('catalog')">Media Catalog 🎵</button>
       <button class="tab-btn" onclick="switchTab('ingest')">Ingest Media 🚀</button>
@@ -498,6 +499,22 @@
             <!-- Populated via JS -->
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- TAB: Ministers & Preachers Management -->
+    <div id="tab-ministers" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Ministers & Preachers Hub</span>
+          <button class="btn" onclick="openMinisterModal()">+ Add Minister</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+          Manage apostolic voices and preachers whose sermons and chants are indexed in LCM Audios.
+        </p>
+        <div class="categories-grid" id="ministers-grid">
+          <!-- Populated via JS -->
+        </div>
       </div>
     </div>
 
@@ -740,6 +757,52 @@
     </div>
   </main>
 
+  <!-- Minister Modal -->
+  <div class="modal-overlay" id="ministerModal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="ministerModalTitle" style="font-size: 18px; font-weight: 800; color: #fff;">Add Apostolic Minister / Preacher</h3>
+        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 14px;" onclick="closeMinisterModal()">✕</button>
+      </div>
+      <input type="hidden" id="editMinisterId" />
+      
+      <!-- Live Preview Box -->
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px;">
+        <img id="minPreviewAvatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);" />
+        <div>
+          <div id="minPreviewName" style="font-weight: 700; font-size: 14px; color: #fff;">Pastor Name</div>
+          <div id="minPreviewRole" style="font-size: 12px; color: var(--text-muted);">Title / Ministry</div>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Minister Full Name *</label>
+        <input type="text" id="minName" placeholder="e.g. Pastor Martins Omonua" oninput="updateMinisterPreview()" required />
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Title / Role / Ministry *</label>
+        <input type="text" id="minRole" placeholder="e.g. Lead Pastor, LCM" oninput="updateMinisterPreview()" required />
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label>Avatar Photo URL</label>
+        <input type="url" id="minAvatarUrl" placeholder="https://..." oninput="updateMinisterPreview()" />
+        <small style="font-size: 11px; color: var(--text-muted);">Paste a public image link (Unsplash, Cloudinary, ImgBB, etc.)</small>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Short Bio & Ministry Calling</label>
+        <textarea id="minBio" rows="3" placeholder="Summary of ministry calling, grace, and teachings..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeMinisterModal()">Cancel</button>
+        <button class="btn" id="saveMinisterBtn" onclick="saveMinister()">💾 Save Minister</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Category Modal -->
   <div class="modal-overlay" id="categoryModal">
     <div class="modal-card" style="max-width: 520px;">
@@ -867,12 +930,13 @@
     let isStampingMode = false;
     let activeStampingIndex = 0;
     let catalogTracksCache = [];
+    let cachedMinistersList = [];
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-      const tabs = ['analytics', 'categories', 'catalog', 'ingest', 'partners'];
+      const tabs = ['analytics', 'ministers', 'categories', 'catalog', 'ingest', 'partners'];
       const idx = tabs.indexOf(tabId);
       if (idx !== -1) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
@@ -880,10 +944,168 @@
       }
 
       if (tabId === 'analytics') loadAnalytics();
+      if (tabId === 'ministers') loadMinisters();
       if (tabId === 'categories') loadCategories();
       if (tabId === 'catalog') loadCatalog();
-      if (tabId === 'ingest') populateCategoryDropdown();
+      if (tabId === 'ingest') {
+        populateCategoryDropdown();
+        populateMinistersDropdown();
+      }
       if (tabId === 'partners') loadPartnerLedger();
+    }
+
+    async function loadMinisters() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/ministers`);
+        const data = await res.json();
+        cachedMinistersList = data.ministers || [];
+        const grid = document.getElementById('ministers-grid');
+        grid.innerHTML = '';
+
+        if (cachedMinistersList.length === 0) {
+          grid.innerHTML = '<div style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 20px;">No ministers recorded yet. Tap "+ Add Minister" to create one.</div>';
+          return;
+        }
+
+        cachedMinistersList.forEach(m => {
+          const card = document.createElement('div');
+          card.className = 'category-card';
+          card.innerHTML = `
+            <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 12px;">
+              <img src="${m.avatarUrl}" alt="${m.name}" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);" onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'" />
+              <div>
+                <div style="font-weight: 700; font-size: 15px; color: #fff;">${m.name}</div>
+                <div style="font-size: 12.5px; color: var(--primary); font-weight: 600;">${m.role}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted);">${m.sermonCount || 0} Sermons & Tracks</div>
+              </div>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">${m.bio || 'Apostolic minister and spiritual leader.'}</p>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="editMinister('${m.id}')">Edit</button>
+              <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteMinister('${m.id}', '${(m.name || '').replace(/'/g, "\\'")}')">Delete</button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (e) {
+        console.error('Failed to load ministers', e);
+      }
+    }
+
+    function updateMinisterPreview() {
+      const name = document.getElementById('minName').value.trim() || 'Pastor Name';
+      const role = document.getElementById('minRole').value.trim() || 'Title / Ministry';
+      const avatar = document.getElementById('minAvatarUrl').value.trim() || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
+
+      document.getElementById('minPreviewName').innerText = name;
+      document.getElementById('minPreviewRole').innerText = role;
+      document.getElementById('minPreviewAvatar').src = avatar;
+    }
+
+    function openMinisterModal() {
+      document.getElementById('editMinisterId').value = '';
+      document.getElementById('ministerModalTitle').innerText = '🎙️ Add Apostolic Minister / Preacher';
+      document.getElementById('minName').value = '';
+      document.getElementById('minRole').value = '';
+      document.getElementById('minAvatarUrl').value = '';
+      document.getElementById('minBio').value = '';
+      document.getElementById('saveMinisterBtn').innerText = '💾 Save Minister';
+      updateMinisterPreview();
+      document.getElementById('ministerModal').classList.add('active');
+    }
+
+    function closeMinisterModal() {
+      document.getElementById('ministerModal').classList.remove('active');
+    }
+
+    function editMinister(id) {
+      const m = cachedMinistersList.find(item => item.id === id);
+      if (!m) return;
+
+      document.getElementById('editMinisterId').value = m.id;
+      document.getElementById('ministerModalTitle').innerText = '✏️ Edit Minister Profile';
+      document.getElementById('minName').value = m.name;
+      document.getElementById('minRole').value = m.role;
+      document.getElementById('minAvatarUrl').value = m.avatarUrl || '';
+      document.getElementById('minBio').value = m.bio || '';
+      document.getElementById('saveMinisterBtn').innerText = '💾 Update Minister';
+      updateMinisterPreview();
+      document.getElementById('ministerModal').classList.add('active');
+    }
+
+    async function saveMinister() {
+      const id = document.getElementById('editMinisterId').value;
+      const name = document.getElementById('minName').value.trim();
+      const role = document.getElementById('minRole').value.trim();
+      const avatarUrl = document.getElementById('minAvatarUrl').value.trim() || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
+      const bio = document.getElementById('minBio').value.trim();
+
+      if (!name || !role) {
+        alert('Please provide Minister Name and Role.');
+        return;
+      }
+
+      const payload = { name, role, avatarUrl, bio };
+      const btn = document.getElementById('saveMinisterBtn');
+      btn.disabled = true;
+      btn.innerText = 'Saving...';
+
+      try {
+        const url = id ? `${API_BASE}/admin/ministers/${id}` : `${API_BASE}/admin/ministers`;
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          closeMinisterModal();
+          loadMinisters();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to save minister');
+        }
+      } catch (e) {
+        alert('Network error saving minister');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Save Minister';
+      }
+    }
+
+    async function deleteMinister(id, name) {
+      if (!confirm(`Are you sure you want to remove ${name}?`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/ministers/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          loadMinisters();
+        } else {
+          alert('Failed to delete minister.');
+        }
+      } catch (e) {
+        alert('Network error deleting minister');
+      }
+    }
+
+    async function populateMinistersDropdown() {
+      try {
+        const res = await fetch(`${API_BASE}/ministers`);
+        const data = await res.json();
+        const select = document.getElementById('artistSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Choose Minister or Type Below --</option>';
+        (data.ministers || []).forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.name;
+          opt.innerText = `${m.name} (${m.role})`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error('Failed to populate ministers dropdown', e);
+      }
     }
 
     async function loadPartnerLedger() {

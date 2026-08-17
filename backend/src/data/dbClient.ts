@@ -423,6 +423,63 @@ class DbClient {
     return false;
   }
 
+  // --- MINISTERS OPERATIONS ---
+  public async getMinisters(): Promise<Minister[]> {
+    const mock = MockDatabase.getInstance();
+    // Dynamically calculate sermon counts for ministers
+    return mock.ministers.map((m) => {
+      const count = mock.tracks.filter((t) => t.artist.toLowerCase().includes(m.name.toLowerCase())).length;
+      return {
+        ...m,
+        sermonCount: count > 0 ? count : m.sermonCount,
+      };
+    });
+  }
+
+  public async getMinisterById(id: string): Promise<Minister | null> {
+    const mock = MockDatabase.getInstance();
+    const minister = mock.ministers.find((m) => m.id === id);
+    return minister || null;
+  }
+
+  public async createMinister(data: { name: string; role: string; avatarUrl: string; bio?: string }): Promise<Minister> {
+    const mock = MockDatabase.getInstance();
+    const newMinister: Minister = {
+      id: `min_${Date.now()}`,
+      name: data.name.trim(),
+      role: data.role.trim(),
+      avatarUrl: data.avatarUrl,
+      bio: data.bio?.trim() || '',
+      sermonCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    mock.ministers.push(newMinister);
+    mock.saveToFile();
+    return newMinister;
+  }
+
+  public async updateMinister(id: string, updateData: Partial<Minister>): Promise<Minister | null> {
+    const mock = MockDatabase.getInstance();
+    const idx = mock.ministers.findIndex((m) => m.id === id);
+    if (idx !== -1) {
+      mock.ministers[idx] = { ...mock.ministers[idx], ...updateData };
+      mock.saveToFile();
+      return mock.ministers[idx];
+    }
+    return null;
+  }
+
+  public async deleteMinister(id: string): Promise<boolean> {
+    const mock = MockDatabase.getInstance();
+    const idx = mock.ministers.findIndex((m) => m.id === id);
+    if (idx !== -1) {
+      mock.ministers.splice(idx, 1);
+      mock.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
   // --- SERMON NOTES OPERATIONS ---
   public async createNote(note: { trackId: string; userId?: string; timestampSeconds: number; noteText: string }): Promise<SermonNote> {
     if (this.isPrismaConnected && this.prisma && note.userId) {

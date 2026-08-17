@@ -56,14 +56,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     },
   ];
 
-  final List<String> _trendingTags = [
-    'Morning Devotion',
-    'Deep Worship',
-    'Warfare & Deliverance',
-    'Divine Healing',
-    'Atmosphere of Grace',
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -459,12 +451,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                   ]
 
-                  // ─── CASE B: Default Discovery Mode (Clean & Peaceful) ────────────
+                  // ─── CASE B: Default Discovery Mode (2,000+ Audios Architecture) ───
                   else ...[
                     // 1. Featured Ministers Spotlight Bar
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -478,76 +470,220 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Tap any minister to filter their sermon catalog',
+                              'Tap any minister to filter their complete sermon catalog',
                               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
-                              height: 112,
+                              height: 110,
+                              child: Builder(
+                                builder: (context) {
+                                  final displayMinisters = playerService.ministers.isNotEmpty
+                                      ? playerService.ministers
+                                      : _ministers;
+
+                                  return ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: displayMinisters.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                    itemBuilder: (context, idx) {
+                                      final m = displayMinisters[idx];
+                                      final name = m['name']?.toString() ?? 'Minister';
+                                      final avatar = (m['avatarUrl'] ?? m['avatar'])?.toString() ??
+                                          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
+
+                                      return GestureDetector(
+                                        onTap: () {
+                                          _searchController.text = name;
+                                          setState(() {
+                                            _searchQuery = name;
+                                          });
+                                        },
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(2.5),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: const LinearGradient(
+                                                  colors: [AppColors.primary, Color(0xFF991B1B)],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppColors.primary.withValues(alpha: 0.25),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: ClipOval(
+                                                child: CachedNetworkImage(
+                                                  imageUrl: avatar,
+                                                  width: 56,
+                                                  height: 56,
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (_, __, ___) => Container(
+                                                    width: 56,
+                                                    height: 56,
+                                                    color: AppColors.surfaceLight,
+                                                    child: const Icon(Icons.person, color: AppColors.textMuted),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            SizedBox(
+                                              width: 78,
+                                              child: Text(
+                                                name.split(' ').take(2).join(' '),
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 2. 🔥 Trending & Direct-Play Audios Shelf
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  '🔥 Trending Faith Releases',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  '${playerService.allTracks.length} available',
+                                  style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 180,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
-                                itemCount: _ministers.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                itemCount: playerService.allTracks.take(8).length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 12),
                                 itemBuilder: (context, idx) {
-                                  final m = _ministers[idx];
+                                  final track = playerService.allTracks[idx];
+                                  final isCurrent = playerService.currentTrack?.id == track.id;
+                                  final isPlaying = isCurrent && playerService.isPlaying;
 
-                                  return GestureDetector(
-                                    onTap: () {
-                                      _searchController.text = m['name']!;
-                                      setState(() {
-                                        _searchQuery = m['name']!;
-                                      });
-                                    },
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(2.5),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: const LinearGradient(
-                                              colors: [AppColors.primary, Color(0xFF991B1B)],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
+                                  return Container(
+                                    width: 140,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isCurrent ? AppColors.primary : AppColors.glassBorder,
+                                      ),
+                                    ),
+                                    child: InkWell(
+                                      onTap: () {
+                                        if (isCurrent) {
+                                          playerService.togglePlayPause();
+                                        } else {
+                                          playerService.playTrack(track);
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Stack(
+                                              children: [
+                                                ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: track.albumArtUrl,
+                                                    height: 95,
+                                                    width: double.infinity,
+                                                    fit: BoxFit.cover,
+                                                    errorWidget: (_, __, ___) => Container(
+                                                      height: 95,
+                                                      color: AppColors.surfaceLight,
+                                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  bottom: 6,
+                                                  right: 6,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(6),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.primary,
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black.withValues(alpha: 0.5),
+                                                          blurRadius: 6,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Icon(
+                                                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.primary.withValues(alpha: 0.2),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 3),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              track.title,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: isCurrent ? AppColors.primary : Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12.5,
                                               ),
-                                            ],
-                                          ),
-                                          child: ClipOval(
-                                            child: CachedNetworkImage(
-                                              imageUrl: m['avatar']!,
-                                              width: 58,
-                                              height: 58,
-                                              fit: BoxFit.cover,
-                                              errorWidget: (_, __, ___) => Container(
-                                                width: 58,
-                                                height: 58,
-                                                color: AppColors.surfaceLight,
-                                                child: const Icon(Icons.person, color: AppColors.textMuted),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              track.artist,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: AppColors.textMuted,
+                                                fontSize: 11,
                                               ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 6),
-                                        SizedBox(
-                                          width: 78,
-                                          child: Text(
-                                            m['name']!.split(' ').take(2).join(' '),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   );
                                 },
@@ -558,61 +694,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                     ),
 
-                    // 2. Quick Trending Topics
+                    // 3. 📚 Sermon Series & Albums (Handles Multi-Part Sermons)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Trending Devotions',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _trendingTags.map((tag) {
-                                return ActionChip(
-                                  label: Text('# $tag'),
-                                  onPressed: () {
-                                    _searchController.text = tag;
-                                    setState(() {
-                                      _searchQuery = tag;
-                                    });
-                                  },
-                                  labelStyle: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  backgroundColor: AppColors.surface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: const BorderSide(color: AppColors.glassBorder),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // 3. Spiritual Intent Grid
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Spiritual Intent Soundscapes',
+                              '📚 Featured Sermon Series',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
@@ -621,7 +711,73 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Curated atmosphere tuned to your daily spiritual state',
+                              'Complete multi-part spiritual revelation teachings',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 120,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                children: [
+                                  _buildSeriesCard(
+                                    title: 'Critical Mind Series',
+                                    minister: 'Pastor Martins Omonua',
+                                    partsCount: '3 Parts',
+                                    accentColor: const Color(0xFF6366F1),
+                                    onTap: () {
+                                      _searchController.text = 'Critical Mind';
+                                      setState(() => _searchQuery = 'Critical Mind');
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildSeriesCard(
+                                    title: 'Divine Direction & Wisdom',
+                                    minister: 'Pastor Martins Omonua',
+                                    partsCount: '4 Parts',
+                                    accentColor: const Color(0xFFEC4899),
+                                    onTap: () {
+                                      _searchController.text = 'Divine Direction';
+                                      setState(() => _searchQuery = 'Divine Direction');
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildSeriesCard(
+                                    title: 'Atmosphere of Glory & Deep Worship',
+                                    minister: 'LCM Worship Sanctuary',
+                                    partsCount: '6 Chants',
+                                    accentColor: const Color(0xFFF59E0B),
+                                    onTap: () {
+                                      _searchController.text = 'Worship';
+                                      setState(() => _searchQuery = 'Worship');
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 4. 🕊️ Browse by Life Need & Topic (Color Grid)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '🕊️ Browse by Spiritual Need',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Curated themes tuned to your daily spiritual focus',
                               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                             ),
                           ],
@@ -635,9 +791,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       sliver: SliverGrid(
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 1.15,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.25,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -656,41 +812,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 );
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: AppColors.surface,
-                                  borderRadius: BorderRadius.circular(18),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(color: AppColors.glassBorder),
                                   gradient: LinearGradient(
                                     colors: [
+                                      intent.accentColor.withValues(alpha: 0.22),
                                       AppColors.surface,
-                                      intent.accentColor.withValues(alpha: 0.12),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: intent.accentColor.withValues(alpha: 0.08),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
                                 ),
+                                padding: const EdgeInsets.all(14),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(10),
+                                      padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color: intent.accentColor.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: intent.accentColor.withValues(alpha: 0.3),
-                                        ),
+                                        shape: BoxShape.circle,
                                       ),
-                                      child: Icon(intent.icon, color: intent.accentColor, size: 22),
+                                      child: Icon(
+                                        intent.icon,
+                                        color: intent.accentColor,
+                                        size: 20,
+                                      ),
                                     ),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,19 +849,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                           intent.title,
                                           style: const TextStyle(
                                             color: AppColors.textPrimary,
+                                            fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 14,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          '$trackCount Streams',
-                                          style: TextStyle(
-                                            color: intent.accentColor,
+                                          '$trackCount sermons & tracks',
+                                          style: const TextStyle(
+                                            color: AppColors.textMuted,
                                             fontSize: 11,
-                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ],
@@ -731,6 +880,86 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSeriesCard({
+    required String title,
+    required String minister,
+    required String partsCount,
+    required Color accentColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+          gradient: LinearGradient(
+            colors: [
+              accentColor.withValues(alpha: 0.18),
+              AppColors.surface,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    partsCount.toUpperCase(),
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_rounded, color: Colors.white54, size: 16),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  minister,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

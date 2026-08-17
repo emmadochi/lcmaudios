@@ -1,4 +1,4 @@
-import { Track, User, SermonNote, CategoryItem, TelemetryEvent } from '../models/types';
+import { Track, User, SermonNote, CategoryItem, TelemetryEvent, Minister } from '../models/types';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
@@ -10,6 +10,7 @@ export class MockDatabase {
   public tracks: Track[] = [];
   public notes: SermonNote[] = [];
   public categories: CategoryItem[] = [];
+  public ministers: Minister[] = [];
   public telemetryEvents: TelemetryEvent[] = [];
 
   private static getStoragePath(): string {
@@ -41,6 +42,7 @@ export class MockDatabase {
         tracks: this.tracks,
         notes: this.notes,
         categories: this.categories,
+        ministers: this.ministers,
         telemetryEvents: this.telemetryEvents,
       };
       fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
@@ -60,8 +62,13 @@ export class MockDatabase {
           this.tracks = Array.isArray(data.tracks) ? data.tracks : [];
           this.notes = Array.isArray(data.notes) ? data.notes : [];
           this.categories = Array.isArray(data.categories) ? data.categories : [];
+          this.ministers = Array.isArray(data.ministers) ? data.ministers : [];
           this.telemetryEvents = Array.isArray(data.telemetryEvents) ? data.telemetryEvents : [];
-          console.log(`[MockDatabase] Loaded ${this.tracks.length} tracks and ${this.categories.length} categories from persistent storage.`);
+          
+          if (this.ministers.length === 0) {
+            this.seedMinisters();
+          }
+          console.log(`[MockDatabase] Loaded ${this.tracks.length} tracks, ${this.ministers.length} ministers, and ${this.categories.length} categories.`);
           return;
         }
       }
@@ -72,7 +79,58 @@ export class MockDatabase {
     this.saveToFile();
   }
 
+  public seedMinisters() {
+    this.ministers = [
+      {
+        id: 'min_1',
+        name: 'Pastor Martins Omonua',
+        role: 'Lead Pastor, LCM',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        bio: 'Lead Pastor at Life Care Ministry, preaching kingdom transformation, prayer altars, and spiritual development.',
+        sermonCount: 15,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'min_2',
+        name: 'Apostle Joshua Selman',
+        role: 'Founder, Eternity Network Intl',
+        avatarUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
+        bio: 'Apostolic teacher imparting the deep things of God, wisdom, and the supernatural dimension of faith.',
+        sermonCount: 42,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'min_3',
+        name: 'Pastor Enoch Adeboye',
+        role: 'General Overseer, RCCG',
+        avatarUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
+        bio: 'Father in the faith leading global prayer and holiness revivals across nations.',
+        sermonCount: 30,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'min_4',
+        name: 'Nathaniel Bassey',
+        role: 'Gospel Psalmist & Trumpeter',
+        avatarUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
+        bio: 'Anointed worship minister ushering believers into the holy of holies through heartfelt worship.',
+        sermonCount: 20,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'min_5',
+        name: 'LCM Worship Sanctuary',
+        role: 'Resident Choir & Orchestra',
+        avatarUrl: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
+        bio: 'Leading continuous soaking chants, harp & bowl prayer sessions, and heavenly worship melodies.',
+        sermonCount: 28,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  }
+
   private seedData() {
+    this.seedMinisters();
     // Seed initial demo user
     const salt = bcrypt.genSaltSync(10);
     const demoPasswordHash = bcrypt.hashSync('password123', salt);
