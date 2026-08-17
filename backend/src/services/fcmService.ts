@@ -1,20 +1,23 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
+import { getMessaging, Message } from 'firebase-admin/messaging';
 
-let isInitialized = false;
+let firebaseApp: App | null = null;
 
-export const initFirebaseAdmin = () => {
-  if (isInitialized) return;
+export const initFirebaseAdmin = (): boolean => {
+  if (firebaseApp || getApps().length > 0) {
+    firebaseApp = getApps()[0];
+    return true;
+  }
 
   try {
     // 1. Check for raw Service Account JSON in environment
     if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      firebaseApp = initializeApp({
+        credential: cert(serviceAccount),
       });
-      isInitialized = true;
       console.log('[FCM] Initialized Firebase Admin via FIREBASE_SERVICE_ACCOUNT_JSON.');
-      return;
+      return true;
     }
 
     // 2. Check for granular environment variables
@@ -23,21 +26,22 @@ export const initFirebaseAdmin = () => {
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY
     ) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
+      firebaseApp = initializeApp({
+        credential: cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         }),
       });
-      isInitialized = true;
       console.log('[FCM] Initialized Firebase Admin via environment credentials.');
-      return;
+      return true;
     }
 
     console.log('[FCM] Notice: Firebase credentials not supplied yet. FCM push broadcasting is standing by.');
+    return false;
   } catch (error) {
     console.error('[FCM] Initialization error:', error);
+    return false;
   }
 };
 
@@ -48,15 +52,16 @@ export const broadcastSermonNotification = async (track: {
   subgenre?: string;
   albumArtUrl?: string;
 }): Promise<boolean> => {
-  initFirebaseAdmin();
+  const isReady = initFirebaseAdmin();
 
-  if (!isInitialized) {
+  if (!isReady || !firebaseApp) {
     console.log(`[FCM] Simulated push broadcast for new sermon: "${track.title}" by ${track.artist}`);
     return false;
   }
 
   try {
-    const payload: admin.messaging.Message = {
+    const messaging = getMessaging(firebaseApp);
+    const payload: Message = {
       topic: 'all_devotees',
       notification: {
         title: '🕊️ New Faith Release',
@@ -79,7 +84,7 @@ export const broadcastSermonNotification = async (track: {
       },
     };
 
-    const response = await admin.messaging().send(payload);
+    const response = await messaging.send(payload);
     console.log(`[FCM] ✅ Successfully broadcasted new sermon alert to 'all_devotees' topic. Message ID: ${response}`);
     return true;
   } catch (error) {
