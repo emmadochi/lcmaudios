@@ -1,5 +1,5 @@
 import { MockDatabase } from './mockDatabase';
-import { Track, User, SermonNote, CategoryItem, TelemetryEvent, IntentCategory, MediaType } from '../models/types';
+import { Track, User, SermonNote, CategoryItem, TelemetryEvent, IntentCategory, MediaType, Minister } from '../models/types';
 
 class DbClient {
   private static instance: DbClient;
