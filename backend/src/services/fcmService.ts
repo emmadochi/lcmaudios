@@ -64,7 +64,7 @@ export const broadcastSermonNotification = async (track: {
     const payload: Message = {
       topic: 'all_devotees',
       notification: {
-        title: '🕊️ New Faith Release',
+        title: 'New Faith Release',
         body: `"${track.title}" by ${track.artist} is now streaming.`,
       },
       data: {

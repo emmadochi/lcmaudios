@@ -68,7 +68,7 @@ class NotificationService {
           final notif = message.notification;
           if (notif != null) {
             showInstantNotification(
-              title: notif.title ?? '🕊️ LCM Audios Faith Broadcast',
+              title: notif.title ?? 'LCM Audios Faith Broadcast',
               body: notif.body ?? 'New message received from Life Care Ministry.',
               payload: message.data['trackId'],
             );
@@ -126,7 +126,7 @@ class NotificationService {
   /// Automated self-test to verify notifications on the user's device
   Future<void> triggerAutoTestNotification(BuildContext? context) async {
     await showInstantNotification(
-      title: '🕊️ LCM Audios Notification Test',
+      title: 'LCM Audios Notification Test',
       body: 'Notifications are functioning perfectly! Your daily devotion alarm is active.',
     );
 
