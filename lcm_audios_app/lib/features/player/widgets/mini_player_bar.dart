@@ -61,6 +61,8 @@ class MiniPlayerBar extends StatelessWidget {
                           imageUrl: track.albumArtUrl,
                           width: 42,
                           height: 42,
+                          memCacheWidth: 120,
+                          memCacheHeight: 120,
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => Container(
                             width: 42,

@@ -385,6 +385,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     imageUrl: track.albumArtUrl,
                                     width: 48,
                                     height: 48,
+                                    memCacheWidth: 150,
+                                    memCacheHeight: 150,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       width: 48,
@@ -600,9 +602,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Dynamic User Greeting & Spiritual Anchor
+                  // Sleek, Minimalist User Greeting & Spiritual Anchor
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 12.0),
+                    padding: const EdgeInsets.fromLTRB(20.0, 4.0, 20.0, 8.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -610,16 +612,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           _getGreeting(playerService.userName),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         const Text(
                           '“Thy word is a lamp unto my feet, and a light unto my path.”',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
+                            color: AppColors.textMuted,
+                            fontSize: 11,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -873,6 +876,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     imageUrl: track.albumArtUrl,
                                     width: 50,
                                     height: 50,
+                                    memCacheWidth: 150,
+                                    memCacheHeight: 150,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       width: 50,
@@ -1146,6 +1151,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     imageUrl: track.albumArtUrl,
                     width: 52,
                     height: 52,
+                    memCacheWidth: 150,
+                    memCacheHeight: 150,
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => Container(
                       width: 52,
@@ -1315,6 +1322,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       imageUrl: track.albumArtUrl,
                       height: 100,
                       width: double.infinity,
+                      memCacheWidth: 280,
+                      memCacheHeight: 200,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Container(
                         height: 100,

@@ -658,6 +658,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     imageUrl: track.albumArtUrl,
                     width: 44,
                     height: 44,
+                    memCacheWidth: 120,
+                    memCacheHeight: 120,
                     fit: BoxFit.cover,
                     errorWidget: (_, __, ___) => Container(
                       width: 44,
@@ -757,6 +759,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 imageUrl: track.albumArtUrl,
                 width: 46,
                 height: 46,
+                memCacheWidth: 120,
+                memCacheHeight: 120,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) => Container(
                   width: 46,

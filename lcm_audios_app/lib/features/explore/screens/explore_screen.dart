@@ -370,6 +370,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                           imageUrl: track.albumArtUrl,
                                           width: 50,
                                           height: 50,
+                                          memCacheWidth: 150,
+                                          memCacheHeight: 150,
                                           fit: BoxFit.cover,
                                           errorWidget: (_, __, ___) => Container(
                                             width: 50,
@@ -523,6 +525,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                   imageUrl: avatar,
                                                   width: 56,
                                                   height: 56,
+                                                  memCacheWidth: 120,
+                                                  memCacheHeight: 120,
                                                   fit: BoxFit.cover,
                                                   errorWidget: (_, __, ___) => Container(
                                                     width: 56,
@@ -628,6 +632,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                     imageUrl: track.albumArtUrl,
                                                     height: 95,
                                                     width: double.infinity,
+                                                    memCacheWidth: 280,
+                                                    memCacheHeight: 200,
                                                     fit: BoxFit.cover,
                                                     errorWidget: (_, __, ___) => Container(
                                                       height: 95,

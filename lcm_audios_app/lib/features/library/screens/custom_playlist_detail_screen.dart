@@ -126,6 +126,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                               imageUrl: track.albumArtUrl,
                               width: 44,
                               height: 44,
+                              memCacheWidth: 120,
+                              memCacheHeight: 120,
                               fit: BoxFit.cover,
                               errorWidget: (_, __, ___) => Container(
                                 width: 44,
@@ -435,6 +437,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                     imageUrl: track.albumArtUrl,
                                     width: 48,
                                     height: 48,
+                                    memCacheWidth: 120,
+                                    memCacheHeight: 120,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       width: 48,

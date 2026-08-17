@@ -15,6 +15,13 @@ class LyricLine {
       text: json['text'] as String? ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'timestampSeconds': timestampSeconds,
+      'text': text,
+    };
+  }
 }
 
 class SermonNote {
@@ -45,6 +52,15 @@ class SermonNote {
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'timestampSeconds': timestampSeconds,
+      'noteText': noteText,
+      'createdAt': createdAt.toIso8601String(),
+    };
   }
 }
 
@@ -166,5 +182,25 @@ class AudioTrack {
       lyrics: lyrics,
       notes: notes ?? this.notes,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'albumArtUrl': albumArtUrl,
+      'audioUrl': audioUrl,
+      'durationSeconds': duration.inSeconds,
+      'subgenre': subgenre,
+      'intentCategory': intentCategory.name,
+      'categoryKey': categoryKey,
+      'mediaType': mediaType.name,
+      'isDownloaded': isDownloaded,
+      'isFavorite': isFavorite,
+      'isPremium': isPremium,
+      'lyrics': lyrics.map((l) => l.toJson()).toList(),
+      'notes': notes.map((n) => n.toJson()).toList(),
+    };
   }
 }

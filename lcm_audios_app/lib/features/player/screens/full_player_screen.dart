@@ -337,6 +337,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                             imageUrl: currentTrack.albumArtUrl,
                             width: 44,
                             height: 44,
+                            memCacheWidth: 120,
+                            memCacheHeight: 120,
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => Container(
                               width: 44,
@@ -423,6 +425,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                                     imageUrl: trackItem.albumArtUrl,
                                     width: 36,
                                     height: 36,
+                                    memCacheWidth: 100,
+                                    memCacheHeight: 100,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       width: 36,
@@ -695,6 +699,8 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                           borderRadius: BorderRadius.circular(24),
                           child: CachedNetworkImage(
                             imageUrl: track.albumArtUrl,
+                            memCacheWidth: 600,
+                            memCacheHeight: 600,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Container(
                               color: AppColors.surface,

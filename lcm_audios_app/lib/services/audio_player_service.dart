@@ -314,7 +314,7 @@ class AudioPlayerService extends ChangeNotifier {
     try {
       AudioPlayer.global.setAudioContext(AudioContext(
         android: const AudioContextAndroid(
-          isSpeakerphoneOn: true,
+          isSpeakerphoneOn: false,
           stayAwake: true,
           contentType: AndroidContentType.music,
           usageType: AndroidUsageType.media,
@@ -1134,7 +1134,28 @@ class AudioPlayerService extends ChangeNotifier {
     final savedPosSec  = prefs.getInt('last_played_position_sec') ?? 0;
     _lastPlayedPosition = Duration(seconds: savedPosSec);
 
-    // Mark auth session initialized to eliminate login screen flash
+    // 1. Instantly hydrate catalog state from local disk cache in < 50ms
+    try {
+      final cachedTracksRaw = prefs.getString('lcm_catalog_cache_tracks');
+      if (cachedTracksRaw != null) {
+        final List decoded = json.decode(cachedTracksRaw);
+        if (decoded.isNotEmpty) {
+          _allTracks = decoded.map((m) => AudioTrack.fromJson(m)).toList();
+        }
+      }
+
+      final cachedMinistersRaw = prefs.getString('lcm_catalog_cache_ministers');
+      if (cachedMinistersRaw != null) {
+        final List decoded = json.decode(cachedMinistersRaw);
+        if (decoded.isNotEmpty) {
+          _ministers = List<Map<String, dynamic>>.from(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint('[CatalogCache] Hydration notice: $e');
+    }
+
+    // Mark auth session & initial catalog initialized
     _isAuthInitialized = true;
     notifyListeners();
 
@@ -1158,6 +1179,7 @@ class AudioPlayerService extends ChangeNotifier {
         }
         if (fetchedMinisters.isNotEmpty) {
           _ministers = fetchedMinisters;
+          prefs.setString('lcm_catalog_cache_ministers', json.encode(fetchedMinisters));
         }
         if (apiTracks.isNotEmpty) {
           _allTracks = apiTracks;
@@ -1167,6 +1189,9 @@ class AudioPlayerService extends ChangeNotifier {
               _allTracks[i] = _allTracks[i].copyWith(isDownloaded: true);
             }
           }
+          // Persist snapshot to disk cache for instant offline launch next time
+          final tracksJson = json.encode(apiTracks.map((t) => t.toJson()).toList());
+          prefs.setString('lcm_catalog_cache_tracks', tracksJson);
         }
         notifyListeners();
       }).catchError((e) {
