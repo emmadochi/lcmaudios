@@ -90,6 +90,8 @@ class AudioPlayerService extends ChangeNotifier {
   String? get userId => _userId;
   String? get jwtToken => _jwtToken;
   bool get isAuthenticated => _jwtToken != null && _jwtToken!.isNotEmpty;
+  bool _isAuthInitialized = false;
+  bool get isAuthInitialized => _isAuthInitialized;
 
   // ─── Mini Player Visibility State ─────────────────────────────────────────
   bool _isMiniPlayerDismissed = false;
@@ -1132,32 +1134,50 @@ class AudioPlayerService extends ChangeNotifier {
     final savedPosSec  = prefs.getInt('last_played_position_sec') ?? 0;
     _lastPlayedPosition = Duration(seconds: savedPosSec);
 
+    // Mark auth session initialized to eliminate login screen flash
+    _isAuthInitialized = true;
+    notifyListeners();
+
     // Check initial connectivity
     final connectivityResult = await Connectivity().checkConnectivity();
     _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
 
-    // Fetch live tracks and categories or fall back to seed data
+    // Parallel non-blocking background fetch for categories, ministers, and tracks
     if (_isOnline) {
-      final fetchedCats = await ApiService.fetchCategories();
-      if (fetchedCats.isNotEmpty) {
-        _categories = fetchedCats;
-      }
+      Future.wait([
+        ApiService.fetchCategories(),
+        ApiService.fetchMinisters(),
+        ApiService.fetchTracks(),
+      ]).then((results) async {
+        final fetchedCats = results[0] as List;
+        final fetchedMinisters = results[1] as List<Map<String, dynamic>>;
+        final apiTracks = results[2] as List<AudioTrack>;
 
-      final fetchedMinisters = await ApiService.fetchMinisters();
-      if (fetchedMinisters.isNotEmpty) {
-        _ministers = fetchedMinisters;
-      }
-
-      final apiTracks = await ApiService.fetchTracks();
-      if (apiTracks.isNotEmpty) {
-        _allTracks = apiTracks;
-      }
+        if (fetchedCats.isNotEmpty) {
+          _categories = List.from(fetchedCats);
+        }
+        if (fetchedMinisters.isNotEmpty) {
+          _ministers = fetchedMinisters;
+        }
+        if (apiTracks.isNotEmpty) {
+          _allTracks = apiTracks;
+          final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
+          for (int i = 0; i < _allTracks.length; i++) {
+            if (downloadedIds.contains(_allTracks[i].id)) {
+              _allTracks[i] = _allTracks[i].copyWith(isDownloaded: true);
+            }
+          }
+        }
+        notifyListeners();
+      }).catchError((e) {
+        debugPrint('[AudioPlayerService] Background sync notice: $e');
+      });
     }
 
     // Load custom user playlists
     await _loadCustomPlaylists();
 
-    // Sync downloaded state from local storage
+    // Sync downloaded state from local storage for initial tracks
     final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
     for (int i = 0; i < _allTracks.length; i++) {
       if (downloadedIds.contains(_allTracks[i].id)) {

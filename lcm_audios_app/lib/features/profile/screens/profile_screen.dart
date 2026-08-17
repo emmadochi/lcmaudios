@@ -354,6 +354,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       onTap: () => _pickAlarmTime(context),
                     ),
+                    const Divider(color: AppColors.glassBorder, height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.notifications_active_rounded, color: Color(0xFFD4AF37)),
+                      title: const Text('Auto-Test Push Notification', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Sends an instant status-bar alert with sound & vibration', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
+                        ),
+                        child: const Text('TEST NOW', style: TextStyle(color: Color(0xFFFFDF79), fontSize: 10.5, fontWeight: FontWeight.bold)),
+                      ),
+                      onTap: () {
+                        NotificationService().triggerAutoTestNotification(context);
+                      },
+                    ),
                   ]),
                   const SizedBox(height: 20),
 

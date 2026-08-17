@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { dbClient } from '../data/dbClient';
 import { HlsTranscoder } from '../services/hlsTranscoder';
 import { S3StorageService } from '../services/s3StorageService';
+import { broadcastSermonNotification } from '../services/fcmService';
 import { Track, LyricLine, IntentCategory, MediaType, CategoryItem } from '../models/types';
 import path from 'path';
 
@@ -97,6 +98,11 @@ export const createTrackAdmin = async (req: Request, res: Response): Promise<voi
     };
 
     const saved = await dbClient.createTrack(newTrack);
+
+    // Asynchronously broadcast push notification to all mobile app devotees
+    broadcastSermonNotification(newTrack).catch((err) => {
+      console.warn('[FCM] Broadcast notice:', err);
+    });
 
     res.status(201).json({
       message: 'Track ingested successfully and published to live database.',

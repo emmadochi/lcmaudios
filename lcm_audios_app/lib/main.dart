@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/theme/app_colors.dart';
 import 'services/audio_player_service.dart';
 import 'services/notification_service.dart';
@@ -12,8 +14,24 @@ import 'features/profile/screens/profile_screen.dart';
 import 'features/premium/screens/premium_screen.dart';
 import 'features/player/widgets/mini_player_bar.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp();
+    debugPrint('[FCM] Handling background message: ${message.messageId}');
+  } catch (e) {
+    debugPrint('[FCM] Background handler error: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('[Firebase] Init error: $e');
+  }
   await NotificationService().init();
   runApp(const LcmAudiosApp());
 }
@@ -52,6 +70,49 @@ class AppEntryPoint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
+        if (!playerService.isAuthInitialized) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.headphones_rounded,
+                      size: 38,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (playerService.isAuthenticated) {
           return const MainNavigationShell();
         }
