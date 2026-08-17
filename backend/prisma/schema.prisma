@@ -44,6 +44,27 @@ model Track {
   notes          SermonNote[]
 }
 
+model Minister {
+  id          String   @id @default(uuid())
+  name        String
+  role        String
+  avatarUrl   String
+  bio         String   @default("")
+  sermonCount Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model CategoryItem {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  title        String
+  subtitle     String
+  iconName     String   @default("church")
+  gradientName String   @default("purple")
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
 model LyricLine {
   id               String   @id @default(uuid())
   trackId          String

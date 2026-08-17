@@ -425,8 +425,27 @@ class DbClient {
 
   // --- MINISTERS OPERATIONS ---
   public async getMinisters(): Promise<Minister[]> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const dbMinisters = await this.prisma.minister.findMany({
+          orderBy: { createdAt: 'desc' },
+        });
+        if (dbMinisters.length > 0) {
+          return dbMinisters.map((m: any) => ({
+            id: m.id,
+            name: m.name,
+            role: m.role,
+            avatarUrl: m.avatarUrl,
+            bio: m.bio,
+            sermonCount: m.sermonCount,
+            createdAt: m.createdAt.toISOString(),
+          }));
+        }
+      } catch (e) {
+        console.error('[DB Client] Prisma getMinisters error:', e);
+      }
+    }
     const mock = MockDatabase.getInstance();
-    // Dynamically calculate sermon counts for ministers
     return mock.ministers.map((m) => {
       const count = mock.tracks.filter((t) => t.artist.toLowerCase().includes(m.name.toLowerCase())).length;
       return {
@@ -437,12 +456,54 @@ class DbClient {
   }
 
   public async getMinisterById(id: string): Promise<Minister | null> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const m = await this.prisma.minister.findUnique({ where: { id } });
+        if (m) {
+          return {
+            id: m.id,
+            name: m.name,
+            role: m.role,
+            avatarUrl: m.avatarUrl,
+            bio: m.bio,
+            sermonCount: m.sermonCount,
+            createdAt: m.createdAt.toISOString(),
+          };
+        }
+      } catch (e) {
+        console.error('[DB Client] Prisma getMinisterById error:', e);
+      }
+    }
     const mock = MockDatabase.getInstance();
     const minister = mock.ministers.find((m) => m.id === id);
     return minister || null;
   }
 
   public async createMinister(data: { name: string; role: string; avatarUrl: string; bio?: string }): Promise<Minister> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const created = await this.prisma.minister.create({
+          data: {
+            name: data.name.trim(),
+            role: data.role.trim(),
+            avatarUrl: data.avatarUrl,
+            bio: data.bio?.trim() || '',
+            sermonCount: 0,
+          },
+        });
+        return {
+          id: created.id,
+          name: created.name,
+          role: created.role,
+          avatarUrl: created.avatarUrl,
+          bio: created.bio,
+          sermonCount: created.sermonCount,
+          createdAt: created.createdAt.toISOString(),
+        };
+      } catch (e) {
+        console.error('[DB Client] Prisma createMinister error:', e);
+      }
+    }
     const mock = MockDatabase.getInstance();
     const newMinister: Minister = {
       id: `min_${Date.now()}`,
@@ -459,6 +520,25 @@ class DbClient {
   }
 
   public async updateMinister(id: string, updateData: Partial<Minister>): Promise<Minister | null> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const updated = await this.prisma.minister.update({
+          where: { id },
+          data: updateData,
+        });
+        return {
+          id: updated.id,
+          name: updated.name,
+          role: updated.role,
+          avatarUrl: updated.avatarUrl,
+          bio: updated.bio,
+          sermonCount: updated.sermonCount,
+          createdAt: updated.createdAt.toISOString(),
+        };
+      } catch (e) {
+        console.error('[DB Client] Prisma updateMinister error:', e);
+      }
+    }
     const mock = MockDatabase.getInstance();
     const idx = mock.ministers.findIndex((m) => m.id === id);
     if (idx !== -1) {
@@ -470,6 +550,14 @@ class DbClient {
   }
 
   public async deleteMinister(id: string): Promise<boolean> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        await this.prisma.minister.delete({ where: { id } });
+        return true;
+      } catch (e) {
+        console.error('[DB Client] Prisma deleteMinister error:', e);
+      }
+    }
     const mock = MockDatabase.getInstance();
     const idx = mock.ministers.findIndex((m) => m.id === id);
     if (idx !== -1) {
