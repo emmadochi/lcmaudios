@@ -27,10 +27,12 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
 
   void _showAddTracksSheet(BuildContext context, AudioPlayerService playerService, CustomPlaylist playlist) {
     String query = '';
+    final isDark = AppColors.isDarkMode(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.card(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -56,7 +58,7 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white24,
+                      color: isDark ? Colors.white24 : Colors.black12,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -66,26 +68,26 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                   children: [
                     const Icon(Icons.playlist_add_rounded, color: AppColors.primary, size: 22),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Add Tracks to Playlist',
-                      style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppColors.text(context), fontSize: 17, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                      icon: Icon(Icons.close_rounded, color: AppColors.muted(context)),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 TextField(
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: AppColors.text(context), fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Search songs or sermons to add...',
-                    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintStyle: TextStyle(color: AppColors.muted(context), fontSize: 13),
                     filled: true,
-                    fillColor: AppColors.surfaceLight,
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 18),
+                    fillColor: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
+                    prefixIcon: Icon(Icons.search_rounded, color: AppColors.muted(context), size: 18),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -110,13 +112,13 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                         margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: isInPlaylist
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppColors.surfaceLight,
+                              ? AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.08)
+                              : (isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isInPlaylist
                                 ? AppColors.primary.withValues(alpha: 0.4)
-                                : AppColors.glassBorder.withValues(alpha: 0.4),
+                                : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder).withValues(alpha: 0.4),
                           ),
                         ),
                         child: ListTile(
@@ -132,8 +134,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                               errorWidget: (_, __, ___) => Container(
                                 width: 44,
                                 height: 44,
-                                color: AppColors.surface,
-                                child: const Icon(Icons.music_note, color: Colors.white54),
+                                color: isDark ? AppColors.surface : AppColors.lightSurface,
+                                child: Icon(Icons.music_note, color: AppColors.muted(context)),
                               ),
                             ),
                           ),
@@ -141,13 +143,13 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                             track.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 13.5),
                           ),
                           subtitle: Text(
                             '${track.artist} • ${_formatDuration(track.duration)}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                            style: TextStyle(color: AppColors.subtext(context), fontSize: 11.5),
                           ),
                           trailing: IconButton(
                             icon: Icon(
@@ -181,18 +183,18 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.card(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete Playlist?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Delete Playlist?', style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold)),
         content: Text('Are you sure you want to delete "${playlist.title}"? This cannot be undone.',
-            style: const TextStyle(color: AppColors.textSecondary)),
+            style: TextStyle(color: AppColors.subtext(context))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.muted(context))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
             onPressed: () async {
               Navigator.pop(ctx);
               await playerService.deletePlaylist(playlist.id);
@@ -200,7 +202,7 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                 Navigator.pop(context);
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -209,6 +211,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDarkMode(context);
+
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
         final playlist = playerService.customPlaylists.firstWhere(
@@ -230,26 +234,26 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
         final totalDuration = Duration(seconds: totalSeconds);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           body: CustomScrollView(
             slivers: [
               // Hero App Bar with Gradient
               SliverAppBar(
                 expandedHeight: 220,
                 pinned: true,
-                backgroundColor: AppColors.surface,
+                backgroundColor: isDark ? AppColors.surface : AppColors.lightSurface,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.text(context)),
                   onPressed: () => Navigator.pop(context),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.playlist_add_rounded, color: Colors.white),
+                    icon: Icon(Icons.playlist_add_rounded, color: AppColors.text(context)),
                     tooltip: 'Add Tracks',
                     onPressed: () => _showAddTracksSheet(context, playerService, playlist),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.white70),
+                    icon: Icon(Icons.delete_outline_rounded, color: AppColors.muted(context)),
                     tooltip: 'Delete Playlist',
                     onPressed: () => _showDeletePlaylistDialog(context, playerService, playlist),
                   ),
@@ -261,8 +265,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.primary.withValues(alpha: 0.7),
-                          AppColors.background,
+                          AppColors.primary.withValues(alpha: isDark ? 0.7 : 0.4),
+                          AppColors.bg(context),
                         ],
                       ),
                     ),
@@ -275,11 +279,13 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceLight,
+                            color: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.glassBorder),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black38, blurRadius: 10, offset: Offset(0, 4)),
+                            border: Border.all(
+                              color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                            ),
+                            boxShadow: [
+                              BoxShadow(color: AppColors.shadow(context), blurRadius: 10, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: const Icon(Icons.queue_music_rounded, color: AppColors.primary, size: 38),
@@ -294,8 +300,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                 playlist.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: AppColors.text(context),
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -306,14 +312,14 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                   playlist.description,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  style: TextStyle(color: AppColors.subtext(context), fontSize: 12),
                                 ),
                               ],
                               const SizedBox(height: 6),
                               Text(
                                 '${tracks.length} tracks • ${_formatDuration(totalDuration)} total',
-                                style: const TextStyle(
-                                  color: AppColors.accentGold,
+                                style: TextStyle(
+                                  color: isDark ? AppColors.accentGold : const Color(0xFF946200),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -339,6 +345,7 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 0,
                         ),
                         icon: const Icon(Icons.play_arrow_rounded, size: 22),
                         label: const Text('Play All', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -349,12 +356,14 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                       const SizedBox(width: 10),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: AppColors.glassBorder),
+                          foregroundColor: AppColors.text(context),
+                          side: BorderSide(
+                            color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                          ),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         ),
-                        icon: const Icon(Icons.shuffle_rounded, size: 18, color: AppColors.accentGold),
+                        icon: Icon(Icons.shuffle_rounded, size: 18, color: isDark ? AppColors.accentGold : const Color(0xFF946200)),
                         label: const Text('Shuffle'),
                         onPressed: tracks.isEmpty
                             ? null
@@ -384,22 +393,24 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                           alignment: Alignment.center,
                           child: Column(
                             children: [
-                              const Icon(Icons.library_music_rounded, color: Colors.white24, size: 48),
+                              Icon(Icons.library_music_rounded, color: AppColors.muted(context).withValues(alpha: 0.5), size: 48),
                               const SizedBox(height: 12),
-                              const Text(
+                              Text(
                                 'No tracks in this playlist yet',
-                                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 15),
+                                style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                               const SizedBox(height: 6),
-                              const Text(
+                              Text(
                                 'Tap the "+ Add Tracks" button above to curate sermons and worship for your prayer time.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 ),
                                 icon: const Icon(Icons.add_rounded, size: 18),
@@ -421,14 +432,21 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                               margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
                                 color: isCurrentlyActive
-                                    ? AppColors.primary.withValues(alpha: 0.12)
-                                    : AppColors.surface,
+                                    ? AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.08)
+                                    : AppColors.card(context),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isCurrentlyActive
                                       ? AppColors.primary.withValues(alpha: 0.6)
-                                      : AppColors.glassBorder.withValues(alpha: 0.5),
+                                      : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder).withValues(alpha: 0.5),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.shadow(context),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: ListTile(
                                 leading: ClipRRect(
@@ -443,8 +461,8 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                     errorWidget: (_, __, ___) => Container(
                                       width: 48,
                                       height: 48,
-                                      color: AppColors.surfaceLight,
-                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                      color: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
+                                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                                     ),
                                   ),
                                 ),
@@ -453,7 +471,7 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: isCurrentlyActive ? AppColors.primary : Colors.white,
+                                    color: isCurrentlyActive ? AppColors.primary : AppColors.text(context),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
@@ -462,13 +480,13 @@ class _CustomPlaylistDetailScreenState extends State<CustomPlaylistDetailScreen>
                                   '${track.artist} • ${_formatDuration(track.duration)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                  style: TextStyle(color: AppColors.subtext(context), fontSize: 12),
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.white38, size: 20),
+                                      icon: Icon(Icons.remove_circle_outline_rounded, color: AppColors.muted(context), size: 20),
                                       tooltip: 'Remove from Playlist',
                                       onPressed: () => playerService.removeTrackFromPlaylist(playlist.id, track.id),
                                     ),

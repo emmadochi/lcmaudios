@@ -27,17 +27,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void _showCreatePlaylistDialog(BuildContext context, AudioPlayerService playerService) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
+    final isDark = AppColors.isDarkMode(context);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.card(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
-          children: const [
-            Icon(Icons.playlist_add_rounded, color: AppColors.primary),
-            SizedBox(width: 8),
-            Text('Create Custom Playlist', style: TextStyle(color: Colors.white, fontSize: 16)),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.playlist_add_rounded, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Create Custom Playlist',
+              style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Column(
@@ -46,28 +57,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
             TextField(
               controller: titleController,
               autofocus: true,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.text(context)),
               decoration: InputDecoration(
                 labelText: 'Playlist Title',
-                labelStyle: const TextStyle(color: AppColors.textMuted),
+                labelStyle: TextStyle(color: AppColors.muted(context)),
                 hintText: 'e.g. Midnight Deliverance Chants',
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+                hintStyle: TextStyle(color: AppColors.muted(context).withValues(alpha: 0.6), fontSize: 13),
                 filled: true,
-                fillColor: AppColors.surfaceLight,
+                fillColor: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColors.text(context)),
               decoration: InputDecoration(
                 labelText: 'Description (Optional)',
-                labelStyle: const TextStyle(color: AppColors.textMuted),
+                labelStyle: TextStyle(color: AppColors.muted(context)),
                 hintText: 'e.g. For personal devotion & prayer vigil',
-                hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+                hintStyle: TextStyle(color: AppColors.muted(context).withValues(alpha: 0.6), fontSize: 13),
                 filled: true,
-                fillColor: AppColors.surfaceLight,
+                fillColor: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
@@ -76,11 +87,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.muted(context))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
@@ -98,7 +111,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 }
               }
             },
-            child: const Text('Create Playlist', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Create Playlist', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -109,28 +122,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.card(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: const [
             Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
             SizedBox(width: 8),
-            Text('Clear All Downloads?', style: TextStyle(color: Colors.white, fontSize: 16)),
+            Text('Clear All Downloads?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
-        content: const Text(
+        content: Text(
           'This will purge all encrypted offline tracks from your device to free up storage space. You can re-download them anytime.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: TextStyle(color: AppColors.subtext(context), fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.muted(context))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -140,13 +155,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   SnackBar(
                     content: const Text('Offline cache cleared successfully'),
                     behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.surfaceLight,
+                    backgroundColor: AppColors.card(context),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 );
               }
             },
-            child: const Text('Clear Storage', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Clear Storage', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -155,6 +170,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDarkMode(context);
+
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
         final favorites       = playerService.allTracks.where((t) => t.isFavorite).toList();
@@ -195,27 +212,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: playerService.isOnline
-                              ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                              : AppColors.surfaceLight,
+                              ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.12)
+                              : (isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: playerService.isOnline
-                                ? const Color(0xFF10B981).withValues(alpha: 0.5)
-                                : AppColors.glassBorder,
+                                ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.5 : 0.3)
+                                : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               playerService.isOnline ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
-                              color: playerService.isOnline ? const Color(0xFF10B981) : AppColors.textMuted,
+                              color: playerService.isOnline ? const Color(0xFF10B981) : AppColors.muted(context),
                               size: 14,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               playerService.isOnline ? 'Online' : 'Offline',
                               style: TextStyle(
-                                color: playerService.isOnline ? const Color(0xFF10B981) : AppColors.textMuted,
+                                color: playerService.isOnline ? const Color(0xFF10B981) : AppColors.muted(context),
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -237,19 +254,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: playerService.isCovenantPartner
-                              ? [const Color(0xFF2A1C3D), const Color(0xFF191024)]
-                              : [const Color(0xFF201335), const Color(0xFF120B1D)],
+                          colors: isDark
+                              ? (playerService.isCovenantPartner
+                                  ? [const Color(0xFF2A1C3D), const Color(0xFF191024)]
+                                  : [const Color(0xFF201335), const Color(0xFF120B1D)])
+                              : (playerService.isCovenantPartner
+                                  ? [const Color(0xFFFFF8E7), const Color(0xFFFDF1D0)]
+                                  : [const Color(0xFFFBF4FF), const Color(0xFFF4EAFF)]),
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: const Color(0xFFD4AF37).withValues(alpha: playerService.isCovenantPartner ? 0.6 : 0.35),
+                          color: const Color(0xFFD4AF37).withValues(alpha: playerService.isCovenantPartner ? 0.6 : 0.4),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFD4AF37).withValues(alpha: playerService.isCovenantPartner ? 0.15 : 0.05),
+                            color: const Color(0xFFD4AF37).withValues(alpha: playerService.isCovenantPartner ? (isDark ? 0.15 : 0.12) : 0.06),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
@@ -280,8 +301,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   playerService.isCovenantPartner
                                       ? 'COVENANT PARTNER (GOLD)'
                                       : 'BECOME A COVENANT PARTNER',
-                                  style: const TextStyle(
-                                    color: Color(0xFFFFDF79),
+                                  style: TextStyle(
+                                    color: isDark ? const Color(0xFFFFDF79) : const Color(0xFF946200),
                                     fontWeight: FontWeight.w800,
                                     fontSize: 11,
                                     letterSpacing: 0.6,
@@ -293,16 +314,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       ? 'Unlimited Downloads • Full Sermon Vault'
                                       : 'Unlock unlimited downloads & exclusive vault',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.7),
+                                    color: isDark ? Colors.white70 : const Color(0xFF4A3E59),
                                     fontSize: 11,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios_rounded,
-                            color: Color(0xFFFFDF79),
+                            color: isDark ? const Color(0xFFFFDF79) : const Color(0xFF946200),
                             size: 12,
                           ),
                         ],
@@ -318,9 +339,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: isDark ? AppColors.surface : AppColors.lightSurface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.glassBorder),
+                    border: Border.all(
+                      color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                    ),
                   ),
                   child: Row(
                     children: List.generate(tabs.length, (idx) {
@@ -347,7 +370,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               children: [
                                 Icon(
                                   tab['icon'] as IconData,
-                                  color: isSelected ? Colors.white : AppColors.textMuted,
+                                  color: isSelected ? Colors.white : AppColors.muted(context),
                                   size: 15,
                                 ),
                                 const SizedBox(width: 4),
@@ -355,7 +378,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   child: Text(
                                     '${tab['label']}',
                                     style: TextStyle(
-                                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                                      color: isSelected ? Colors.white : AppColors.subtext(context),
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                       fontSize: 11.5,
                                     ),
@@ -401,6 +424,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   // ─── TAB 0: PLAYLISTS ────────────────────────────────────────────────────────
   Widget _buildPlaylistsTab(BuildContext context, AudioPlayerService playerService, List customPlaylists) {
+    final isDark = AppColors.isDarkMode(context);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
       children: [
@@ -411,11 +436,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: isDark ? AppColors.primary.withValues(alpha: 0.4) : AppColors.primary.withValues(alpha: 0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadow(context),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
               gradient: LinearGradient(
-                colors: [AppColors.surface, AppColors.primary.withValues(alpha: 0.08)],
+                colors: [
+                  AppColors.card(context),
+                  AppColors.primary.withValues(alpha: isDark ? 0.08 : 0.05),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -434,15 +471,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Create New Custom Playlist',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'Group your personal prayer & soaking tracks',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                       ),
                     ],
                   ),
@@ -460,17 +501,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
             alignment: Alignment.center,
             child: Column(
               children: [
-                Icon(Icons.queue_music_rounded, color: AppColors.textMuted.withValues(alpha: 0.5), size: 48),
+                Icon(Icons.queue_music_rounded, color: AppColors.muted(context).withValues(alpha: 0.5), size: 48),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'No Custom Playlists Yet',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Tap the button above to create your first prayer playlist.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                 ),
               ],
             ),
@@ -480,9 +521,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.glassBorder),
+                border: Border.all(
+                  color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.shadow(context),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -497,11 +547,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
                 title: Text(
                   playlist.title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: Text(
                   '${playlist.trackIds.length} tracks ${playlist.description.isNotEmpty ? '• ${playlist.description}' : ''}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(color: AppColors.subtext(context), fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -513,7 +563,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       onPressed: () => playerService.playCustomPlaylist(playlist),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 20),
+                      icon: Icon(Icons.delete_outline_rounded, color: AppColors.muted(context), size: 20),
                       onPressed: () => playerService.deletePlaylist(playlist.id),
                     ),
                   ],
@@ -535,6 +585,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   // ─── TAB 1: DOWNLOADS ────────────────────────────────────────────────────────
   Widget _buildDownloadsTab(BuildContext context, AudioPlayerService playerService, List<AudioTrack> downloaded, Map<String, double> dlProgress) {
+    final isDark = AppColors.isDarkMode(context);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
       children: [
@@ -542,9 +594,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card(context),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.glassBorder),
+            border: Border.all(
+              color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow(context),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -555,7 +616,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   const SizedBox(width: 8),
                   Text(
                     '${downloaded.length} Offline Tracks (AES-256)',
-                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ],
               ),
@@ -581,7 +642,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
             ),
@@ -595,7 +656,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Expanded(
                       child: Text(
                         track.title,
-                        style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -610,7 +671,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: AppColors.glassBorder,
+                    backgroundColor: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
                     valueColor: const AlwaysStoppedAnimation(Color(0xFF10B981)),
                     minHeight: 6,
                   ),
@@ -626,17 +687,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
             alignment: Alignment.center,
             child: Column(
               children: [
-                Icon(Icons.download_done_rounded, color: AppColors.textMuted.withValues(alpha: 0.5), size: 48),
+                Icon(Icons.download_done_rounded, color: AppColors.muted(context).withValues(alpha: 0.5), size: 48),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'No Offline Downloads Yet',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Tap the download icon (↓) on any track to save encrypted audio for offline devotionals.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                 ),
               ],
             ),
@@ -646,9 +707,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.glassBorder),
+                border: Border.all(
+                  color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.shadow(context),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -664,14 +734,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     errorWidget: (_, __, ___) => Container(
                       width: 44,
                       height: 44,
-                      color: AppColors.surfaceLight,
-                      child: const Icon(Icons.music_note_rounded, color: AppColors.textMuted),
+                      color: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
+                      child: Icon(Icons.music_note_rounded, color: AppColors.muted(context)),
                     ),
                   ),
                 ),
                 title: Text(
                   track.title,
-                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13.5),
+                  style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 13.5),
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: FutureBuilder<int?>(
@@ -681,7 +751,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     final sizeStr = size != null ? '${(size / 1024 / 1024).toStringAsFixed(1)} MB' : '···';
                     return Text(
                       '${track.artist} • $sizeStr',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                      style: TextStyle(color: AppColors.subtext(context), fontSize: 11.5),
                     );
                   },
                 ),
@@ -694,7 +764,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       tooltip: 'Play offline',
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.textMuted, size: 20),
+                      icon: Icon(Icons.delete_outline_rounded, color: AppColors.muted(context), size: 20),
                       onPressed: () => playerService.toggleDownload(track.id),
                       tooltip: 'Remove download',
                     ),
@@ -709,6 +779,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   // ─── TAB 2: FAVOURITES ───────────────────────────────────────────────────────
   Widget _buildFavoritesTab(BuildContext context, AudioPlayerService playerService, List<AudioTrack> favorites) {
+    final isDark = AppColors.isDarkMode(context);
+
     if (favorites.isEmpty) {
       return Center(
         child: Padding(
@@ -716,17 +788,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.favorite_border_rounded, color: AppColors.textMuted.withValues(alpha: 0.5), size: 48),
+              Icon(Icons.favorite_border_rounded, color: AppColors.muted(context).withValues(alpha: 0.5), size: 48),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'No Favourites Saved',
-                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Tap the heart icon (❤️) on any sermon or worship track to save it here for quick prayer access.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                style: TextStyle(color: AppColors.muted(context), fontSize: 12),
               ),
             ],
           ),
@@ -745,11 +817,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: isCurrent ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
+            color: isCurrent
+                ? AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.10)
+                : AppColors.card(context),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isCurrent ? AppColors.primary.withValues(alpha: 0.5) : AppColors.glassBorder,
+              color: isCurrent
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow(context),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -765,15 +848,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 errorWidget: (_, __, ___) => Container(
                   width: 46,
                   height: 46,
-                  color: AppColors.surfaceLight,
-                  child: const Icon(Icons.music_note_rounded, color: AppColors.textMuted),
+                  color: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
+                  child: Icon(Icons.music_note_rounded, color: AppColors.muted(context)),
                 ),
               ),
             ),
             title: Text(
               track.title,
               style: TextStyle(
-                color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                color: isCurrent ? AppColors.primary : AppColors.text(context),
                 fontWeight: FontWeight.bold,
                 fontSize: 13.5,
               ),
@@ -782,7 +865,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
             subtitle: Text(
               '${track.artist} • ${track.subgenre} • ${_formatDuration(track.duration)}',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+              style: TextStyle(color: AppColors.subtext(context), fontSize: 11.5),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -817,6 +900,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   // ─── TAB 3: SERMON NOTES ────────────────────────────────────────────────────
   Widget _buildNotesTab(BuildContext context, AudioPlayerService playerService, List<AudioTrack> tracksWithNotes) {
+    final isDark = AppColors.isDarkMode(context);
+
     if (tracksWithNotes.isEmpty) {
       return Center(
         child: Padding(
@@ -824,17 +909,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.edit_note_rounded, color: AppColors.textMuted.withValues(alpha: 0.5), size: 48),
+              Icon(Icons.edit_note_rounded, color: AppColors.muted(context).withValues(alpha: 0.5), size: 48),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'No Sermon Insights Saved',
-                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'While listening to any sermon, tap the Sermon Notes tab to anchor personal insights at exact timestamps.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                style: TextStyle(color: AppColors.muted(context), fontSize: 12),
               ),
             ],
           ),
@@ -858,11 +943,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card(context),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.glassBorder),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3)),
+            border: Border.all(
+              color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow(context),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
             ],
           ),
           child: Column(
@@ -881,7 +972,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.2),
+                        color: AppColors.secondary.withValues(alpha: isDark ? 0.2 : 0.12),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
                       ),
@@ -905,7 +996,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   Flexible(
                     child: Text(
                       track.title,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppColors.subtext(context), fontSize: 11, fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -914,8 +1005,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
               const SizedBox(height: 10),
               Text(
                 '“${note.noteText}”',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: AppColors.text(context),
                   fontSize: 13.5,
                   height: 1.4,
                   fontWeight: FontWeight.w500,
@@ -924,7 +1015,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               const SizedBox(height: 8),
               Text(
                 'Sermon by ${track.artist}',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                style: TextStyle(color: AppColors.muted(context), fontSize: 11),
               ),
             ],
           ),
