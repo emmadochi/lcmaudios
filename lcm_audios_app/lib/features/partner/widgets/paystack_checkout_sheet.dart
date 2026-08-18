@@ -35,7 +35,7 @@ class PaystackCheckoutSheet extends StatefulWidget {
 }
 
 class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
-  final TextEditingController _emailController = TextEditingController(text: 'grace.worshipper@lcmfaith.org');
+  late final TextEditingController _emailController;
   final TextEditingController _phoneController = TextEditingController(text: '+234 801 234 5678');
   final TextEditingController _cardNumberController = TextEditingController(text: '5399 •••• •••• 4128');
   final TextEditingController _expiryController = TextEditingController(text: '11/28');
@@ -44,6 +44,26 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
   int _selectedPaymentMethod = 0; // 0: Card, 1: Bank Transfer, 2: USSD
   bool _isProcessing = false;
   String _processingStatus = '';
+  bool _emailInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_emailInitialized) {
+      final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+      final userEmail = playerService.userEmail?.trim();
+      if (userEmail != null && userEmail.isNotEmpty) {
+        _emailController.text = userEmail;
+      }
+      _emailInitialized = true;
+    }
+  }
 
   @override
   void dispose() {
