@@ -45,9 +45,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
 
   void _finishOnboarding() async {
     final playerService = Provider.of<AudioPlayerService>(context, listen: false);
-    if (_selectedIntents.isNotEmpty) {
-      playerService.setIntentFilter(_selectedIntents.first);
-    }
+    playerService.setCategoryFilter('all');
+    playerService.setIntentFilter(IntentCategory.all);
     await playerService.completeOnboarding();
     if (!mounted) return;
     
@@ -350,10 +349,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                       ),
                     ),
 
-                    // Core Illuminated Sacred Orb with Dove Crest
+                    // Core Illuminated Sacred Orb with Official LCM Brand Logo
                     Container(
                       width: 110,
                       height: 110,
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
@@ -389,10 +389,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         ],
                       ),
                       child: Center(
-                        child: Icon(
-                          Icons.flutter_dash_rounded, // Soaring Spirit Dove representation
-                          size: 52,
-                          color: goldGlow,
+                        child: Image.asset(
+                          isDark ? 'assets/images/logo2White.png' : 'assets/images/logoIcon.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),

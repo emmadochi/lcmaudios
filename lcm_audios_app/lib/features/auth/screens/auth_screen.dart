@@ -98,6 +98,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             email: user['email'] ?? email,
             fullName: user['fullName'] ?? 'Grace Worshipper',
           );
+          playerService.setCategoryFilter('all');
+          playerService.setIntentFilter(IntentCategory.all);
 
           if (mounted) {
             Navigator.of(context).pushReplacement(
