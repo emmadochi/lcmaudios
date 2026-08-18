@@ -171,7 +171,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ];
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -182,10 +182,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'My Library',
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: AppColors.text(context),
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,

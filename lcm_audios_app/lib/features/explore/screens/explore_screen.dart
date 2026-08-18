@@ -121,7 +121,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       body: Consumer<AudioPlayerService>(
         builder: (context, playerService, child) {
           final isSearching = _searchQuery.trim().isNotEmpty || _selectedFilter != 'All';
@@ -135,7 +135,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: RefreshIndicator(
               onRefresh: () => playerService.refreshAll(),
               color: AppColors.primary,
-              backgroundColor: AppColors.surface,
+              backgroundColor: AppColors.card(context),
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -146,29 +146,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Explore & Search',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Explore & Search',
+                                  style: TextStyle(
+                                    color: AppColors.text(context),
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                isSearching
-                                    ? '${searchResults.length} audio streams found'
-                                    : 'Find sermons, ministers & prayer atmospheres',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 13,
+                                const SizedBox(height: 2),
+                                Text(
+                                  isSearching
+                                      ? '${searchResults.length} audio streams found'
+                                      : 'Find sermons, ministers & prayer atmospheres',
+                                  style: TextStyle(
+                                    color: AppColors.subtext(context),
+                                    fontSize: 13,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           if (isSearching)
                             TextButton.icon(
@@ -196,15 +198,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: AppColors.card(context),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSearching ? AppColors.primary.withValues(alpha: 0.6) : AppColors.glassBorder,
+                            color: isSearching ? AppColors.primary.withValues(alpha: 0.6) : AppColors.border(context),
                             width: isSearching ? 1.5 : 1.0,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
+                              color: AppColors.shadow(context),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -212,7 +214,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                         child: TextField(
                           controller: _searchController,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14.5, fontWeight: FontWeight.w500),
+                          style: TextStyle(color: AppColors.text(context), fontSize: 14.5, fontWeight: FontWeight.w500),
                           onChanged: (val) {
                             setState(() {
                               _searchQuery = val;
@@ -220,11 +222,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: 'Search sermons, preachers, scriptures...',
-                            hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                            hintStyle: TextStyle(color: AppColors.muted(context), fontSize: 13.5),
                             prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, color: AppColors.textMuted, size: 18),
+                                    icon: Icon(Icons.clear_rounded, color: AppColors.muted(context), size: 18),
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() {
@@ -264,16 +266,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               });
                             },
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.textSecondary,
+                              color: isSelected ? Colors.white : AppColors.subtext(context),
                               fontSize: 12.5,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             ),
                             selectedColor: AppColors.primary,
-                            backgroundColor: AppColors.surfaceLight,
+                            backgroundColor: AppColors.cardAlt(context),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                               side: BorderSide(
-                                color: isSelected ? AppColors.primary : AppColors.glassBorder,
+                                color: isSelected ? AppColors.primary : AppColors.border(context),
                               ),
                             ),
                             showCheckmark: false,
@@ -298,17 +300,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: AppColors.surface,
+                                    color: AppColors.card(context),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.glassBorder),
+                                    border: Border.all(color: AppColors.border(context)),
                                   ),
                                   child: const Icon(Icons.search_off_rounded, color: AppColors.primary, size: 48),
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'No Audio Streams Found',
                                   style: TextStyle(
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.text(context),
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -317,7 +319,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 Text(
                                   'We couldn\'t find any match for "$_searchQuery". Try another keyword, preacher, or category filter.',
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                  style: TextStyle(color: AppColors.muted(context), fontSize: 13),
                                 ),
                                 const SizedBox(height: 20),
                                 OutlinedButton(
@@ -353,10 +355,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 10),
                                 decoration: BoxDecoration(
-                                  color: isCurrent ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surface,
+                                  color: isCurrent ? AppColors.primary.withValues(alpha: 0.12) : AppColors.card(context),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: isCurrent ? AppColors.primary.withValues(alpha: 0.5) : AppColors.glassBorder,
+                                    color: isCurrent ? AppColors.primary.withValues(alpha: 0.5) : AppColors.border(context),
                                   ),
                                 ),
                                 child: ListTile(
@@ -376,8 +378,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                           errorWidget: (_, __, ___) => Container(
                                             width: 50,
                                             height: 50,
-                                            color: AppColors.surfaceLight,
-                                            child: const Icon(Icons.music_note_rounded, color: AppColors.textMuted),
+                                            color: AppColors.cardAlt(context),
+                                            child: Icon(Icons.music_note_rounded, color: AppColors.muted(context)),
                                           ),
                                         ),
                                       ),
@@ -396,7 +398,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   title: Text(
                                     track.title,
                                     style: TextStyle(
-                                      color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                                      color: isCurrent ? AppColors.primary : AppColors.text(context),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),
@@ -408,7 +410,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       Flexible(
                                         child: Text(
                                           track.artist,
-                                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                          style: TextStyle(color: AppColors.subtext(context), fontSize: 12),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -417,12 +419,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: AppColors.surfaceLight,
+                                          color: AppColors.cardAlt(context),
                                           borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           _formatDuration(track.duration),
-                                          style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+                                          style: TextStyle(color: AppColors.muted(context), fontSize: 10, fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                     ],
@@ -462,18 +464,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Ministers & Preachers',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: AppColors.text(context),
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
+                            Text(
                               'Tap any minister to filter their complete sermon catalog',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                              style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                             ),
                             const SizedBox(height: 12),
                             SizedBox(
@@ -531,8 +533,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                   errorWidget: (_, __, ___) => Container(
                                                     width: 56,
                                                     height: 56,
-                                                    color: AppColors.surfaceLight,
-                                                    child: const Icon(Icons.person, color: AppColors.textMuted),
+                                                    color: AppColors.cardAlt(context),
+                                                    child: Icon(Icons.person, color: AppColors.muted(context)),
                                                   ),
                                                 ),
                                               ),
@@ -545,8 +547,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                 textAlign: TextAlign.center,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: AppColors.textPrimary,
+                                                style: TextStyle(
+                                                  color: AppColors.text(context),
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w600,
                                                 ),
@@ -575,14 +577,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  '🔥 Trending Faith Releases',
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                Expanded(
+                                  child: Text(
+                                    '🔥 Trending Faith Releases',
+                                    style: TextStyle(
+                                      color: AppColors.text(context),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
                                 Text(
                                   '${playerService.allTracks.length} available',
                                   style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
@@ -604,11 +609,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   return Container(
                                     width: 140,
                                     decoration: BoxDecoration(
-                                      color: AppColors.surface,
+                                      color: AppColors.card(context),
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                        color: isCurrent ? AppColors.primary : AppColors.glassBorder,
+                                        color: isCurrent ? AppColors.primary : AppColors.border(context),
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.shadow(context),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: InkWell(
                                       onTap: () {
@@ -637,8 +649,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                     fit: BoxFit.cover,
                                                     errorWidget: (_, __, ___) => Container(
                                                       height: 95,
-                                                      color: AppColors.surfaceLight,
-                                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                                      color: AppColors.cardAlt(context),
+                                                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                                                     ),
                                                   ),
                                                 ),
@@ -672,7 +684,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: isCurrent ? AppColors.primary : Colors.white,
+                                                color: isCurrent ? AppColors.primary : AppColors.text(context),
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 12.5,
                                               ),
@@ -682,8 +694,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                               track.artist,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: AppColors.textMuted,
+                                              style: TextStyle(
+                                                color: AppColors.subtext(context),
                                                 fontSize: 11,
                                               ),
                                             ),
@@ -707,18 +719,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               '📚 Featured Sermon Series',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: AppColors.text(context),
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
+                            Text(
                               'Complete multi-part spiritual revelation teachings',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                              style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                             ),
                             const SizedBox(height: 10),
                             SizedBox(
@@ -727,6 +739,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 scrollDirection: Axis.horizontal,
                                 children: [
                                   _buildSeriesCard(
+                                    context: context,
                                     title: 'Critical Mind Series',
                                     minister: 'Pastor Martins Omonua',
                                     partsCount: '3 Parts',
@@ -738,6 +751,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   _buildSeriesCard(
+                                    context: context,
                                     title: 'Divine Direction & Wisdom',
                                     minister: 'Pastor Martins Omonua',
                                     partsCount: '4 Parts',
@@ -749,6 +763,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   _buildSeriesCard(
+                                    context: context,
                                     title: 'Atmosphere of Glory & Deep Worship',
                                     minister: 'LCM Worship Sanctuary',
                                     partsCount: '6 Chants',
@@ -773,18 +788,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               '🕊️ Browse by Spiritual Need',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: AppColors.text(context),
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
+                            Text(
                               'Curated themes tuned to your daily spiritual focus',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                              style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                             ),
                           ],
                         ),
@@ -807,6 +822,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             final trackCount = playerService.allTracks
                                 .where((t) => t.matchesCategoryKey(intent.categoryKey))
                                 .length;
+                            final isDark = AppColors.isDarkMode(context);
 
                             return GestureDetector(
                               onTap: () {
@@ -819,13 +835,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: AppColors.surface,
+                                  color: AppColors.card(context),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppColors.glassBorder),
+                                  border: Border.all(color: AppColors.border(context)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.shadow(context),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                   gradient: LinearGradient(
                                     colors: [
-                                      intent.accentColor.withValues(alpha: 0.22),
-                                      AppColors.surface,
+                                      intent.accentColor.withValues(alpha: isDark ? 0.22 : 0.12),
+                                      AppColors.card(context),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -839,7 +862,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: intent.accentColor.withValues(alpha: 0.2),
+                                        color: intent.accentColor.withValues(alpha: isDark ? 0.2 : 0.15),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
@@ -853,8 +876,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       children: [
                                         Text(
                                           intent.title,
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
+                                          style: TextStyle(
+                                            color: AppColors.text(context),
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -864,8 +887,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '$trackCount sermons & tracks',
-                                          style: const TextStyle(
-                                            color: AppColors.textMuted,
+                                          style: TextStyle(
+                                            color: AppColors.subtext(context),
                                             fontSize: 11,
                                           ),
                                         ),
@@ -891,12 +914,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildSeriesCard({
+    required BuildContext context,
     required String title,
     required String minister,
     required String partsCount,
     required Color accentColor,
     required VoidCallback onTap,
   }) {
+    final isDark = AppColors.isDarkMode(context);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -904,13 +930,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
         width: 220,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+          border: Border.all(color: accentColor.withValues(alpha: isDark ? 0.4 : 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow(context),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
           gradient: LinearGradient(
             colors: [
-              accentColor.withValues(alpha: 0.18),
-              AppColors.surface,
+              accentColor.withValues(alpha: isDark ? 0.18 : 0.10),
+              AppColors.card(context),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -926,7 +959,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.25),
+                    color: accentColor.withValues(alpha: isDark ? 0.25 : 0.18),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -939,7 +972,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_rounded, color: Colors.white54, size: 16),
+                Icon(Icons.arrow_forward_rounded, color: AppColors.muted(context), size: 16),
               ],
             ),
             Column(
@@ -947,8 +980,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.text(context),
                     fontSize: 13.5,
                     fontWeight: FontWeight.bold,
                   ),
@@ -958,7 +991,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 const SizedBox(height: 2),
                 Text(
                   minister,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                  style: TextStyle(color: AppColors.subtext(context), fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

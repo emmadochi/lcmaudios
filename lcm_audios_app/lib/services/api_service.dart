@@ -286,6 +286,7 @@ class ApiService {
   static Future<Map<String, dynamic>?> initializePaystackPayment({
     required String email,
     required String planType,
+    String? phone,
   }) async {
     try {
       final response = await http.post(
@@ -294,6 +295,7 @@ class ApiService {
         body: json.encode({
           'email': email,
           'planType': planType,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
         }),
       ).timeout(const Duration(seconds: 8));
 

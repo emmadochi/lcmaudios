@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
+import '../../../services/share_service.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class FullPlayerScreen extends StatefulWidget {
@@ -671,6 +672,19 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                               ),
                               onPressed: () => playerService.toggleFavorite(track.id),
                             ),
+                            // Share Track Deep Link Button
+                            IconButton(
+                              icon: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 22),
+                              tooltip: 'Share Sermon',
+                              onPressed: () => ShareService.instance.shareTrack(
+                                context: context,
+                                trackId: track.id,
+                                title: track.title,
+                                artist: track.artist,
+                                subgenre: track.subgenre,
+                                isPremium: track.isPremium,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -978,6 +992,31 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                             ),
                             child: const Center(
                               child: Icon(Icons.playlist_add_rounded, size: 20, color: Colors.white70),
+                            ),
+                          ),
+                        ),
+
+                        // 3b. Copy Link Button (Icon-only)
+                        InkWell(
+                          onTap: () => ShareService.instance.copyLinkToClipboard(
+                            context: context,
+                            trackId: track.id,
+                            title: track.title,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Tooltip(
+                            message: 'Copy Link',
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceLight,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white12, width: 1.2),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.link_rounded, size: 20, color: Colors.white70),
+                              ),
                             ),
                           ),
                         ),

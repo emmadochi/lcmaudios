@@ -14,13 +14,15 @@ export class MockDatabase {
   public telemetryEvents: TelemetryEvent[] = [];
 
   private static getStoragePath(): string {
-    const uploadsDir = path.resolve(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
+    const directUploads = path.resolve(__dirname, '../../uploads');
+    const cwdUploads = path.resolve(process.cwd(), 'uploads');
+    const targetDir = fs.existsSync(directUploads) ? directUploads : cwdUploads;
+    if (!fs.existsSync(targetDir)) {
       try {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+        fs.mkdirSync(targetDir, { recursive: true });
       } catch (_) {}
     }
-    return path.join(uploadsDir, 'persistent_db.json');
+    return path.join(targetDir, 'persistent_db.json');
   }
 
   private constructor() {
@@ -65,9 +67,38 @@ export class MockDatabase {
           this.ministers = Array.isArray(data.ministers) ? data.ministers : [];
           this.telemetryEvents = Array.isArray(data.telemetryEvents) ? data.telemetryEvents : [];
           
-          if (this.ministers.length === 0) {
+          if (!data.ministers) {
             this.seedMinisters();
           }
+          if (!data.categories) {
+            this.seedCategories();
+          }
+
+          // Auto-discover and register any track intentCategories that might not be in the categories list
+          this.tracks.forEach((t) => {
+            if (t.intentCategory) {
+              const exists = this.categories.some(
+                (c) => c.categoryKey === t.intentCategory || c.id === t.intentCategory
+              );
+              if (!exists) {
+                const formattedTitle = t.intentCategory
+                  .replace(/[-_]/g, ' ')
+                  .replace(/\b\w/g, (l) => l.toUpperCase());
+                this.categories.push({
+                  id: `cat_${t.intentCategory.replace(/[^\w]/g, '_')}`,
+                  categoryKey: t.intentCategory,
+                  title: formattedTitle,
+                  description: `${formattedTitle} series & devotionals`,
+                  icon: 'auto_awesome_rounded',
+                  accentColor: '#E63946',
+                  trackCount: 1,
+                  isActive: true,
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
+          });
+
           console.log(`[MockDatabase] Loaded ${this.tracks.length} tracks, ${this.ministers.length} ministers, and ${this.categories.length} categories.`);
           return;
         }
@@ -77,6 +108,66 @@ export class MockDatabase {
     }
     this.seedData();
     this.saveToFile();
+  }
+
+  public seedCategories(): void {
+    this.categories = [
+      {
+        id: 'cat_1',
+        categoryKey: 'morningDevotion',
+        title: 'Morning Devotion',
+        description: 'Start your day with uplifting praise & scripture',
+        icon: 'wb_sunny_rounded',
+        accentColor: '#F59E0B',
+        trackCount: 24,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cat_2',
+        categoryKey: 'deepWorship',
+        title: 'Deep Worship',
+        description: 'Immersive intimate worship & quiet reflection',
+        icon: 'auto_awesome_rounded',
+        accentColor: '#8B5CF6',
+        trackCount: 18,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cat_3',
+        categoryKey: 'warfarePrayers',
+        title: 'Warfare Prayers',
+        description: 'High-energy spiritual declarations & prayers',
+        icon: 'shield_rounded',
+        accentColor: '#E63946',
+        trackCount: 30,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cat_4',
+        categoryKey: 'studyFocus',
+        title: 'Bible Study',
+        description: 'Calming instrumental devotionals for focus',
+        icon: 'menu_book_rounded',
+        accentColor: '#06B6D4',
+        trackCount: 15,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cat_5',
+        categoryKey: 'deliverance',
+        title: 'Deliverance & Healing',
+        description: 'Faith declarations for divine healing & freedom',
+        icon: 'health_and_safety_rounded',
+        accentColor: '#10B981',
+        trackCount: 12,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
   }
 
   public seedMinisters() {

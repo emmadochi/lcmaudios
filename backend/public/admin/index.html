@@ -1388,16 +1388,6 @@
       }
     }
 
-    async function deleteCategory(id) {
-      if (!confirm('Are you sure you want to delete this category?')) return;
-      try {
-        await fetch(`${API_BASE}/admin/categories/${id}`, { method: 'DELETE' });
-        loadCategories();
-      } catch (e) {
-        alert('Failed to delete category');
-      }
-    }
-
     async function populateCategoryDropdown() {
       try {
         const res = await fetch(`${API_BASE}/admin/categories`);
@@ -1435,9 +1425,13 @@
           const tr = document.createElement('tr');
           const min = Math.floor(track.duration / 60);
           const sec = (track.duration % 60).toString().padStart(2, '0');
-          const accessBadge = track.isPremium
+          const isLocked = track.isPremium === true || track.isPremium === 'true' || track.isPremium === 1 || track.isPremium === '1';
+          const accessBadge = isLocked
             ? '<span class="badge" style="background: rgba(245, 158, 11, 0.18); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.45); font-weight: 700;">👑 Exclusive</span>'
             : '<span class="badge" style="background: rgba(16, 185, 129, 0.18); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.45); font-weight: 600;">Free Gospel</span>';
+
+          const lockBtnLabel = isLocked ? '🔓 Make Free' : '👑 Lock';
+          const nextLockVal = !isLocked;
 
           tr.innerHTML = `
             <td><img src="${track.albumArtUrl}" width="40" height="40" style="border-radius: 8px; object-fit: cover;" /></td>
@@ -1449,7 +1443,7 @@
             <td><audio src="${track.audioUrl}" controls style="width: 170px; height: 30px;"></audio></td>
             <td>
               <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" title="Toggle Free / Partner Exclusive" onclick="quickToggleAccess('${track.id}', ${!track.isPremium})">${track.isPremium ? '🔓 Make Free' : '👑 Lock'}</button>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" title="Toggle Free / Partner Exclusive" onclick="quickToggleAccess('${track.id}', ${nextLockVal})">${lockBtnLabel}</button>
                 <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="openEditTrackModal('${track.id}')">Edit</button>
                 <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="deleteTrack('${track.id}')">Delete</button>
               </div>
@@ -1467,15 +1461,16 @@
         const res = await fetch(`${API_BASE}/admin/tracks/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isPremium }),
+          body: JSON.stringify({ isPremium: Boolean(isPremium) }),
         });
         if (res.ok) {
-          loadCatalog();
+          await loadCatalog();
         } else {
-          alert('Failed to update access level');
+          const err = await res.json().catch(() => ({}));
+          alert(`Failed to update access level: ${err.error || 'Server error'}`);
         }
       } catch (e) {
-        alert('Network error updating access level');
+        alert('Network error updating access level: ' + e.message);
       }
     }
 

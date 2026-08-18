@@ -23,17 +23,28 @@ class IntentPlaylistScreen extends StatelessWidget {
             .toList();
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           body: CustomScrollView(
             slivers: [
               // Hero AppBar with Gradient & Intent Icon
               SliverAppBar(
                 expandedHeight: 240,
                 pinned: true,
-                backgroundColor: AppColors.background,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+                backgroundColor: AppColors.bg(context),
+                leading: Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
@@ -46,8 +57,8 @@ class IntentPlaylistScreen extends StatelessWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              intent.accentColor.withValues(alpha: 0.8),
-                              AppColors.background,
+                              intent.accentColor,
+                              const Color(0xFF0F172A),
                             ],
                           ),
                         ),
@@ -94,8 +105,8 @@ class IntentPlaylistScreen extends StatelessWidget {
                                   const SizedBox(height: 6),
                                   Text(
                                     '${tracks.length} tracks curated for your spirit',
-                                    style: TextStyle(
-                                      color: intent.accentColor,
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFDF79),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -117,66 +128,72 @@ class IntentPlaylistScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                           ),
+                          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                          label: const Text('Play Intent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          onPressed: () {
+                            if (tracks.isNotEmpty) {
+                              playerService.playTrack(tracks.first);
+                            }
+                          },
                         ),
-                        icon: const Icon(Icons.play_arrow_rounded, size: 24),
-                        label: const Text('Play Intent', style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          if (tracks.isNotEmpty) {
-                            playerService.playTrack(tracks.first);
-                          }
-                        },
                       ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: AppColors.glassBorder),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.text(context),
+                            side: BorderSide(color: AppColors.border(context)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                           ),
-                        ),
-                        icon: const Icon(Icons.download_for_offline_rounded, size: 20, color: AppColors.offlineBadge),
-                        label: Text(
-                          tracks.every((t) => t.isDownloaded) ? 'All Downloaded' : 'Download All (${tracks.where((t) => !t.isDownloaded).length})',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        onPressed: tracks.every((t) => t.isDownloaded)
-                            ? null
-                            : () async {
-                                if (!playerService.isCovenantPartner && playerService.hasReachedDownloadLimit) {
-                                  CovenantPartnerPaywallSheet.show(
-                                    context,
-                                    sourceFeature: 'Batch Playlist Downloads',
-                                  );
-                                  return;
-                                }
+                          icon: const Icon(Icons.download_for_offline_rounded, size: 18, color: AppColors.offlineBadge),
+                          label: Text(
+                            tracks.every((t) => t.isDownloaded) ? 'Downloaded' : 'Download All',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: AppColors.text(context)),
+                          ),
+                          onPressed: tracks.every((t) => t.isDownloaded)
+                              ? null
+                              : () async {
+                                  if (!playerService.isCovenantPartner && playerService.hasReachedDownloadLimit) {
+                                    CovenantPartnerPaywallSheet.show(
+                                      context,
+                                      sourceFeature: 'Batch Playlist Downloads',
+                                    );
+                                    return;
+                                  }
 
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Starting offline DRM download for ${tracks.length} tracks...'),
-                                    backgroundColor: AppColors.surface,
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                                final count = await playerService.batchDownloadTracks(tracks);
-                                if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Saved $count tracks to AES-256 encrypted storage.'),
-                                      backgroundColor: AppColors.success,
+                                      content: Text('Starting offline DRM download for ${tracks.length} tracks...'),
+                                      backgroundColor: AppColors.card(context),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
-                                }
-                              },
+                                  final count = await playerService.batchDownloadTracks(tracks);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Saved $count tracks to AES-256 encrypted storage.'),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                },
+                        ),
                       ),
                     ],
                   ),
@@ -187,13 +204,13 @@ class IntentPlaylistScreen extends StatelessWidget {
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: tracks.isEmpty
-                    ? const SliverToBoxAdapter(
+                    ? SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
+                          padding: const EdgeInsets.symmetric(vertical: 40),
                           child: Center(
                             child: Text(
                               'No tracks found in this category.',
-                              style: TextStyle(color: AppColors.textMuted),
+                              style: TextStyle(color: AppColors.muted(context)),
                             ),
                           ),
                         ),
@@ -207,11 +224,18 @@ class IntentPlaylistScreen extends StatelessWidget {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               decoration: BoxDecoration(
-                                color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surface,
+                                color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : AppColors.card(context),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: isCurrent ? AppColors.primary : AppColors.glassBorder,
+                                  color: isCurrent ? AppColors.primary : AppColors.border(context),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.shadow(context),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: ListTile(
                                 leading: ClipRRect(
@@ -224,8 +248,8 @@ class IntentPlaylistScreen extends StatelessWidget {
                                     errorBuilder: (_, __, ___) => Container(
                                       width: 48,
                                       height: 48,
-                                      color: AppColors.surfaceLight,
-                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                      color: AppColors.cardAlt(context),
+                                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                                     ),
                                   ),
                                 ),
@@ -237,7 +261,7 @@ class IntentPlaylistScreen extends StatelessWidget {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: isCurrent ? AppColors.primary : AppColors.textPrimary,
+                                          color: isCurrent ? AppColors.primary : AppColors.text(context),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                         ),
@@ -267,8 +291,8 @@ class IntentPlaylistScreen extends StatelessWidget {
                                 ),
                                 subtitle: Text(
                                   '${track.artist} • ${track.formattedDuration}',
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
+                                  style: TextStyle(
+                                    color: AppColors.subtext(context),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -278,7 +302,7 @@ class IntentPlaylistScreen extends StatelessWidget {
                                     IconButton(
                                       icon: Icon(
                                         track.isDownloaded ? Icons.download_done_rounded : Icons.download_outlined,
-                                        color: track.isDownloaded ? AppColors.offlineBadge : Colors.white38,
+                                        color: track.isDownloaded ? AppColors.offlineBadge : AppColors.muted(context),
                                         size: 20,
                                       ),
                                       onPressed: () => playerService.toggleDownload(track.id),

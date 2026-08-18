@@ -116,18 +116,24 @@ export const createTrackAdmin = async (req: Request, res: Response): Promise<voi
 export const updateTrackAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, artist, subgenre, intentCategory, mediaType, isPremium, duration, albumArtUrl, lyrics } = req.body;
+    const { title, artist, subgenre, intentCategory, mediaType, isPremium, duration, albumArtUrl, audioUrl, lyrics } = req.body;
 
-    const updated = await dbClient.updateTrack(id, {
-      title,
-      artist,
-      subgenre,
-      intentCategory,
-      mediaType,
-      isPremium: isPremium !== undefined ? (isPremium === true || isPremium === 'true') : undefined,
-      duration: duration ? Number(duration) : undefined,
-      albumArtUrl,
-    });
+    const cleanUpdateData: Partial<Track> = {};
+    if (title !== undefined) cleanUpdateData.title = String(title).trim();
+    if (artist !== undefined) cleanUpdateData.artist = String(artist).trim();
+    if (subgenre !== undefined) cleanUpdateData.subgenre = String(subgenre).trim();
+    if (intentCategory !== undefined) cleanUpdateData.intentCategory = intentCategory as IntentCategory;
+    if (mediaType !== undefined) cleanUpdateData.mediaType = mediaType as MediaType;
+    if (isPremium !== undefined) {
+      cleanUpdateData.isPremium = isPremium === true || isPremium === 'true' || isPremium === 1 || isPremium === '1';
+    }
+    if (duration !== undefined && duration !== null && duration !== '') {
+      cleanUpdateData.duration = Number(duration);
+    }
+    if (albumArtUrl !== undefined) cleanUpdateData.albumArtUrl = String(albumArtUrl).trim();
+    if (audioUrl !== undefined) cleanUpdateData.audioUrl = String(audioUrl).trim();
+
+    const updated = await dbClient.updateTrack(id, cleanUpdateData);
 
     if (!updated) {
       res.status(404).json({ error: 'Track not found.' });
@@ -139,6 +145,7 @@ export const updateTrackAdmin = async (req: Request, res: Response): Promise<voi
       track: updated,
     });
   } catch (error) {
+    console.error('[Admin] Error updating track:', error);
     res.status(500).json({ error: 'Failed to update track.' });
   }
 };
@@ -202,16 +209,16 @@ export const getAnalyticsAdmin = async (req: Request, res: Response): Promise<vo
 };
 
 // --- CATEGORY MANAGEMENT CONTROLLERS ---
-export const getCategoriesAdmin = (req: Request, res: Response): void => {
+export const getCategoriesAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const categories = dbClient.getCategories();
+    const categories = await dbClient.getCategories();
     res.status(200).json({ categories });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories.' });
   }
 };
 
-export const createCategoryAdmin = (req: Request, res: Response): void => {
+export const createCategoryAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, description, icon, accentColor, categoryKey } = req.body;
 
@@ -220,7 +227,7 @@ export const createCategoryAdmin = (req: Request, res: Response): void => {
       return;
     }
 
-    const category = dbClient.createCategory({
+    const category = await dbClient.createCategory({
       categoryKey: categoryKey.trim(),
       title: title.trim(),
       description: description ? description.trim() : '',
@@ -235,12 +242,12 @@ export const createCategoryAdmin = (req: Request, res: Response): void => {
   }
 };
 
-export const updateCategoryAdmin = (req: Request, res: Response): void => {
+export const updateCategoryAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { title, categoryKey, description, icon, accentColor, isActive } = req.body;
 
-    const updated = dbClient.updateCategory(id, { title, categoryKey, description, icon, accentColor, isActive });
+    const updated = await dbClient.updateCategory(id, { title, categoryKey, description, icon, accentColor, isActive });
 
     if (!updated) {
       res.status(404).json({ error: 'Category not found.' });
@@ -253,10 +260,10 @@ export const updateCategoryAdmin = (req: Request, res: Response): void => {
   }
 };
 
-export const deleteCategoryAdmin = (req: Request, res: Response): void => {
+export const deleteCategoryAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const deleted = dbClient.deleteCategory(id);
+    const deleted = await dbClient.deleteCategory(id);
 
     if (!deleted) {
       res.status(404).json({ error: 'Category not found.' });

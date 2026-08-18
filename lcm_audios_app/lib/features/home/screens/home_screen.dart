@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
+import '../../../services/theme_service.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -52,12 +53,13 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.card(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          final isDark = AppColors.isDarkMode(context);
           final query = _searchQuery.trim().toLowerCase();
 
           // Filter tracks based on query and selected category chip
@@ -144,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white24,
+                      color: isDark ? Colors.white24 : Colors.black12,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -162,13 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
                     ),
                     const SizedBox(width: 10),
-                    const Text(
+                    Text(
                       'Search & Discover',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: AppColors.text(context),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 22),
+                      icon: Icon(Icons.close_rounded, color: AppColors.muted(context), size: 22),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -179,16 +185,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextField(
                   controller: _searchController,
                   autofocus: false,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: TextStyle(color: AppColors.text(context), fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Search sermons, worship, ministers, lyrics...',
-                    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    hintStyle: TextStyle(color: AppColors.muted(context), fontSize: 13),
                     filled: true,
-                    fillColor: AppColors.surfaceLight,
+                    fillColor: AppColors.cardAlt(context),
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.cancel_rounded, color: Colors.white54, size: 18),
+                            icon: Icon(Icons.cancel_rounded, color: AppColors.muted(context), size: 18),
                             onPressed: () {
                               _searchController.clear();
                               setModalState(() {
@@ -199,7 +205,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: AppColors.glassBorder.withValues(alpha: 0.5)),
+                      borderSide: BorderSide(color: AppColors.border(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.border(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -229,18 +239,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: Text(
                           chip,
                           style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
+                            color: isSelected ? Colors.white : AppColors.subtext(context),
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             fontSize: 12,
                           ),
                         ),
                         selected: isSelected,
                         selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.surfaceLight,
+                        backgroundColor: AppColors.cardAlt(context),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? AppColors.primary : AppColors.glassBorder,
+                            color: isSelected ? AppColors.primary : AppColors.border(context),
                           ),
                         ),
                         onSelected: (selected) {
@@ -256,10 +266,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Quick Discovery Suggestion Tags (if search query is empty)
                 if (_searchQuery.isEmpty) ...[
-                  const Text(
+                  Text(
                     'POPULAR SEARCHES & TOPICS',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: AppColors.muted(context),
                       fontSize: 10.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
@@ -281,9 +291,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceLight,
+                            color: AppColors.cardAlt(context),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.glassBorder.withValues(alpha: 0.7)),
+                            border: Border.all(color: AppColors.border(context)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -292,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 5),
                               Text(
                                 suggestion,
-                                style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                                style: TextStyle(color: AppColors.subtext(context), fontSize: 11.5),
                               ),
                             ],
                           ),
@@ -309,8 +319,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       '${searchResultsWithMetadata.length} Tracks ${selectedFilter != 'All' ? '($selectedFilter)' : ''}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: AppColors.subtext(context),
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
                       ),
@@ -340,17 +350,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off_rounded, color: Colors.white.withValues(alpha: 0.3), size: 48),
+                              Icon(Icons.search_off_rounded, color: AppColors.muted(context).withValues(alpha: 0.4), size: 48),
                               const SizedBox(height: 10),
-                              const Text(
+                              Text(
                                 'No matching tracks found',
-                                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14),
+                                style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'Try another keyword, preacher name or spiritual intent.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                               ),
                             ],
                           ),
@@ -369,13 +379,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: BoxDecoration(
                                 color: isCurrentlyActive
                                     ? AppColors.primary.withValues(alpha: 0.12)
-                                    : AppColors.surfaceLight,
+                                    : (isDark ? AppColors.surfaceLight : AppColors.card(context)),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isCurrentlyActive
                                       ? AppColors.primary.withValues(alpha: 0.6)
-                                      : AppColors.glassBorder.withValues(alpha: 0.5),
+                                      : AppColors.border(context),
                                 ),
+                                boxShadow: isDark ? [] : [
+                                  BoxShadow(
+                                    color: AppColors.shadow(context),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -391,8 +408,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     errorWidget: (_, __, ___) => Container(
                                       width: 48,
                                       height: 48,
-                                      color: AppColors.surface,
-                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                      color: AppColors.cardAlt(context),
+                                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                                     ),
                                   ),
                                 ),
@@ -404,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: isCurrentlyActive ? AppColors.primary : Colors.white,
+                                          color: isCurrentlyActive ? AppColors.primary : AppColors.text(context),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13.5,
                                         ),
@@ -464,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       '${track.artist} • ${track.subgenre} • ${formatDuration(track.duration)}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                                      style: TextStyle(color: AppColors.subtext(context), fontSize: 11.5),
                                     ),
                                     if (matchedLyric != null) ...[
                                       const SizedBox(height: 3),
@@ -478,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
-                                                color: Colors.white.withValues(alpha: 0.8),
+                                                color: AppColors.subtext(context).withValues(alpha: 0.9),
                                                 fontSize: 11,
                                                 fontStyle: FontStyle.italic,
                                               ),
@@ -529,31 +546,69 @@ class _HomeScreenState extends State<HomeScreen> {
         final filteredTracks = playerService.filteredTracks;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.bg(context),
             elevation: 0,
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
                   'assets/images/logoIcon.png',
-                  height: 36,
-                  width: 36,
+                  height: 32,
+                  width: 32,
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.headphones_rounded, color: AppColors.primary, size: 28),
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'LCM AUDIOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.1,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'LCM AUDIOS',
+                    style: TextStyle(
+                      color: AppColors.text(context),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
             actions: [
+              // Theme Mode Quick Toggle
+              Consumer<ThemeService>(
+                builder: (context, themeService, _) {
+                  final isDark = AppColors.isDarkMode(context);
+                  return IconButton(
+                    tooltip: isDark ? 'Switch to Daylight Mode' : 'Switch to Midnight Mode',
+                    icon: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, anim) => RotationTransition(
+                        turns: anim,
+                        child: FadeTransition(opacity: anim, child: child),
+                      ),
+                      child: Container(
+                        key: ValueKey(isDark),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
+                          ),
+                        ),
+                        child: Icon(
+                          isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                          color: isDark ? const Color(0xFFF59E0B) : const Color(0xFF8B5CF6),
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    onPressed: () => themeService.toggleTheme(),
+                  );
+                },
+              ),
               InkWell(
                 onTap: () => CovenantPartnerPaywallSheet.show(context),
                 borderRadius: BorderRadius.circular(12),
@@ -596,7 +651,7 @@ class _HomeScreenState extends State<HomeScreen> {
           body: RefreshIndicator(
             onRefresh: () => playerService.refreshAll(),
             color: AppColors.primary,
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.card(context),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
@@ -610,18 +665,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           _getGreeting(playerService.userName),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.text(context),
                             fontSize: 14.5,
                             fontWeight: FontWeight.w600,
                             letterSpacing: -0.2,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           '“Thy word is a lamp unto my feet, and a light unto my path.”',
                           style: TextStyle(
-                            color: AppColors.textMuted,
+                            color: AppColors.muted(context),
                             fontSize: 11,
                             fontStyle: FontStyle.italic,
                           ),
@@ -639,14 +694,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: AppColors.card(context),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.glassBorder),
-                          boxShadow: const [
+                          border: Border.all(color: AppColors.border(context)),
+                          boxShadow: [
                             BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
+                              color: AppColors.shadow(context),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
                           ],
                         ),
@@ -654,20 +709,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
                             const SizedBox(width: 12),
-                            const Expanded(
+                            Expanded(
                               child: Text(
                                 'Search sermons, ministers, worship, chants...',
-                                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                style: TextStyle(color: AppColors.muted(context), fontSize: 13),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceLight,
+                                color: AppColors.cardAlt(context),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.tune_rounded, color: AppColors.textSecondary, size: 14),
+                              child: Icon(Icons.tune_rounded, color: AppColors.subtext(context), size: 14),
                             ),
                           ],
                         ),
@@ -719,14 +774,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Fresh Manna & New Releases',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              'Fresh Manna & New Releases',
+                              style: TextStyle(
+                                color: AppColors.text(context),
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
@@ -758,24 +817,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
 
                   // Explore Spiritually Header
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Explore Spiritually',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.text(context),
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           'Intent-Driven Spiritual Playlists',
                           style: TextStyle(
-                            color: Colors.white60,
+                            color: AppColors.subtext(context),
                             fontSize: 14,
                           ),
                         ),
@@ -814,19 +873,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          playerService.selectedCategoryKey == 'all'
-                              ? 'Featured Faith Streams'
-                              : '${playerService.selectedCategoryKey.toUpperCase()} STREAMS',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            playerService.selectedCategoryKey == 'all'
+                                ? 'Featured Faith Streams'
+                                : '${playerService.selectedCategoryKey.toUpperCase()} STREAMS',
+                            style: TextStyle(
+                              color: AppColors.text(context),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           '${filteredTracks.length} Tracks',
-                          style: const TextStyle(color: Colors.white38, fontSize: 12),
+                          style: TextStyle(color: AppColors.muted(context), fontSize: 12),
                         ),
                       ],
                     ),
@@ -838,15 +901,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: AppColors.card(context),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.glassBorder),
+                            border: Border.all(color: AppColors.border(context)),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
                               'No tracks found in this category yet. Pull down to refresh or upload new sermons in the Admin Portal!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                              style: TextStyle(color: AppColors.muted(context), fontSize: 13),
                             ),
                           ),
                         )
@@ -856,17 +919,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                           itemCount: filteredTracks.length,
                           itemBuilder: (ctx, index) {
+                            final isDark = AppColors.isDarkMode(context);
                             final track = filteredTracks[index];
                             final isCurrentPlaying = (playerService.currentTrack?.id == track.id);
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               decoration: BoxDecoration(
-                                color: isCurrentPlaying ? AppColors.surfaceLight : AppColors.surface,
+                                color: isCurrentPlaying
+                                    ? (isDark ? AppColors.surfaceLight : const Color(0xFFFEE2E2).withValues(alpha: 0.7))
+                                    : AppColors.card(context),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isCurrentPlaying ? AppColors.primary : AppColors.glassBorder,
+                                  color: isCurrentPlaying ? AppColors.primary : AppColors.border(context),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.shadow(context),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -882,8 +955,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     errorWidget: (_, __, ___) => Container(
                                       width: 50,
                                       height: 50,
-                                      color: AppColors.surfaceLight,
-                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                      color: AppColors.cardAlt(context),
+                                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                                     ),
                                   ),
                                 ),
@@ -895,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: isCurrentPlaying ? AppColors.primary : AppColors.textPrimary,
+                                          color: isCurrentPlaying ? AppColors.primary : AppColors.text(context),
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
                                         ),
@@ -933,8 +1006,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   '${track.artist} • ${track.subgenre}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
+                                  style: TextStyle(
+                                    color: AppColors.subtext(context),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -975,6 +1048,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required AudioPlayerService playerService,
   }) {
     final isSelected = (playerService.selectedCategoryKey == intent.categoryKey);
+    final isDark = AppColors.isDarkMode(context);
 
     return GestureDetector(
       onTap: () {
@@ -991,13 +1065,15 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             colors: isSelected
-                ? [AppColors.primary, const Color(0xFF6B0F1A)]
-                : [AppColors.surface, const Color(0xFF1E2130)],
+                ? [AppColors.primary, const Color(0xFFB91C1C)]
+                : (isDark
+                    ? [AppColors.surface, const Color(0xFF1E2130)]
+                    : [Colors.white, const Color(0xFFF8FAFC)]),
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.glassBorder,
+            color: isSelected ? AppColors.primary : AppColors.border(context),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -1008,7 +1084,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : [],
+              : (isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: AppColors.shadow(context),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1021,21 +1105,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: intent.accentColor.withValues(alpha: 0.2),
+                    color: intent.accentColor.withValues(alpha: isDark ? 0.2 : 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(intent.icon, color: intent.accentColor, size: 28),
                 ),
                 Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.white10,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.auto_awesome,
                     size: 14,
-                    color: isSelected ? Colors.white : Colors.white54,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.white54 : AppColors.muted(context)),
                   ),
                 ),
               ],
@@ -1047,8 +1133,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   intent.title.toUpperCase(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.text(context),
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                     letterSpacing: 0.5,
@@ -1058,7 +1144,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   tracksCount,
                   style: TextStyle(
-                    color: isSelected ? Colors.white70 : Colors.white38,
+                    color: isSelected
+                        ? Colors.white70
+                        : (isDark ? Colors.white38 : AppColors.subtext(context)),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1078,6 +1166,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final progress = (pos.inSeconds / totalDuration.inSeconds).clamp(0.0, 1.0);
     final isCurrentlyActive = playerService.currentTrack?.id == track.id;
     final isPlaying = isCurrentlyActive && playerService.isPlaying;
+    final isDark = AppColors.isDarkMode(context);
 
     String formatTime(Duration d) {
       final m = d.inMinutes.toString().padLeft(2, '0');
@@ -1088,18 +1177,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.surfaceLight,
-            AppColors.surface,
-          ],
+          colors: isDark
+              ? [
+                  AppColors.surfaceLight,
+                  AppColors.surface,
+                ]
+              : [
+                  Colors.white,
+                  const Color(0xFFF8FAFC),
+                ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35), width: 1.2),
+        border: Border.all(
+          color: isDark
+              ? AppColors.primary.withValues(alpha: 0.35)
+              : AppColors.border(context),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
+            color: isDark
+                ? AppColors.primary.withValues(alpha: 0.15)
+                : AppColors.shadow(context),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1115,7 +1216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
+                    color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -1138,7 +1239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Spacer(),
                 Text(
                   '${formatTime(pos)} / ${formatTime(totalDuration)}',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: AppColors.muted(context), fontSize: 11, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -1157,8 +1258,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     errorWidget: (_, __, ___) => Container(
                       width: 52,
                       height: 52,
-                      color: AppColors.surface,
-                      child: const Icon(Icons.music_note, color: Colors.white54),
+                      color: AppColors.cardAlt(context),
+                      child: Icon(Icons.music_note, color: AppColors.muted(context)),
                     ),
                   ),
                 ),
@@ -1171,8 +1272,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         track.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
@@ -1182,8 +1283,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         '${track.artist} • ${track.subgenre}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: AppColors.subtext(context),
                           fontSize: 12,
                         ),
                       ),
@@ -1232,7 +1333,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 4,
-                backgroundColor: Colors.white12,
+                backgroundColor: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             ),
@@ -1247,38 +1348,54 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.glassBorder,
+    return Builder(
+      builder: (context) {
+        final isDark = AppColors.isDarkMode(context);
+
+        return GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary
+                  : (isDark ? AppColors.surface : AppColors.card(context)),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.border(context),
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : (isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppColors.shadow(context),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.subtext(context),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12.5,
+              ),
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            fontSize: 12.5,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1294,11 +1411,18 @@ class _HomeScreenState extends State<HomeScreen> {
       width: 140,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isCurrent ? AppColors.primary.withValues(alpha: 0.6) : AppColors.glassBorder,
+          color: isCurrent ? AppColors.primary.withValues(alpha: 0.6) : AppColors.border(context),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(context),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: () {
@@ -1327,8 +1451,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Container(
                         height: 100,
-                        color: AppColors.surfaceLight,
-                        child: const Icon(Icons.music_note, color: Colors.white54),
+                        color: AppColors.cardAlt(context),
+                        child: Icon(Icons.music_note, color: AppColors.muted(context)),
                       ),
                     ),
                   ),
@@ -1342,7 +1466,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
+                            color: Colors.black.withValues(alpha: 0.4),
                             blurRadius: 6,
                           ),
                         ],
@@ -1362,7 +1486,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isCurrent ? AppColors.primary : Colors.white,
+                  color: isCurrent ? AppColors.primary : AppColors.text(context),
                   fontWeight: FontWeight.bold,
                   fontSize: 12.5,
                 ),
@@ -1372,8 +1496,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 track.artist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: AppColors.muted(context),
                   fontSize: 11,
                 ),
               ),

@@ -48,6 +48,7 @@ export interface Track {
   duration: number; // in seconds
   subgenre: string;
   intentCategory: IntentCategory;
+  categoryKey?: string;
   mediaType: MediaType;
   isDownloaded?: boolean;
   isFavorite?: boolean;

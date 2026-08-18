@@ -4,6 +4,7 @@ import { PaystackService } from '../services/paystackService';
 interface PartnerTransaction {
   reference: string;
   email: string;
+  phone?: string;
   planType: 'monthly' | 'annual';
   amount: number; // in Naira
   currency: string;
@@ -45,7 +46,7 @@ const partnerTransactionsLedger: PartnerTransaction[] = [
  */
 export const initializePayment = async (req: Request, res: Response) => {
   try {
-    const { email, planType, callbackUrl } = req.body;
+    const { email, planType, callbackUrl, phone } = req.body;
 
     if (!email || !planType) {
       return res.status(400).json({
@@ -59,24 +60,34 @@ export const initializePayment = async (req: Request, res: Response) => {
     const prefix = isAnnual ? 'LCM-PARTNER-ANNUAL' : 'LCM-PARTNER-MONTHLY';
     const reference = `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    const customFields: Array<{ display_name: string; variable_name: string; value: string }> = [
+      {
+        display_name: 'Covenant Partner Tier',
+        variable_name: 'covenant_tier',
+        value: isAnnual ? 'Annual Covenant Partner' : 'Monthly Seed Partner',
+      },
+      {
+        display_name: 'Ministry Purpose',
+        variable_name: 'ministry_purpose',
+        value: 'Global Faith Media & Sermon Broadcasts',
+      },
+    ];
+
+    if (phone) {
+      customFields.push({
+        display_name: 'Donor Phone Number',
+        variable_name: 'donor_phone',
+        value: String(phone),
+      });
+    }
+
     const paystackRes = await PaystackService.initializeTransaction({
       email,
       amountInKobo,
       reference,
       callbackUrl,
       metadata: {
-        custom_fields: [
-          {
-            display_name: 'Covenant Partner Tier',
-            variable_name: 'covenant_tier',
-            value: isAnnual ? 'Annual Covenant Partner' : 'Monthly Seed Partner',
-          },
-          {
-            display_name: 'Ministry Purpose',
-            variable_name: 'ministry_purpose',
-            value: 'Global Faith Media & Sermon Broadcasts',
-          },
-        ],
+        custom_fields: customFields,
       },
     });
 
@@ -85,6 +96,7 @@ export const initializePayment = async (req: Request, res: Response) => {
       partnerTransactionsLedger.unshift({
         reference,
         email,
+        phone: phone || undefined,
         planType: isAnnual ? 'annual' : 'monthly',
         amount: isAnnual ? 24000 : 2500,
         currency: 'NGN',

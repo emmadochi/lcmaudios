@@ -38,6 +38,7 @@ model Track {
   subgenre       String
   intentCategory String       @default("morningDevotion")
   mediaType      MediaType    @default(song)
+  isPremium      Boolean      @default(false)
   playCount      Int          @default(0)
   createdAt      DateTime     @default(now())
   lyrics         LyricLine[]

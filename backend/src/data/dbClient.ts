@@ -81,6 +81,24 @@ class DbClient {
             },
           });
         }
+        // Seed ministers if empty
+        const ministerCount = await this.prisma.minister.count();
+        if (ministerCount === 0 && mock.ministers.length > 0) {
+          for (const m of mock.ministers) {
+            await this.prisma.minister.create({
+              data: {
+                id: m.id,
+                name: m.name,
+                role: m.role,
+                avatarUrl: m.avatarUrl,
+                bio: m.bio || '',
+                sermonCount: m.sermonCount || 0,
+              },
+            });
+          }
+          console.log(`[DB Client] ✅ Successfully seeded ${mock.ministers.length} ministers into PostgreSQL.`);
+        }
+
         console.log(`[DB Client] ✅ Successfully seeded ${mock.tracks.length} tracks with lyrics into PostgreSQL.`);
       }
     } catch (e) {
@@ -262,6 +280,7 @@ class DbClient {
           mediaType: t.mediaType as MediaType,
           isDownloaded: false,
           isFavorite: false,
+          isPremium: (t as any).isPremium ?? false,
           playCount: t.playCount || 0,
           createdAt: t.createdAt.toISOString(),
           lyrics: t.lyrics.map((l: any) => ({
@@ -311,6 +330,7 @@ class DbClient {
             subgenre: t.subgenre,
             intentCategory: t.intentCategory as IntentCategory,
             mediaType: t.mediaType as MediaType,
+            isPremium: (t as any).isPremium ?? false,
             createdAt: t.createdAt.toISOString(),
             lyrics: t.lyrics.map((l: any) => ({
               id: l.id,
@@ -341,6 +361,7 @@ class DbClient {
             subgenre: trackData.subgenre,
             intentCategory: trackData.intentCategory as any,
             mediaType: trackData.mediaType as any,
+            isPremium: trackData.isPremium ?? false,
             lyrics: {
               create: trackData.lyrics?.map((l: any) => ({
                 timestampSeconds: l.timestampSeconds,
@@ -360,6 +381,7 @@ class DbClient {
           subgenre: created.subgenre,
           intentCategory: created.intentCategory as IntentCategory,
           mediaType: created.mediaType as MediaType,
+          isPremium: (created as any).isPremium ?? trackData.isPremium ?? false,
           createdAt: created.createdAt.toISOString(),
           lyrics: created.lyrics.map((l: any) => ({
             id: l.id,
@@ -381,17 +403,20 @@ class DbClient {
   public async updateTrack(id: string, updateData: Partial<Track>): Promise<Track | null> {
     if (this.isPrismaConnected && this.prisma) {
       try {
+        const dataToUpdate: any = {};
+        if (updateData.title !== undefined) dataToUpdate.title = updateData.title;
+        if (updateData.artist !== undefined) dataToUpdate.artist = updateData.artist;
+        if (updateData.subgenre !== undefined) dataToUpdate.subgenre = updateData.subgenre;
+        if (updateData.intentCategory !== undefined) dataToUpdate.intentCategory = updateData.intentCategory;
+        if (updateData.mediaType !== undefined) dataToUpdate.mediaType = updateData.mediaType;
+        if (updateData.duration !== undefined) dataToUpdate.duration = updateData.duration;
+        if (updateData.albumArtUrl !== undefined) dataToUpdate.albumArtUrl = updateData.albumArtUrl;
+        if (updateData.audioUrl !== undefined) dataToUpdate.audioUrl = updateData.audioUrl;
+        if (updateData.isPremium !== undefined) dataToUpdate.isPremium = updateData.isPremium;
+
         const updated = await this.prisma.track.update({
           where: { id },
-          data: {
-            title: updateData.title,
-            artist: updateData.artist,
-            subgenre: updateData.subgenre,
-            intentCategory: updateData.intentCategory,
-            mediaType: updateData.mediaType,
-            duration: updateData.duration,
-            albumArtUrl: updateData.albumArtUrl,
-          },
+          data: dataToUpdate,
           include: { lyrics: true },
         });
         return {
@@ -404,6 +429,7 @@ class DbClient {
           subgenre: updated.subgenre,
           intentCategory: updated.intentCategory as IntentCategory,
           mediaType: updated.mediaType as MediaType,
+          isPremium: (updated as any).isPremium ?? updateData.isPremium ?? false,
           createdAt: updated.createdAt.toISOString(),
           lyrics: updated.lyrics.map((l: any) => ({
             id: l.id,
@@ -419,7 +445,14 @@ class DbClient {
     const mock = MockDatabase.getInstance();
     const idx = mock.tracks.findIndex((t: Track) => t.id === id);
     if (idx !== -1) {
-      mock.tracks[idx] = { ...mock.tracks[idx], ...updateData };
+      // Strip undefined keys from updateData
+      const cleanData: any = {};
+      for (const key of Object.keys(updateData)) {
+        if ((updateData as any)[key] !== undefined) {
+          cleanData[key] = (updateData as any)[key];
+        }
+      }
+      mock.tracks[idx] = { ...mock.tracks[idx], ...cleanData };
       mock.saveToFile();
       return mock.tracks[idx];
     }
@@ -447,29 +480,38 @@ class DbClient {
 
   // --- MINISTERS OPERATIONS ---
   public async getMinisters(): Promise<Minister[]> {
+    const allTracks = await this.getTracks();
+
     if (this.isPrismaConnected && this.prisma) {
       try {
         const dbMinisters = await this.prisma.minister.findMany({
           orderBy: { createdAt: 'desc' },
         });
         if (dbMinisters.length > 0) {
-          return dbMinisters.map((m: any) => ({
-            id: m.id,
-            name: m.name,
-            role: m.role,
-            avatarUrl: m.avatarUrl,
-            bio: m.bio,
-            sermonCount: m.sermonCount,
-            createdAt: m.createdAt.toISOString(),
-          }));
+          return dbMinisters.map((m: any) => {
+            const count = allTracks.filter((t) => t.artist.toLowerCase().includes(m.name.toLowerCase())).length;
+            return {
+              id: m.id,
+              name: m.name,
+              role: m.role,
+              avatarUrl: m.avatarUrl,
+              bio: m.bio,
+              sermonCount: count > 0 ? count : m.sermonCount,
+              createdAt: m.createdAt.toISOString(),
+            };
+          });
         }
       } catch (e) {
         console.error('[DB Client] Prisma getMinisters error:', e);
       }
     }
     const mock = MockDatabase.getInstance();
+    if (!mock.ministers) {
+      mock.seedMinisters();
+      mock.saveToFile();
+    }
     return mock.ministers.map((m) => {
-      const count = mock.tracks.filter((t) => t.artist.toLowerCase().includes(m.name.toLowerCase())).length;
+      const count = allTracks.filter((t) => t.artist.toLowerCase().includes(m.name.toLowerCase())).length;
       return {
         ...m,
         sermonCount: count > 0 ? count : m.sermonCount,
@@ -502,30 +544,6 @@ class DbClient {
   }
 
   public async createMinister(data: { name: string; role: string; avatarUrl: string; bio?: string }): Promise<Minister> {
-    if (this.isPrismaConnected && this.prisma) {
-      try {
-        const created = await this.prisma.minister.create({
-          data: {
-            name: data.name.trim(),
-            role: data.role.trim(),
-            avatarUrl: data.avatarUrl,
-            bio: data.bio?.trim() || '',
-            sermonCount: 0,
-          },
-        });
-        return {
-          id: created.id,
-          name: created.name,
-          role: created.role,
-          avatarUrl: created.avatarUrl,
-          bio: created.bio,
-          sermonCount: created.sermonCount,
-          createdAt: created.createdAt.toISOString(),
-        };
-      } catch (e) {
-        console.error('[DB Client] Prisma createMinister error:', e);
-      }
-    }
     const mock = MockDatabase.getInstance();
     const newMinister: Minister = {
       id: `min_${Date.now()}`,
@@ -536,46 +554,83 @@ class DbClient {
       sermonCount: 0,
       createdAt: new Date().toISOString(),
     };
-    mock.ministers.push(newMinister);
+
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const created = await this.prisma.minister.create({
+          data: {
+            id: newMinister.id,
+            name: newMinister.name,
+            role: newMinister.role,
+            avatarUrl: newMinister.avatarUrl,
+            bio: newMinister.bio,
+            sermonCount: 0,
+          },
+        });
+        newMinister.id = created.id;
+      } catch (e) {
+        console.error('[DB Client] Prisma createMinister error:', e);
+      }
+    }
+
+    mock.ministers.unshift(newMinister);
     mock.saveToFile();
     return newMinister;
   }
 
   public async updateMinister(id: string, updateData: Partial<Minister>): Promise<Minister | null> {
+    const mock = MockDatabase.getInstance();
+
     if (this.isPrismaConnected && this.prisma) {
       try {
-        const updated = await this.prisma.minister.update({
-          where: { id },
-          data: updateData,
-        });
-        return {
-          id: updated.id,
-          name: updated.name,
-          role: updated.role,
-          avatarUrl: updated.avatarUrl,
-          bio: updated.bio,
-          sermonCount: updated.sermonCount,
-          createdAt: updated.createdAt.toISOString(),
-        };
+        const existing = await this.prisma.minister.findUnique({ where: { id } });
+        if (existing) {
+          await this.prisma.minister.update({
+            where: { id },
+            data: updateData,
+          });
+        } else {
+          await this.prisma.minister.create({
+            data: {
+              id,
+              name: updateData.name || 'Minister',
+              role: updateData.role || 'Minister',
+              avatarUrl: updateData.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+              bio: updateData.bio || '',
+              sermonCount: updateData.sermonCount || 0,
+            },
+          });
+        }
       } catch (e) {
         console.error('[DB Client] Prisma updateMinister error:', e);
       }
     }
-    const mock = MockDatabase.getInstance();
+
     const idx = mock.ministers.findIndex((m) => m.id === id);
     if (idx !== -1) {
       mock.ministers[idx] = { ...mock.ministers[idx], ...updateData };
       mock.saveToFile();
       return mock.ministers[idx];
+    } else {
+      const newM: Minister = {
+        id,
+        name: updateData.name || 'Minister',
+        role: updateData.role || 'Minister',
+        avatarUrl: updateData.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        bio: updateData.bio || '',
+        sermonCount: updateData.sermonCount || 0,
+        createdAt: new Date().toISOString(),
+      };
+      mock.ministers.unshift(newM);
+      mock.saveToFile();
+      return newM;
     }
-    return null;
   }
 
   public async deleteMinister(id: string): Promise<boolean> {
     if (this.isPrismaConnected && this.prisma) {
       try {
         await this.prisma.minister.delete({ where: { id } });
-        return true;
       } catch (e) {
         console.error('[DB Client] Prisma deleteMinister error:', e);
       }
@@ -682,11 +737,55 @@ class DbClient {
   }
 
   // --- CATEGORIES OPERATIONS ---
-  public getCategories(): CategoryItem[] {
+  public async getCategories(): Promise<CategoryItem[]> {
     const mock = MockDatabase.getInstance();
+    
+    // Ensure mock categories are initialized
+    if (!mock.categories) {
+      mock.seedCategories();
+      mock.saveToFile();
+    }
+
+    // 1. Gather all active tracks from live database
+    const allTracks = await this.getTracks();
+
+    // 2. Ensure any tracks with distinct intentCategory (e.g. spiritual-growth, sunday-services) are auto-registered
+    allTracks.forEach((t) => {
+      if (t.intentCategory) {
+        const catKey = t.intentCategory.trim();
+        const exists = mock.categories.some(
+          (c) =>
+            c.categoryKey.toLowerCase() === catKey.toLowerCase() ||
+            c.id.toLowerCase() === catKey.toLowerCase() ||
+            c.title.toLowerCase() === catKey.toLowerCase()
+        );
+        if (!exists) {
+          const formattedTitle = catKey
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+          mock.categories.push({
+            id: `cat_${catKey.replace(/[^\w]/g, '_')}`,
+            categoryKey: catKey,
+            title: formattedTitle,
+            description: `${formattedTitle} sermon series & devotionals`,
+            icon: 'auto_awesome_rounded',
+            accentColor: '#E63946',
+            trackCount: 0,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          });
+          mock.saveToFile();
+        }
+      }
+    });
+
+    // 3. Compute accurate live track counts for each category
     return mock.categories.map((c) => {
-      const count = mock.tracks.filter(
-        (t) => t.intentCategory === c.categoryKey || t.intentCategory === c.title
+      const count = allTracks.filter(
+        (t) =>
+          t.intentCategory?.toLowerCase() === c.categoryKey.toLowerCase() ||
+          t.intentCategory?.toLowerCase() === c.title.toLowerCase() ||
+          t.intentCategory?.toLowerCase() === c.id.toLowerCase()
       ).length;
       return {
         ...c,
@@ -695,13 +794,13 @@ class DbClient {
     });
   }
 
-  public createCategory(cat: Omit<CategoryItem, 'id' | 'createdAt' | 'trackCount'>): CategoryItem {
+  public async createCategory(cat: Omit<CategoryItem, 'id' | 'createdAt' | 'trackCount'>): Promise<CategoryItem> {
     const mock = MockDatabase.getInstance();
     const newCat: CategoryItem = {
       id: `cat_${Date.now()}`,
-      categoryKey: cat.categoryKey,
-      title: cat.title,
-      description: cat.description,
+      categoryKey: cat.categoryKey.trim(),
+      title: cat.title.trim(),
+      description: cat.description ? cat.description.trim() : '',
       icon: cat.icon || 'auto_awesome_rounded',
       accentColor: cat.accentColor || '#E63946',
       trackCount: 0,
@@ -713,7 +812,7 @@ class DbClient {
     return newCat;
   }
 
-  public updateCategory(id: string, updates: Partial<CategoryItem>): CategoryItem | null {
+  public async updateCategory(id: string, updates: Partial<CategoryItem>): Promise<CategoryItem | null> {
     const mock = MockDatabase.getInstance();
     const cat = mock.categories.find((c: CategoryItem) => c.id === id);
     if (!cat) return null;
@@ -722,7 +821,7 @@ class DbClient {
 
     Object.assign(cat, updates);
 
-    // If key or title changed, cascade to existing tracks
+    // If key or title changed, cascade to existing tracks in MockDatabase
     if (updates.categoryKey && updates.categoryKey !== oldKey) {
       mock.tracks.forEach((t) => {
         if (t.intentCategory === oldKey || t.intentCategory === oldTitle) {
@@ -735,7 +834,7 @@ class DbClient {
     return cat;
   }
 
-  public deleteCategory(id: string): boolean {
+  public async deleteCategory(id: string): Promise<boolean> {
     const mock = MockDatabase.getInstance();
     const idx = mock.categories.findIndex((c: CategoryItem) => c.id === id);
     if (idx !== -1) {

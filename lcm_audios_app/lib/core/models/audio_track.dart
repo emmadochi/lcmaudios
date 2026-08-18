@@ -153,7 +153,12 @@ class AudioTrack {
       mediaType: parseMediaType(json['mediaType'] as String?),
       isDownloaded: json['isDownloaded'] as bool? ?? false,
       isFavorite: json['isFavorite'] as bool? ?? false,
-      isPremium: json['isPremium'] as bool? ?? false,
+      isPremium: json['isPremium'] == true ||
+          json['is_premium'] == true ||
+          json['isPremium'] == 'true' ||
+          json['is_premium'] == 'true' ||
+          json['isPremium'] == 1 ||
+          json['is_premium'] == 1,
       lyrics: (json['lyrics'] as List?)?.map((e) => LyricLine.fromJson(e)).toList() ?? [],
       notes: (json['notes'] as List?)?.map((e) => SermonNote.fromJson(e)).toList() ?? [],
     );

@@ -36,6 +36,7 @@ class PaystackCheckoutSheet extends StatefulWidget {
 
 class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
   final TextEditingController _emailController = TextEditingController(text: 'grace.worshipper@lcmfaith.org');
+  final TextEditingController _phoneController = TextEditingController(text: '+234 801 234 5678');
   final TextEditingController _cardNumberController = TextEditingController(text: '5399 •••• •••• 4128');
   final TextEditingController _expiryController = TextEditingController(text: '11/28');
   final TextEditingController _cvvController = TextEditingController(text: '883');
@@ -47,6 +48,7 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
   @override
   void dispose() {
     _emailController.dispose();
+    _phoneController.dispose();
     _cardNumberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
@@ -65,10 +67,22 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
 
   Future<void> _processPaystackPayment(BuildContext context, AudioPlayerService playerService) async {
     final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid email address for your Paystack receipt.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+
+    if (phone.isEmpty || phone.length < 7) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid phone number for SMS donation receipt.'),
           backgroundColor: AppColors.primary,
         ),
       );
@@ -84,6 +98,7 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
     final initData = await ApiService.initializePaystackPayment(
       email: email,
       planType: widget.planType,
+      phone: phone,
     );
 
     final reference = initData?['reference'] ??
@@ -125,11 +140,11 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
 
     if (context.mounted) {
       Navigator.of(context).pop(true);
-      _showCelebrationDialog(context, reference, receiptNo);
+      _showCelebrationDialog(context, reference, receiptNo, email, phone);
     }
   }
 
-  void _showCelebrationDialog(BuildContext context, String reference, String receiptNo) {
+  void _showCelebrationDialog(BuildContext context, String reference, String receiptNo, String email, String phone) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -195,6 +210,10 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
                   _receiptRow('Offering Tier', widget.planType == 'annual' ? 'Annual Covenant (₦24,000)' : 'Monthly Seed (₦2,500)'),
                   const SizedBox(height: 6),
                   _receiptRow('Receipt No.', receiptNo),
+                  const SizedBox(height: 6),
+                  _receiptRow('Donor Email', email),
+                  const SizedBox(height: 6),
+                  _receiptRow('Donor Phone', phone),
                   const SizedBox(height: 6),
                   _receiptRow('Gateway', 'Paystack Verified (SSL)'),
                   const SizedBox(height: 6),
@@ -272,41 +291,48 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0BA4DB).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.lock_rounded, color: Color(0xFF0BA4DB), size: 14),
-                            SizedBox(width: 4),
-                            Text(
-                              'paystack',
-                              style: TextStyle(
-                                color: Color(0xFF0BA4DB),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
-                                letterSpacing: 0.5,
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0BA4DB).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.lock_rounded, color: Color(0xFF0BA4DB), size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'paystack',
+                                style: TextStyle(
+                                  color: Color(0xFF0BA4DB),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text(
+                            'SECURE CHECKOUT',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
                             ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'SECURE CHECKOUT',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, color: Colors.white54),
@@ -329,26 +355,29 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.planType == 'annual'
-                              ? 'Annual Covenant Partner'
-                              : 'Monthly Kingdom Seed',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.planType == 'annual'
+                                ? 'Annual Covenant Partner'
+                                : 'Monthly Kingdom Seed',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'LCM Faith Broadcasting & Media',
-                          style: TextStyle(color: Colors.white54, fontSize: 11.5),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          const Text(
+                            'LCM Faith Broadcasting & Media',
+                            style: TextStyle(color: Colors.white54, fontSize: 11.5),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       _formattedAmount,
                       style: const TextStyle(
@@ -380,6 +409,44 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.email_outlined, color: Colors.white38, size: 18),
                   hintText: 'yourname@example.com',
+                  hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF0BA4DB)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Donor Phone Number
+              const Text(
+                'PHONE NUMBER (SMS CONFIRMATION & RECEIPT)',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone_outlined, color: Colors.white38, size: 18),
+                  hintText: '+234 800 000 0000',
                   hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
                   filled: true,
                   fillColor: Colors.white.withValues(alpha: 0.04),
@@ -556,12 +623,15 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
                           children: [
                             const Icon(Icons.lock_rounded, size: 18),
                             const SizedBox(width: 8),
-                            Text(
-                              'PAY $_formattedAmount VIA PAYSTACK',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13.5,
-                                letterSpacing: 0.6,
+                            Flexible(
+                              child: Text(
+                                'PAY $_formattedAmount VIA PAYSTACK',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13.5,
+                                  letterSpacing: 0.6,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -576,9 +646,12 @@ class _PaystackCheckoutSheetState extends State<PaystackCheckoutSheet> {
                   children: const [
                     Icon(Icons.verified_user_rounded, size: 13, color: Color(0xFF10B981)),
                     SizedBox(width: 4),
-                    Text(
-                      'PCI-DSS Level 1 Certified • 256-bit Bank Grade Security',
-                      style: TextStyle(color: Colors.white38, fontSize: 10),
+                    Flexible(
+                      child: Text(
+                        'PCI-DSS Level 1 Certified • 256-bit Bank Grade Security',
+                        style: TextStyle(color: Colors.white38, fontSize: 10),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),

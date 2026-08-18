@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/theme_service.dart';
 import '../../auth/screens/auth_screen.dart';
+import '../../onboarding/screens/onboarding_screen.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -32,24 +34,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.card(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Update Profile Name', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: Text('Update Profile Name', style: TextStyle(color: AppColors.text(context), fontSize: 16)),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.text(context)),
           decoration: InputDecoration(
             hintText: 'Enter your name',
-            hintStyle: const TextStyle(color: AppColors.textMuted),
+            hintStyle: TextStyle(color: AppColors.muted(context)),
             filled: true,
-            fillColor: AppColors.surfaceLight,
+            fillColor: AppColors.cardAlt(context),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.subtext(context))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -75,15 +77,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.card(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Streaming Audio Quality', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: Text('Streaming Audio Quality', style: TextStyle(color: AppColors.text(context), fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: options.map((opt) {
             final isSelected = _audioQuality == opt;
             return ListTile(
-              title: Text(opt, style: TextStyle(color: isSelected ? AppColors.primary : Colors.white, fontSize: 13.5)),
+              title: Text(opt, style: TextStyle(color: isSelected ? AppColors.primary : AppColors.text(context), fontSize: 13.5)),
               trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20) : null,
               onTap: () {
                 setState(() {
@@ -122,17 +124,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.card(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign Out of LCM Audios?', style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: const Text(
+        title: Text('Sign Out of LCM Audios?', style: TextStyle(color: AppColors.text(context), fontSize: 16)),
+        content: Text(
           'Your offline encrypted downloads and sermon notes will remain safely stored on this device.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: TextStyle(color: AppColors.subtext(context), fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppColors.muted(context))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -159,13 +161,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDarkMode(context);
+
     return Consumer<AudioPlayerService>(
       builder: (context, playerService, child) {
         final notesCount = playerService.allTracks.fold(0, (sum, t) => sum + t.notes.length);
         final totalHours = ((playerService.listenCount * 45) / 60).toStringAsFixed(1);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           body: SafeArea(
             bottom: false,
             child: SingleChildScrollView(
@@ -174,10 +178,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Top Header ─────────────────────────────────────────────
-                  const Text(
+                  Text(
                     'My Profile & Settings',
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: AppColors.text(context),
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,
@@ -189,17 +193,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.card(context),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: playerService.isCovenantPartner
                             ? const Color(0xFFD4AF37).withValues(alpha: 0.6)
-                            : AppColors.glassBorder,
+                            : AppColors.border(context),
                       ),
                       gradient: LinearGradient(
                         colors: playerService.isCovenantPartner
-                            ? [const Color(0xFF231630), AppColors.surface]
-                            : [AppColors.surfaceLight.withValues(alpha: 0.4), AppColors.surface],
+                            ? [
+                                isDark ? const Color(0xFF231630) : const Color(0xFFFFF9E6),
+                                AppColors.card(context),
+                              ]
+                            : [
+                                isDark
+                                    ? AppColors.surfaceLight.withValues(alpha: 0.4)
+                                    : const Color(0xFFF1F5F9),
+                                AppColors.card(context),
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -207,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         BoxShadow(
                           color: playerService.isCovenantPartner
                               ? const Color(0xFFD4AF37).withValues(alpha: 0.15)
-                              : Colors.black26,
+                              : AppColors.shadow(context),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -227,10 +239,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       : [AppColors.primary, const Color(0xFF991B1B)],
                                 ),
                               ),
-                              child: const CircleAvatar(
+                              child: CircleAvatar(
                                 radius: 30,
-                                backgroundColor: AppColors.surface,
-                                child: Icon(Icons.person_rounded, size: 36, color: Colors.white),
+                                backgroundColor: AppColors.card(context),
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  size: 36,
+                                  color: AppColors.text(context),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -243,8 +259,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       Flexible(
                                         child: Text(
                                           playerService.userName,
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
+                                          style: TextStyle(
+                                            color: AppColors.text(context),
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -259,42 +275,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 3),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                                     decoration: BoxDecoration(
                                       color: playerService.isCovenantPartner
-                                          ? const Color(0xFFD4AF37).withValues(alpha: 0.15)
-                                          : AppColors.surfaceLight,
-                                      borderRadius: BorderRadius.circular(8),
+                                          ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
+                                          : AppColors.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
                                         color: playerService.isCovenantPartner
-                                            ? const Color(0xFFD4AF37).withValues(alpha: 0.5)
-                                            : AppColors.glassBorder,
+                                            ? const Color(0xFFD4AF37).withValues(alpha: 0.4)
+                                            : AppColors.primary.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          playerService.isCovenantPartner
-                                              ? Icons.workspace_premium_rounded
-                                              : Icons.volunteer_activism_rounded,
-                                          color: playerService.isCovenantPartner
-                                              ? const Color(0xFFFFDF79)
-                                              : AppColors.primary,
-                                          size: 13,
+                                          playerService.isCovenantPartner ? Icons.workspace_premium_rounded : Icons.lock_open_rounded,
+                                          size: 11,
+                                          color: playerService.isCovenantPartner ? const Color(0xFFD4AF37) : AppColors.primary,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           playerService.isCovenantPartner
-                                              ? 'Covenant Partner (Gold)'
-                                              : 'Grace Worshipper',
+                                              ? (playerService.partnerPlanType?.toUpperCase() ?? 'COVENANT PARTNER')
+                                              : 'FREE LISTENER',
                                           style: TextStyle(
-                                            color: playerService.isCovenantPartner
-                                                ? const Color(0xFFFFDF79)
-                                                : AppColors.textSecondary,
-                                            fontSize: 11,
+                                            color: playerService.isCovenantPartner ? const Color(0xFFD4AF37) : AppColors.primary,
+                                            fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -307,18 +317,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Divider(color: AppColors.glassBorder, height: 1),
+                        Divider(color: AppColors.border(context), height: 1),
                         const SizedBox(height: 14),
 
                         // Spiritual Consistency Milestones
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildMetricItem('🔥 7 Days', 'Prayer Streak'),
-                            _buildDivider(),
-                            _buildMetricItem('🎧 $totalHours Hrs', 'Immersed'),
-                            _buildDivider(),
-                            _buildMetricItem('📝 $notesCount Notes', 'Insights Saved'),
+                            _buildMetricItem(context, '🔥 7 Days', 'Prayer Streak'),
+                            _buildDivider(context),
+                            _buildMetricItem(context, '🎧 $totalHours Hrs', 'Immersed'),
+                            _buildDivider(context),
+                            _buildMetricItem(context, '📝 $notesCount Notes', 'Insights Saved'),
                           ],
                         ),
                       ],
@@ -326,9 +336,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ── Section 1: Spiritual Habits & Alarms ───────────────────
-                  _buildSectionHeader('🕊️ Spiritual Habits & Discipline'),
-                  _buildCardGroup([
+                  // ── Section 1: App Atmosphere & Visual Theme ──────────────
+                  _buildSectionHeader(context, '🎨 App Atmosphere & Visual Theme'),
+                  Consumer<ThemeService>(
+                    builder: (context, themeService, _) {
+                      return _buildCardGroup(context, [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+                                    color: isDark ? const Color(0xFF8B5CF6) : const Color(0xFFF59E0B),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Visual Atmosphere',
+                                    style: TextStyle(
+                                      color: AppColors.text(context),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Switch between Daylight Devotion for bright scripture study or Midnight Vigil for night prayer.',
+                                style: TextStyle(
+                                  color: AppColors.muted(context),
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              // 3-Way Segmented Control Pills
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardAlt(context),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: AppColors.border(context)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    _buildThemeOption(
+                                      context: context,
+                                      title: 'Light',
+                                      icon: Icons.wb_sunny_rounded,
+                                      isSelected: themeService.themeMode == ThemeMode.light,
+                                      onTap: () => themeService.setThemeMode(ThemeMode.light),
+                                    ),
+                                    _buildThemeOption(
+                                      context: context,
+                                      title: 'Dark',
+                                      icon: Icons.nightlight_round,
+                                      isSelected: themeService.themeMode == ThemeMode.dark,
+                                      onTap: () => themeService.setThemeMode(ThemeMode.dark),
+                                    ),
+                                    _buildThemeOption(
+                                      context: context,
+                                      title: 'System',
+                                      icon: Icons.brightness_auto_rounded,
+                                      isSelected: themeService.themeMode == ThemeMode.system,
+                                      onTap: () => themeService.setThemeMode(ThemeMode.system),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ]);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Section 2: Spiritual Habits & Alarms ───────────────────
+                  _buildSectionHeader(context, '🕊️ Spiritual Habits & Discipline'),
+                  _buildCardGroup(context, [
                     SwitchListTile(
                       value: _morningAlarmEnabled,
                       onChanged: (val) {
@@ -337,28 +426,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         });
                       },
                       activeColor: AppColors.primary,
-                      title: const Text('Daily Morning Devotion Reminder', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      title: Text('Daily Morning Devotion Reminder', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
                       subtitle: Text(
                         'Scheduled for ${_alarmTime.format(context)} every morning',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+                        style: TextStyle(color: AppColors.muted(context), fontSize: 11.5),
                       ),
                       secondary: const Icon(Icons.alarm_rounded, color: AppColors.primary),
                     ),
-                    const Divider(color: AppColors.glassBorder, height: 1),
+                    Divider(color: AppColors.border(context), height: 1),
                     ListTile(
                       leading: const Icon(Icons.schedule_rounded, color: AppColors.primary),
-                      title: const Text('Change Devotion Time', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      title: Text('Change Devotion Time', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
                       trailing: Text(
                         _alarmTime.format(context),
                         style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       onTap: () => _pickAlarmTime(context),
                     ),
-                    const Divider(color: AppColors.glassBorder, height: 1),
+                    Divider(color: AppColors.border(context), height: 1),
                     ListTile(
                       leading: const Icon(Icons.notifications_active_rounded, color: Color(0xFFD4AF37)),
-                      title: const Text('Auto-Test Push Notification', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Sends an instant status-bar alert with sound & vibration', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                      title: Text('Auto-Test Push Notification', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Sends an instant status-bar alert with sound & vibration', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -375,17 +464,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ]),
                   const SizedBox(height: 20),
 
-                  // ── Section 2: Audio & Streaming Preferences ───────────────
-                  _buildSectionHeader('🎛️ Audio & Streaming Preferences'),
-                  _buildCardGroup([
+                  // ── Section 3: Audio & Streaming Preferences ───────────────
+                  _buildSectionHeader(context, '🎛️ Audio & Streaming Preferences'),
+                  _buildCardGroup(context, [
                     ListTile(
                       leading: const Icon(Icons.high_quality_rounded, color: AppColors.primary),
-                      title: const Text('Streaming Audio Quality', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: Text(_audioQuality, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 13),
+                      title: Text('Streaming Audio Quality', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text(_audioQuality, style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
                       onTap: () => _showQualityDialog(context),
                     ),
-                    const Divider(color: AppColors.glassBorder, height: 1),
+                    Divider(color: AppColors.border(context), height: 1),
                     SwitchListTile(
                       value: _wifiOnlyDownload,
                       onChanged: (val) {
@@ -394,51 +483,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         });
                       },
                       activeColor: AppColors.primary,
-                      title: const Text('Download on Wi-Fi Only', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Prevent cellular data consumption when saving offline audio', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                      title: Text('Download on Wi-Fi Only', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Prevent cellular data consumption when saving offline audio', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
                       secondary: const Icon(Icons.wifi_rounded, color: AppColors.primary),
                     ),
                   ]),
                   const SizedBox(height: 20),
 
-                  // ── Section 3: Covenant Partner & Kingdom Giving ───────────
-                  _buildSectionHeader('👑 Kingdom Partnership'),
-                  _buildCardGroup([
+                  // ── Section 4: Covenant Partner & Kingdom Giving ───────────
+                  _buildSectionHeader(context, '👑 Kingdom Partnership'),
+                  _buildCardGroup(context, [
                     ListTile(
                       leading: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFDF79)),
-                      title: const Text('Covenant Partner Vault', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      title: Text('Covenant Partner Vault', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
                       subtitle: Text(
                         playerService.isCovenantPartner
                             ? 'Plan: Active (${playerService.partnerPlanType ?? 'Partner'})'
                             : 'Upgrade to unlock full audio vault & support missions',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+                        style: TextStyle(color: AppColors.muted(context), fontSize: 11.5),
                       ),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 13),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
                       onTap: () => CovenantPartnerPaywallSheet.show(context),
                     ),
                   ]),
                   const SizedBox(height: 20),
 
-                  // ── Section 4: Community & Account ─────────────────────────
-                  _buildSectionHeader('🤝 Community & Account'),
-                  _buildCardGroup([
+                  // ── Section 5: Community & Account ─────────────────────────
+                  _buildSectionHeader(context, '🤝 Community & Account'),
+                  _buildCardGroup(context, [
                     ListTile(
                       leading: const Icon(Icons.share_rounded, color: AppColors.primary),
-                      title: const Text('Share LCM Audios with Friends', style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Spread the gospel of grace with prayer partners', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 13),
+                      title: Text('Share LCM Audios with Friends', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Spread the gospel of grace with prayer partners', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text('LCM Audios share link copied to clipboard! ✨'),
-                            backgroundColor: AppColors.surfaceLight,
+                            backgroundColor: AppColors.card(context),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         );
                       },
                     ),
-                    const Divider(color: AppColors.glassBorder, height: 1),
+                    Divider(color: AppColors.border(context), height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.explore_rounded, color: AppColors.primary),
+                      title: Text('Spiritual Onboarding & Atmosphere Setup', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Revisit theme atmosphere & spiritual intent selection', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                        );
+                      },
+                    ),
+                    Divider(color: AppColors.border(context), height: 1),
                     ListTile(
                       leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
                       title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent, fontSize: 13.5, fontWeight: FontWeight.bold)),
@@ -453,14 +554,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         Image.asset(
-                          'assets/images/logo2White.png',
-                          height: 32,
+                          isDark ? 'assets/images/logo2White.png' : 'assets/images/logoIcon.png',
+                          height: 36,
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 6),
-                        const Text(
+                        Text(
                           'LCM Audios • Version 1.0.0 (Faith in Motion)',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                          style: TextStyle(color: AppColors.muted(context), fontSize: 11),
                         ),
                       ],
                     ),
@@ -474,13 +575,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildThemeOption({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = AppColors.isDarkMode(context);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark ? AppColors.primary.withValues(alpha: 0.25) : AppColors.primary)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: isSelected
+                ? Border.all(
+                    color: isDark ? AppColors.primary : Colors.transparent,
+                    width: 1.2,
+                  )
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected
+                    ? (isDark ? AppColors.primary : Colors.white)
+                    : AppColors.subtext(context),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected
+                      ? (isDark ? AppColors.textPrimary : Colors.white)
+                      : AppColors.subtext(context),
+                  fontSize: 12.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         title,
-        style: const TextStyle(
-          color: AppColors.textSecondary,
+        style: TextStyle(
+          color: AppColors.subtext(context),
           fontSize: 12.5,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.3,
@@ -489,12 +645,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildCardGroup(List<Widget> children) {
+  Widget _buildCardGroup(BuildContext context, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
+        border: Border.all(color: AppColors.border(context)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(context),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: children,
@@ -502,13 +665,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMetricItem(String value, String label) {
+  Widget _buildMetricItem(BuildContext context, String value, String label) {
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.text(context),
             fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
@@ -516,8 +679,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textMuted,
+          style: TextStyle(
+            color: AppColors.muted(context),
             fontSize: 10.5,
           ),
         ),
@@ -525,11 +688,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildDivider(BuildContext context) {
     return Container(
       height: 24,
       width: 1,
-      color: AppColors.glassBorder,
+      color: AppColors.border(context),
     );
   }
 }

@@ -22,11 +22,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
         final isPartner = playerService.isCovenantPartner;
 
         return Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.bg(context),
           appBar: AppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.bg(context),
             elevation: 0,
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -37,12 +38,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFDF79), size: 20),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  'Covenant Partner',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                Flexible(
+                  child: Text(
+                    'Covenant Partner',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.text(context),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ],
@@ -162,10 +166,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
                 if (!isPartner) ...[
                   // Offering Plan Selector
-                  const Text(
+                  Text(
                     'SELECT KINGDOM SEED PLAN',
                     style: TextStyle(
-                      color: AppColors.textMuted,
+                      color: AppColors.muted(context),
                       fontSize: 11.5,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.1,
@@ -176,6 +180,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     children: [
                       Expanded(
                         child: _buildPlanSelectorCard(
+                          context: context,
                           index: 0,
                           title: 'Monthly Seed',
                           price: '₦2,500',
@@ -186,6 +191,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildPlanSelectorCard(
+                          context: context,
                           index: 1,
                           title: 'Annual Covenant',
                           price: '₦24,000',
@@ -201,33 +207,40 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.card(context),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadow(context),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          children: const [
-                            Icon(Icons.receipt_long_rounded, color: Color(0xFFFFDF79), size: 20),
-                            SizedBox(width: 8),
+                          children: [
+                            const Icon(Icons.receipt_long_rounded, color: Color(0xFFFFDF79), size: 20),
+                            const SizedBox(width: 8),
                             Text(
                               'Subscription Details',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                              style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                           ],
                         ),
                         const SizedBox(height: 14),
-                        _infoRow('Plan Tier', playerService.partnerPlanType == 'annual' ? 'Annual Covenant (₦24,000/yr)' : 'Monthly Seed (₦2,500/mo)'),
+                        _infoRow(context, 'Plan Tier', playerService.partnerPlanType == 'annual' ? 'Annual Covenant (₦24,000/yr)' : 'Monthly Seed (₦2,500/mo)'),
                         const SizedBox(height: 8),
-                        _infoRow('Payment Reference', playerService.partnerPaymentRef ?? 'LCM-PARTNER-ACTIVE'),
+                        _infoRow(context, 'Payment Reference', playerService.partnerPaymentRef ?? 'LCM-PARTNER-ACTIVE'),
                         if (playerService.partnerReceiptNo != null) ...[
                           const SizedBox(height: 8),
-                          _infoRow('Receipt Number', playerService.partnerReceiptNo!),
+                          _infoRow(context, 'Receipt Number', playerService.partnerReceiptNo!),
                         ],
                         const SizedBox(height: 8),
-                        _infoRow('Gateway', 'Paystack Verified (Active)'),
+                        _infoRow(context, 'Gateway', 'Paystack Verified (Active)'),
                       ],
                     ),
                   ),
@@ -235,10 +248,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ],
 
                 // Partnership Privileges Breakdown
-                const Text(
+                Text(
                   'PARTNERSHIP PRIVILEGES',
                   style: TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppColors.muted(context),
                     fontSize: 11.5,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.1,
@@ -247,6 +260,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 const SizedBox(height: 12),
 
                 _buildPrivilegeCard(
+                  context: context,
                   icon: Icons.lock_open_rounded,
                   title: 'Unrestricted Exclusive Catalog',
                   subtitle: 'Stream full unshortened deliverance teachings & secret place messages.',
@@ -254,6 +268,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
                 const SizedBox(height: 10),
                 _buildPrivilegeCard(
+                  context: context,
                   icon: Icons.cloud_download_rounded,
                   title: 'Unlimited AES-256 DRM Downloads',
                   subtitle: 'Store whole sermon albums on your device for offline flights and journeys.',
@@ -261,6 +276,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
                 const SizedBox(height: 10),
                 _buildPrivilegeCard(
+                  context: context,
                   icon: Icons.graphic_eq_rounded,
                   title: '320kbps Lossless Spatial Worship',
                   subtitle: 'Hear every frequency of soaking worship in crystal-clear master quality.',
@@ -268,6 +284,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
                 const SizedBox(height: 10),
                 _buildPrivilegeCard(
+                  context: context,
                   icon: Icons.volunteer_activism_rounded,
                   title: 'Global Gospel Media Sponsorship',
                   subtitle: 'Directly fund world evangelism, missions, and spiritual broadcasting.',
@@ -283,16 +300,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(BuildContext context, String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Text(label, style: TextStyle(color: AppColors.muted(context), fontSize: 12)),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+            style: TextStyle(color: AppColors.text(context), fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ),
       ],
@@ -300,6 +317,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildPlanSelectorCard({
+    required BuildContext context,
     required int index,
     required String title,
     required String price,
@@ -307,6 +325,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
     String? badge,
   }) {
     final isSelected = _selectedPlanIndex == index;
+    final isDark = AppColors.isDarkMode(context);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlanIndex = index),
@@ -317,15 +336,22 @@ class _PremiumScreenState extends State<PremiumScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: isSelected
-                  ? const Color(0xFFD4AF37).withValues(alpha: 0.12)
-                  : AppColors.surface,
+                  ? const Color(0xFFD4AF37).withValues(alpha: isDark ? 0.14 : 0.08)
+                  : AppColors.card(context),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
                     ? const Color(0xFFD4AF37)
-                    : AppColors.glassBorder,
+                    : AppColors.border(context),
                 width: isSelected ? 2 : 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadow(context),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,17 +359,24 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: isSelected ? const Color(0xFFFFDF79) : Colors.white70,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isSelected
+                              ? (isDark ? const Color(0xFFFFDF79) : const Color(0xFFB38020))
+                              : AppColors.subtext(context),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 4),
                     Icon(
                       isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                      color: isSelected ? const Color(0xFFFFDF79) : Colors.white24,
+                      color: isSelected ? const Color(0xFFD4AF37) : AppColors.muted(context),
                       size: 18,
                     ),
                   ],
@@ -351,8 +384,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 const SizedBox(height: 10),
                 Text(
                   price,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.text(context),
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                   ),
@@ -360,7 +393,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 Text(
                   period,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: AppColors.muted(context),
                     fontSize: 11,
                   ),
                 ),
@@ -380,7 +413,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 4,
                     ),
                   ],
@@ -402,17 +435,27 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildPrivilegeCard({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String subtitle,
     required String badge,
   }) {
+    final isDark = AppColors.isDarkMode(context);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
+        border: Border.all(color: AppColors.border(context)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(context),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,10 +463,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
+              color: const Color(0xFFD4AF37).withValues(alpha: isDark ? 0.12 : 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFFFFDF79), size: 22),
+            child: Icon(icon, color: const Color(0xFFD4AF37), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -436,8 +479,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     Flexible(
                       child: Text(
                         title,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppColors.text(context),
                           fontWeight: FontWeight.bold,
                           fontSize: 13.5,
                         ),
@@ -446,13 +489,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                        color: const Color(0xFFD4AF37).withValues(alpha: isDark ? 0.15 : 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         badge,
-                        style: const TextStyle(
-                          color: Color(0xFFFFDF79),
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFFFFDF79) : const Color(0xFFB38020),
                           fontWeight: FontWeight.w900,
                           fontSize: 9,
                           letterSpacing: 0.5,
@@ -464,7 +507,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(color: AppColors.subtext(context), fontSize: 12),
                 ),
               ],
             ),

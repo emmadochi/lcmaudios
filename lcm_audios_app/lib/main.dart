@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:app_links/app_links.dart';
 import 'core/theme/app_colors.dart';
+import 'core/theme/app_theme.dart';
 import 'services/audio_player_service.dart';
 import 'services/notification_service.dart';
+import 'services/theme_service.dart';
 import 'features/auth/screens/auth_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/explore/screens/explore_screen.dart';
 import 'features/library/screens/library_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
 import 'features/premium/screens/premium_screen.dart';
 import 'features/player/widgets/mini_player_bar.dart';
+import 'features/player/screens/full_player_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -33,6 +37,7 @@ void main() async {
     debugPrint('[Firebase] Init error: $e');
   }
   await NotificationService().init();
+  await ThemeService().init();
   runApp(const LcmAudiosApp());
 }
 
@@ -41,23 +46,22 @@ class LcmAudiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AudioPlayerService(),
-      child: MaterialApp(
-        title: 'LCM Audios — Faith in Motion',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          scaffoldBackgroundColor: AppColors.background,
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.primary,
-            surface: AppColors.surface,
-          ),
-          textTheme: GoogleFonts.interTextTheme(
-            ThemeData.dark().textTheme,
-          ),
-        ),
-        home: const AppEntryPoint(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AudioPlayerService()),
+        ChangeNotifierProvider.value(value: ThemeService()),
+      ],
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp(
+            title: 'LCM Audios — Faith in Motion',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeService.themeMode,
+            home: const AppEntryPoint(),
+          );
+        },
       ),
     );
   }
@@ -72,7 +76,7 @@ class AppEntryPoint extends StatelessWidget {
       builder: (context, playerService, child) {
         if (!playerService.isAuthInitialized) {
           return Scaffold(
-            backgroundColor: AppColors.background,
+            backgroundColor: AppColors.bg(context),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -81,7 +85,7 @@ class AppEntryPoint extends StatelessWidget {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.card(context),
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
                       boxShadow: [
@@ -113,6 +117,10 @@ class AppEntryPoint extends StatelessWidget {
           );
         }
 
+        if (!playerService.hasCompletedOnboarding) {
+          return const OnboardingScreen();
+        }
+
         if (playerService.isAuthenticated) {
           return const MainNavigationShell();
         }
@@ -129,8 +137,9 @@ class MainNavigationShell extends StatefulWidget {
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends State<MainNavigationShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  late final AppLinks _appLinks;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -141,9 +150,118 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initDeepLinkHandler();
+  }
+
+  /// Handles incoming deep links — both cold start and while running.
+  void _initDeepLinkHandler() {
+    _appLinks = AppLinks();
+
+    // Handle link that launched the app from a cold start
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    });
+
+    // Handle links while app is already running (foregrounded)
+    _appLinks.uriLinkStream.listen(
+      (uri) => _handleDeepLink(uri),
+      onError: (e) => debugPrint('[DeepLink] Stream error: $e'),
+    );
+  }
+
+  /// Routes a parsed deep link URI to the correct track.
+  ///
+  /// Supported formats:
+  ///   https://lcmaudios.app/track/{trackId}
+  ///   lcmaudios://track/{trackId}
+  Future<void> _handleDeepLink(Uri uri) async {
+    debugPrint('[DeepLink] Received: $uri');
+
+    String? trackId;
+
+    // HTTPS scheme: /track/{trackId}
+    if ((uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.host == 'lcmaudios.app' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'track') {
+      trackId = uri.pathSegments[1];
+    }
+
+    // Custom scheme: lcmaudios://track/{trackId}
+    else if (uri.scheme == 'lcmaudios' && uri.host == 'track') {
+      trackId = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
+    }
+
+    if (trackId == null || trackId.isEmpty) {
+      debugPrint('[DeepLink] No valid trackId found in $uri');
+      return;
+    }
+
+    debugPrint('[DeepLink] Opening track: $trackId');
+
+    if (!mounted) return;
+    final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+
+    // Try to find track in current catalog
+    final tracks = playerService.allTracks;
+    final target = tracks.where((t) => t.id == trackId).firstOrNull;
+
+    if (target != null) {
+      await playerService.playTrack(target);
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const FullPlayerScreen()),
+        );
+      }
+    } else {
+      // Track not in local cache — force a catalog sync then try again
+      await playerService.syncCatalogSilently(force: true);
+      final refreshedTarget = playerService.allTracks.where((t) => t.id == trackId).firstOrNull;
+      if (refreshedTarget != null && mounted) {
+        await playerService.playTrack(refreshedTarget);
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const FullPlayerScreen()),
+          );
+        }
+      } else {
+        debugPrint('[DeepLink] Track $trackId not found even after catalog sync.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This sermon link could not be found. It may have been removed.'),
+              backgroundColor: Color(0xFF1E2338),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      // Tier 1: Proactively sync catalog whenever user returns to the app
+      Provider.of<AudioPlayerService>(context, listen: false).syncCatalogSilently();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDarkMode(context);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.bg(context),
       body: Stack(
         alignment: Alignment.bottomCenter,
         children: [
@@ -158,22 +276,30 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               final track = playerService.currentTrack;
               final bool showMiniPlayer = track != null && !playerService.isMiniPlayerDismissed;
 
+              final dockBackground = isDark
+                  ? const Color(0xFF141722).withValues(alpha: 0.98)
+                  : Colors.white.withValues(alpha: 0.96);
+
+              final dockBorderColor = showMiniPlayer
+                  ? AppColors.primary.withValues(alpha: 0.45)
+                  : (isDark
+                      ? AppColors.glassBorder.withValues(alpha: 0.8)
+                      : AppColors.lightGlassBorder.withValues(alpha: 0.9));
+
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141722).withValues(alpha: 0.98),
+                  color: dockBackground,
                   borderRadius: BorderRadius.circular(26),
                   border: Border.all(
-                    color: showMiniPlayer
-                        ? AppColors.primary.withValues(alpha: 0.45)
-                        : AppColors.glassBorder.withValues(alpha: 0.8),
+                    color: dockBorderColor,
                     width: 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: showMiniPlayer
-                          ? AppColors.primaryGlow.withValues(alpha: 0.3)
-                          : Colors.black.withValues(alpha: 0.5),
+                          ? AppColors.primaryGlow.withValues(alpha: isDark ? 0.3 : 0.15)
+                          : (isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.08)),
                       blurRadius: 20,
                       offset: const Offset(0, -3),
                     ),
@@ -197,7 +323,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                           backgroundColor: Colors.transparent,
                           elevation: 0,
                           selectedItemColor: AppColors.primary,
-                          unselectedItemColor: Colors.white54,
+                          unselectedItemColor: isDark ? Colors.white54 : const Color(0xFF64748B),
                           selectedFontSize: 11,
                           unselectedFontSize: 11,
                           type: BottomNavigationBarType.fixed,
@@ -205,6 +331,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                             setState(() {
                               _currentIndex = index;
                             });
+                            // Proactively sync catalog on tab navigation
+                            playerService.syncCatalogSilently();
                           },
                           items: const [
                             BottomNavigationBarItem(

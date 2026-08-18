@@ -70,6 +70,10 @@ class AudioPlayerService extends ChangeNotifier {
   /// Timer fires every 30 seconds to queue a telemetry event.
   Timer? _telemetryTimer;
 
+  // ─── Proactive Catalog Auto-Sync (Tier 1 & Tier 2) ────────────────────────
+  DateTime? _lastCatalogSyncTime;
+  Timer? _catalogSyncTimer;
+
   // ─── Download progress ────────────────────────────────────────────────────
   final Map<String, double> _downloadProgress = {};
 
@@ -134,8 +138,32 @@ class AudioPlayerService extends ChangeNotifier {
   int get maxFreeDownloads => 3;
   int get currentDownloadCount => _allTracks.where((t) => t.isDownloaded).length;
   bool get hasReachedDownloadLimit => !_isCovenantPartner && currentDownloadCount >= maxFreeDownloads;
+  bool _hasCompletedOnboarding = false;
+  bool get hasCompletedOnboarding => _hasCompletedOnboarding;
 
   bool isTrackAccessible(AudioTrack track) => _isCovenantPartner || !track.isPremium;
+
+  Future<void> completeOnboarding() async {
+    _hasCompletedOnboarding = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_completed_onboarding', true);
+    } catch (e) {
+      debugPrint('[Onboarding] Error saving status: $e');
+    }
+    notifyListeners();
+  }
+
+  Future<void> resetOnboarding() async {
+    _hasCompletedOnboarding = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('has_completed_onboarding');
+    } catch (e) {
+      debugPrint('[Onboarding] Error resetting status: $e');
+    }
+    notifyListeners();
+  }
 
   Future<void> activatePartnerTier(
     bool active, {
@@ -322,11 +350,7 @@ class AudioPlayerService extends ChangeNotifier {
         ),
         iOS: AudioContextIOS(
           category: AVAudioSessionCategory.playback,
-          options: const {
-            AVAudioSessionOptions.defaultToSpeaker,
-            AVAudioSessionOptions.allowAirPlay,
-            AVAudioSessionOptions.allowBluetooth,
-          },
+          options: const {},
         ),
       ));
     } catch (e) {
@@ -1119,6 +1143,7 @@ class AudioPlayerService extends ChangeNotifier {
     _userName          = prefs.getString('user_name') ?? 'Grace Worshipper';
     _listenCount       = prefs.getInt('user_listen_count') ?? 3;
     _isCovenantPartner = prefs.getBool('is_covenant_partner') ?? false;
+    _hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
     if (_userId != null && _userId!.isNotEmpty) {
       OfflineStorageService.setDrmUserId(_userId!);
     }
@@ -1163,41 +1188,16 @@ class AudioPlayerService extends ChangeNotifier {
     final connectivityResult = await Connectivity().checkConnectivity();
     _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
 
-    // Parallel non-blocking background fetch for categories, ministers, and tracks
+    // Initial non-blocking background fetch for categories, ministers, and tracks
     if (_isOnline) {
-      Future.wait([
-        ApiService.fetchCategories(),
-        ApiService.fetchMinisters(),
-        ApiService.fetchTracks(),
-      ]).then((results) async {
-        final fetchedCats = results[0] as List;
-        final fetchedMinisters = results[1] as List<Map<String, dynamic>>;
-        final apiTracks = results[2] as List<AudioTrack>;
-
-        if (fetchedCats.isNotEmpty) {
-          _categories = List.from(fetchedCats);
-        }
-        if (fetchedMinisters.isNotEmpty) {
-          _ministers = fetchedMinisters;
-          prefs.setString('lcm_catalog_cache_ministers', json.encode(fetchedMinisters));
-        }
-        if (apiTracks.isNotEmpty) {
-          _allTracks = apiTracks;
-          final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
-          for (int i = 0; i < _allTracks.length; i++) {
-            if (downloadedIds.contains(_allTracks[i].id)) {
-              _allTracks[i] = _allTracks[i].copyWith(isDownloaded: true);
-            }
-          }
-          // Persist snapshot to disk cache for instant offline launch next time
-          final tracksJson = json.encode(apiTracks.map((t) => t.toJson()).toList());
-          prefs.setString('lcm_catalog_cache_tracks', tracksJson);
-        }
-        notifyListeners();
-      }).catchError((e) {
-        debugPrint('[AudioPlayerService] Background sync notice: $e');
-      });
+      syncCatalogSilently(force: true);
     }
+
+    // Tier 2: Smart 4-Minute Periodic Foreground Auto-Sync (SWR)
+    _catalogSyncTimer?.cancel();
+    _catalogSyncTimer = Timer.periodic(const Duration(minutes: 4), (_) {
+      syncCatalogSilently();
+    });
 
     // Load custom user playlists
     await _loadCustomPlaylists();
@@ -1232,6 +1232,71 @@ class AudioPlayerService extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // ─── Smart Stale-While-Revalidate (SWR) Catalog Sync ──────────────────────
+  Future<void> syncCatalogSilently({bool force = false}) async {
+    if (!_isOnline) return;
+
+    final now = DateTime.now();
+    if (!force && _lastCatalogSyncTime != null) {
+      // 90-second debounce to avoid spamming the backend
+      if (now.difference(_lastCatalogSyncTime!).inSeconds < 90) {
+        return;
+      }
+    }
+
+    try {
+      final results = await Future.wait([
+        ApiService.fetchCategories(),
+        ApiService.fetchMinisters(),
+        ApiService.fetchTracks(),
+      ]);
+
+      final fetchedCats = results[0] as List;
+      final fetchedMinisters = results[1] as List<Map<String, dynamic>>;
+      final apiTracks = results[2] as List<AudioTrack>;
+
+      final prefs = await SharedPreferences.getInstance();
+
+      if (fetchedCats.isNotEmpty) {
+        _categories = List.from(fetchedCats);
+      }
+
+      if (fetchedMinisters.isNotEmpty) {
+        _ministers = fetchedMinisters;
+        prefs.setString('lcm_catalog_cache_ministers', json.encode(fetchedMinisters));
+      }
+
+      if (apiTracks.isNotEmpty) {
+        final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
+        for (int i = 0; i < apiTracks.length; i++) {
+          if (downloadedIds.contains(apiTracks[i].id)) {
+            apiTracks[i] = apiTracks[i].copyWith(isDownloaded: true);
+          }
+        }
+
+        _allTracks = apiTracks;
+
+        // Keep currentTrack reference up-to-date with latest metadata
+        if (_currentTrack != null) {
+          final updatedIdx = _allTracks.indexWhere((t) => t.id == _currentTrack!.id);
+          if (updatedIdx != -1) {
+            _currentTrack = _allTracks[updatedIdx];
+          }
+        }
+
+        // Persist snapshot to disk cache for instant offline launch next time
+        final tracksJson = json.encode(apiTracks.map((t) => t.toJson()).toList());
+        prefs.setString('lcm_catalog_cache_tracks', tracksJson);
+      }
+
+      _lastCatalogSyncTime = DateTime.now();
+      debugPrint('[CatalogSync] 🔄 Silently synced catalog (${_allTracks.length} tracks).');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[CatalogSync] Background sync notice: $e');
+    }
   }
 
   // ─── Authentication Session Management ─────────────────────────────────────
@@ -1280,6 +1345,7 @@ class AudioPlayerService extends ChangeNotifier {
   void dispose() {
     _flushSessionTelemetry(); // Capture final partial session
     _telemetryTimer?.cancel();
+    _catalogSyncTimer?.cancel();
     _sleepTimer?.cancel();
     _durationSubscription?.cancel();
     _positionSubscription?.cancel();

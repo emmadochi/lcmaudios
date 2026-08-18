@@ -87,8 +87,8 @@ class MiniPlayerBar extends StatelessWidget {
                                     track.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: AppColors.text(context),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13.5,
                                     ),
@@ -127,7 +127,7 @@ class MiniPlayerBar extends StatelessWidget {
                               style: TextStyle(
                                 color: isPausedWithProgress
                                     ? AppColors.primary.withValues(alpha: 0.9)
-                                    : Colors.white60,
+                                    : AppColors.subtext(context),
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -153,9 +153,9 @@ class MiniPlayerBar extends StatelessWidget {
 
                       // Close / Dismiss Button
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close_rounded,
-                          color: Colors.white60,
+                          color: AppColors.muted(context),
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,
@@ -170,7 +170,7 @@ class MiniPlayerBar extends StatelessWidget {
                 // Hairline Divider separating player from bottom navigation tabs
                 Container(
                   height: 1,
-                  color: Colors.white.withValues(alpha: 0.07),
+                  color: AppColors.border(context),
                 ),
               ],
             ),
