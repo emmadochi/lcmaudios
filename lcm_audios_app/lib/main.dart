@@ -14,7 +14,6 @@ import 'features/home/screens/home_screen.dart';
 import 'features/explore/screens/explore_screen.dart';
 import 'features/library/screens/library_screen.dart';
 import 'features/profile/screens/profile_screen.dart';
-import 'features/premium/screens/premium_screen.dart';
 import 'features/player/widgets/mini_player_bar.dart';
 import 'features/player/screens/full_player_screen.dart';
 
@@ -30,15 +29,27 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  } catch (e) {
-    debugPrint('[Firebase] Init error: $e');
-  }
-  await NotificationService().init();
+
+  // 1. Initialize local theme immediately in 0ms
   await ThemeService().init();
+
+  // 2. Render Flutter application immediately so user sees UI instantly
   runApp(const LcmAudiosApp());
+
+  // 3. Initialize background services asynchronously with safety timeouts
+  Future.microtask(() async {
+    try {
+      await Firebase.initializeApp().timeout(const Duration(seconds: 3));
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    } catch (e) {
+      debugPrint('[Firebase] Init notice: $e');
+    }
+    try {
+      await NotificationService().init();
+    } catch (e) {
+      debugPrint('[NotificationService] Startup notice: $e');
+    }
+  });
 }
 
 class LcmAudiosApp extends StatelessWidget {
@@ -124,6 +135,12 @@ class AppEntryPoint extends StatelessWidget {
         if (playerService.isAuthenticated) {
           return const MainNavigationShell();
         }
+
+        // Zero-Lockout Offline Entry: When offline, permit direct access into Offline Sanctuary / Vault
+        if (!playerService.isOnline) {
+          return const MainNavigationShell(initialIndex: 2);
+        }
+
         return const AuthScreen();
       },
     );
@@ -131,29 +148,49 @@ class AppEntryPoint extends StatelessWidget {
 }
 
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({super.key});
+  final int initialIndex;
+  const MainNavigationShell({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell> with WidgetsBindingObserver {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final AppLinks _appLinks;
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    ExploreScreen(),
-    LibraryScreen(),
-    ProfileScreen(),
-    PremiumScreen(),
-  ];
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, 3);
+    _screens = [
+      HomeScreen(onExploreTap: () {
+        if (mounted) {
+          setState(() {
+            _currentIndex = 1;
+          });
+          Provider.of<AudioPlayerService>(context, listen: false).syncCatalogSilently();
+        }
+      }),
+      const ExploreScreen(),
+      const LibraryScreen(),
+      const ProfileScreen(),
+    ];
     WidgetsBinding.instance.addObserver(this);
     _initDeepLinkHandler();
+
+    // Smart Auto-Routing: If app starts offline with downloaded tracks and initialIndex is 0, auto-switch to Library / Downloads tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+        if (!playerService.isOnline && playerService.hasDownloadedTracks && widget.initialIndex == 0) {
+          setState(() {
+            _currentIndex = 2; // Jump to Library / Downloads
+          });
+        }
+      }
+    });
   }
 
   /// Handles incoming deep links — both cold start and while running.
@@ -260,33 +297,61 @@ class _MainNavigationShellState extends State<MainNavigationShell> with WidgetsB
   Widget build(BuildContext context) {
     final isDark = AppColors.isDarkMode(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.bg(context),
-      body: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
+    return Consumer<AudioPlayerService>(
+      builder: (context, playerService, child) {
+        if (playerService.playbackErrorMessage != null) {
+          final msg = playerService.playbackErrorMessage!;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            playerService.clearPlaybackErrorMessage();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.wifi_off_rounded, color: Colors.amberAccent, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          msg,
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFF1F162B),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          });
+        }
 
-          // Unified Integrated Player & Bottom Navigation Dock
-          Consumer<AudioPlayerService>(
-            builder: (context, playerService, child) {
-              final track = playerService.currentTrack;
-              final bool showMiniPlayer = track != null && !playerService.isMiniPlayerDismissed;
+        final track = playerService.currentTrack;
+        final bool showMiniPlayer = track != null && !playerService.isMiniPlayerDismissed;
 
-              final dockBackground = isDark
-                  ? const Color(0xFF141722).withValues(alpha: 0.98)
-                  : Colors.white.withValues(alpha: 0.96);
+        final dockBackground = isDark
+            ? const Color(0xFF141722).withValues(alpha: 0.98)
+            : Colors.white.withValues(alpha: 0.96);
 
-              final dockBorderColor = showMiniPlayer
-                  ? AppColors.primary.withValues(alpha: 0.45)
-                  : (isDark
-                      ? AppColors.glassBorder.withValues(alpha: 0.8)
-                      : AppColors.lightGlassBorder.withValues(alpha: 0.9));
+        final dockBorderColor = showMiniPlayer
+            ? AppColors.primary.withValues(alpha: 0.45)
+            : (isDark
+                ? AppColors.glassBorder.withValues(alpha: 0.8)
+                : AppColors.lightGlassBorder.withValues(alpha: 0.9));
 
-              return Container(
+        return Scaffold(
+          backgroundColor: AppColors.bg(context),
+          body: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
+
+              Container(
                 margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: dockBackground,
@@ -317,7 +382,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> with WidgetsB
                         if (showMiniPlayer)
                           const MiniPlayerBar(),
 
-                        // 5-Item Custom Bottom Navigation Bar
+                        // 4-Item Streamlined Bottom Navigation Bar
                         BottomNavigationBar(
                           currentIndex: _currentIndex,
                           backgroundColor: Colors.transparent,
@@ -355,21 +420,96 @@ class _MainNavigationShellState extends State<MainNavigationShell> with WidgetsB
                               icon: Icon(Icons.person_outline_rounded),
                               label: 'Profile',
                             ),
-                            BottomNavigationBarItem(
-                              icon: Icon(Icons.diamond_outlined),
-                              label: 'Premium',
-                            ),
                           ],
                         ),
                       ],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+              ),
+
+              // Floating Top Offline Sanctuary Indicator Pill (Active only when offline)
+              if (!playerService.isOnline)
+                Positioned(
+                top: MediaQuery.of(context).padding.top + 6,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1B1429).withValues(alpha: 0.95)
+                        : const Color(0xFFF3E8FF).withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                      width: 1.1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.cloud_off_rounded,
+                          color: Color(0xFFFFDF79),
+                          size: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Offline Sanctuary • ${playerService.downloadedTracks.length} Sermons Ready',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : const Color(0xFF1E1430),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 2; // Jump to Library / Downloads
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Downloads',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
 }

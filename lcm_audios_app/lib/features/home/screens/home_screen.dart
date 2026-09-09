@@ -9,7 +9,8 @@ import '../../../services/theme_service.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onExploreTap;
+  const HomeScreen({super.key, this.onExploreTap});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,14 +35,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showSearchDialog(BuildContext context, AudioPlayerService playerService) {
     String selectedFilter = 'All';
+    bool showFilterRow = false;
     final filterChips = ['All', 'Sermons', 'Worship', 'Warfare', 'Prayer', 'Downloaded', 'With Notes'];
     final quickSuggestions = [
-      'Apostle Joshua Selman',
+      'Pastor Martins Omonua',
       'Deep Worship',
       'Warfare & Deliverance',
-      'Morning Devotion',
       'Atmosphere of Grace',
-      'Healing',
     ];
 
     String formatDuration(Duration d) {
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Search Input Field
+                // Search Input Field with Progressive Filter Trigger
                 TextField(
                   controller: _searchController,
                   autofocus: false,
@@ -192,8 +192,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     filled: true,
                     fillColor: AppColors.cardAlt(context),
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchQuery.isNotEmpty)
+                          IconButton(
                             icon: Icon(Icons.cancel_rounded, color: AppColors.muted(context), size: 18),
                             onPressed: () {
                               _searchController.clear();
@@ -201,8 +204,42 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _searchQuery = '';
                               });
                             },
-                          )
-                        : null,
+                          ),
+                        IconButton(
+                          tooltip: showFilterRow ? 'Hide Categories' : 'Filter by Category',
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                showFilterRow ? Icons.tune_rounded : Icons.filter_list_rounded,
+                                color: (selectedFilter != 'All' || showFilterRow)
+                                    ? AppColors.primary
+                                    : AppColors.muted(context),
+                                size: 20,
+                              ),
+                              if (selectedFilter != 'All')
+                                Positioned(
+                                  right: -1,
+                                  top: -1,
+                                  child: Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          onPressed: () {
+                            setModalState(() {
+                              showFilterRow = !showFilterRow;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: AppColors.border(context)),
@@ -223,51 +260,53 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 12),
 
-                // Filter Chips Row
-                SizedBox(
-                  height: 34,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: filterChips.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final chip = filterChips[index];
-                      final isSelected = selectedFilter == chip;
-                      return ChoiceChip(
-                        label: Text(
-                          chip,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : AppColors.subtext(context),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            fontSize: 12,
+                // Progressive Disclosure: Filter Chips Row (expanded on demand or when filter active)
+                if (showFilterRow || selectedFilter != 'All') ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 34,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: filterChips.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final chip = filterChips[index];
+                        final isSelected = selectedFilter == chip;
+                        return ChoiceChip(
+                          label: Text(
+                            chip,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.subtext(context),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                        selected: isSelected,
-                        selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.cardAlt(context),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: isSelected ? AppColors.primary : AppColors.border(context),
+                          selected: isSelected,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.cardAlt(context),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: isSelected ? AppColors.primary : AppColors.border(context),
+                            ),
                           ),
-                        ),
-                        onSelected: (selected) {
-                          setModalState(() {
-                            selectedFilter = chip;
-                          });
-                        },
-                      );
-                    },
+                          onSelected: (selected) {
+                            setModalState(() {
+                              selectedFilter = chip;
+                            });
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                ],
+                const SizedBox(height: 12),
 
                 // Quick Discovery Suggestion Tags (if search query is empty)
                 if (_searchQuery.isEmpty) ...[
                   Text(
-                    'POPULAR SEARCHES & TOPICS',
+                    'POPULAR TOPICS',
                     style: TextStyle(
                       color: AppColors.muted(context),
                       fontSize: 10.5,
@@ -732,7 +771,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 14),
                   const SizedBox(height: 10),
 
-                  // ─── Continue Listening Hero Card ──────────────────────────
+                  // ─── Hero Area: Continue Listening OR Daily Devotion ───────
                   if (playerService.lastPlayedTrack != null &&
                       playerService.lastPlayedPosition.inSeconds > 10) ...[
                     Padding(
@@ -740,9 +779,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _buildContinueListeningCard(context, playerService),
                     ),
                     const SizedBox(height: 14),
+                  ] else if (playerService.allTracks.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: _buildDailyDevotionHeroCard(context, playerService),
+                    ),
+                    const SizedBox(height: 14),
                   ],
 
-                  // ─── Fast Category Filter Chips ───────────────────────────
+                  // ─── Offline Sanctuary Vault Hero (Prioritized When Offline) ─
+                  if (!playerService.isOnline || playerService.isOfflineModeOnly) ...[
+                    _buildOfflineSanctuaryHero(context, playerService),
+                    const SizedBox(height: 14),
+                  ],
+
+                  // ─── Fast Category Filter Chips (Spiritual Intent Selector) ─
                   SizedBox(
                     height: 36,
                     child: ListView(
@@ -766,106 +817,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // ─── Fresh Manna & New Releases Carousel (All Categories) ──
-                  if (playerService.selectedCategoryKey == 'all' && playerService.allTracks.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Fresh Manna & New Releases',
-                              style: TextStyle(
-                                color: AppColors.text(context),
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${playerService.allTracks.length} New',
-                              style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      height: 195,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: playerService.allTracks.length,
-                        itemBuilder: (context, index) {
-                          final track = playerService.allTracks[index];
-                          return _buildFreshMannaCard(context, track, playerService);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                  ],
-
-                  // Explore Spiritually Header
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Explore Spiritually',
-                          style: TextStyle(
-                            color: AppColors.text(context),
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Intent-Driven Spiritual Playlists',
-                          style: TextStyle(
-                            color: AppColors.subtext(context),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Horizontal Intent Playlists Cards with Dynamic Counts & Cloud Categories
-                  SizedBox(
-                    height: 210,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: intents.length,
-                      itemBuilder: (context, index) {
-                        final intent = intents[index];
-                        final trackCount = playerService.allTracks
-                            .where((t) => t.matchesCategoryKey(intent.categoryKey))
-                            .length;
-
-                        return _buildIntentCard(
-                          context,
-                          intent: intent,
-                          tracksCount: '$trackCount Tracks',
-                          playerService: playerService,
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
 
                   // Featured Media Streams Header
                   Padding(
@@ -1031,6 +982,82 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
+
+                  // ─── Discovery Bridge to Explore Tab ──────────────────────
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.card(context),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.border(context)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadow(context),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.explore_outlined, color: AppColors.primary, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Looking for more ministers & archives?',
+                                style: TextStyle(
+                                  color: AppColors.text(context),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Explore Apostle sermons, choir recordings & topic archives.',
+                                style: TextStyle(
+                                  color: AppColors.muted(context),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => widget.onExploreTap?.call(),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Explore', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_rounded, size: 14),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   const SizedBox(height: 120), // Bottom padding for floating player bar
                 ],
               ),
@@ -1041,120 +1068,133 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildIntentCard(
-    BuildContext context, {
-    required SpiritualIntent intent,
-    required String tracksCount,
-    required AudioPlayerService playerService,
-  }) {
-    final isSelected = (playerService.selectedCategoryKey == intent.categoryKey);
+  Widget _buildDailyDevotionHeroCard(BuildContext context, AudioPlayerService playerService) {
+    final track = playerService.allTracks.first;
+    final isCurrentlyActive = playerService.currentTrack?.id == track.id;
+    final isPlaying = isCurrentlyActive && playerService.isPlaying;
     final isDark = AppColors.isDarkMode(context);
 
-    return GestureDetector(
-      onTap: () {
-        if (isSelected) {
-          playerService.setCategoryFilter('all');
-        } else {
-          playerService.setCategoryFilter(intent.categoryKey);
-        }
-      },
-      child: Container(
-        width: 145,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            colors: isSelected
-                ? [AppColors.primary, const Color(0xFFB91C1C)]
-                : (isDark
-                    ? [AppColors.surface, const Color(0xFF1E2130)]
-                    : [Colors.white, const Color(0xFFF8FAFC)]),
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border(context),
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryGlow.withValues(alpha: 0.6),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : (isDark
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: AppColors.shadow(context),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [AppColors.surfaceLight, AppColors.surface]
+              : [Colors.white, const Color(0xFFF8FAFC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: intent.accentColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(intent.icon, color: intent.accentColor, size: 28),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark ? Colors.white54 : AppColors.muted(context)),
-                  ),
-                ),
-              ],
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? AppColors.primary.withValues(alpha: 0.35) : AppColors.border(context),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(context),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CachedNetworkImage(
+              imageUrl: track.albumArtUrl,
+              width: 58,
+              height: 58,
+              memCacheWidth: 180,
+              memCacheHeight: 180,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) => Container(
+                width: 58,
+                height: 58,
+                color: AppColors.cardAlt(context),
+                child: const Icon(Icons.wb_sunny_rounded, color: AppColors.primary, size: 28),
+              ),
             ),
-            Column(
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  intent.title.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.text(context),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'DAILY BREAD & DEVOTION',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  tracksCount,
+                  track.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: isSelected
-                        ? Colors.white70
-                        : (isDark ? Colors.white38 : AppColors.subtext(context)),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    color: AppColors.text(context),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${track.artist} • ${track.subgenre}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.subtext(context),
+                    fontSize: 11.5,
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () {
+              if (isCurrentlyActive) {
+                playerService.togglePlayPause();
+              } else {
+                playerService.playTrack(track);
+              }
+            },
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFFF5722)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryGlow,
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1399,111 +1439,224 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFreshMannaCard(
-    BuildContext context,
-    AudioTrack track,
-    AudioPlayerService playerService,
-  ) {
-    final isCurrent = playerService.currentTrack?.id == track.id;
-    final isPlaying = isCurrent && playerService.isPlaying;
+  Widget _buildOfflineSanctuaryHero(BuildContext context, AudioPlayerService playerService) {
+    final isDark = AppColors.isDarkMode(context);
+    final downloaded = playerService.downloadedTracks;
 
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isCurrent ? AppColors.primary.withValues(alpha: 0.6) : AppColors.border(context),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow(context),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    if (downloaded.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1430) : const Color(0xFFF5EEFD),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+            width: 1.2,
           ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () {
-          if (isCurrent) {
-            playerService.togglePlayPause();
-          } else {
-            playerService.playTrack(track);
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded, color: Color(0xFFFFDF79), size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: track.albumArtUrl,
-                      height: 100,
-                      width: double.infinity,
-                      memCacheWidth: 280,
-                      memCacheHeight: 200,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Container(
-                        height: 100,
-                        color: AppColors.cardAlt(context),
-                        child: Icon(Icons.music_note, color: AppColors.muted(context)),
-                      ),
+                  Text(
+                    'Offline Sanctuary Mode',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFFFFDF79),
                     ),
                   ),
-                  Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
+                  SizedBox(height: 2),
+                  Text(
+                    'You are offline. Connect to the internet or download sermons to listen anywhere.',
+                    style: TextStyle(fontSize: 11.5, color: Colors.white70),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                track.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isCurrent ? AppColors.primary : AppColors.text(context),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12.5,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF181326) : const Color(0xFFFAF5FF),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: const Icon(Icons.lock_rounded, color: Color(0xFFFFDF79), size: 18),
               ),
-              const SizedBox(height: 2),
-              Text(
-                track.artist,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.muted(context),
-                  fontSize: 11,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Offline Vault',
+                          style: TextStyle(
+                            color: Color(0xFFFFDF79),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${downloaded.length} READY',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 1),
+                    const Text(
+                      'AES-256 Encrypted • Instant Playback',
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 90,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: downloaded.length,
+              itemBuilder: (context, idx) {
+                final track = downloaded[idx];
+                final isCurrent = playerService.currentTrack?.id == track.id;
+                final isPlaying = isCurrent && playerService.isPlaying;
+
+                return Container(
+                  width: 240,
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? AppColors.primary.withValues(alpha: 0.25)
+                        : (isDark ? const Color(0xFF221A38) : Colors.white),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isCurrent
+                          ? AppColors.primary
+                          : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      if (isCurrent) {
+                        playerService.togglePlayPause();
+                      } else {
+                        playerService.playTrack(track);
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: CachedNetworkImage(
+                            imageUrl: track.albumArtUrl,
+                            width: 50,
+                            height: 50,
+                            memCacheWidth: 150,
+                            memCacheHeight: 150,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              width: 50,
+                              height: 50,
+                              color: const Color(0xFF2E2248),
+                              child: const Icon(Icons.music_note, color: Color(0xFFFFDF79), size: 22),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                track.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isCurrent ? const Color(0xFFFFDF79) : (isDark ? Colors.white : Colors.black87),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                track.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
+                          color: const Color(0xFFFFDF79),
+                          size: 32,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
