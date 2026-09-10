@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -129,6 +130,14 @@ class AudioPlayerService extends ChangeNotifier {
 
   bool _previewLimitReached = false;
   bool get previewLimitReached => _previewLimitReached;
+
+  String? _playbackErrorMessage;
+  String? get playbackErrorMessage => _playbackErrorMessage;
+
+  void clearPlaybackErrorMessage() {
+    _playbackErrorMessage = null;
+    notifyListeners();
+  }
 
   void resetPreviewLimit() {
     _previewLimitReached = false;
@@ -260,9 +269,16 @@ class AudioPlayerService extends ChangeNotifier {
   // ─── Offline Mode Only Filter ─────────────────────────────────────────────
   bool _isOfflineModeOnly = false;
   bool get isOfflineModeOnly => _isOfflineModeOnly;
+  bool get hasDownloadedTracks => _allTracks.any((t) => t.isDownloaded);
+  List<AudioTrack> get downloadedTracks => _allTracks.where((t) => t.isDownloaded).toList();
 
   void toggleOfflineModeOnly() {
     _isOfflineModeOnly = !_isOfflineModeOnly;
+    notifyListeners();
+  }
+
+  void setOfflineModeOnly(bool value) {
+    _isOfflineModeOnly = value;
     notifyListeners();
   }
 
@@ -641,23 +657,29 @@ class AudioPlayerService extends ChangeNotifier {
         await _audioPlayer.setPlaybackRate(_playbackSpeed);
       }
 
-      // Attempt encrypted offline playback first
-      if (track.isDownloaded) {
-        _isBuffering = true;
-        notifyListeners();
-        final decryptedBytes = await OfflineStorageService.getDecryptedAudioBytes(track.id);
+      // 1. Attempt ultra-fast local offline file streaming first
+      final localPath = await OfflineStorageService.getPlayableFilePath(track.id);
+      if (localPath != null && File(localPath).existsSync()) {
+        debugPrint('[Player] ⚡ Native DeviceFileSource local playback: $localPath');
         _isBuffering = false;
-        if (decryptedBytes != null && decryptedBytes.isNotEmpty) {
-          debugPrint('[Player] 🔐 Offline DRM playback: ${track.id} (${decryptedBytes.length} bytes)');
-          _audioHandler?.updateMediaItemFromTrack(track, track.duration);
-          await _audioPlayer.play(BytesSource(decryptedBytes));
-          _startTelemetryTimer();
-          _syncAudioHandler();
-          return;
-        }
+        _audioHandler?.updateMediaItemFromTrack(track, track.duration);
+        await _audioPlayer.play(DeviceFileSource(localPath));
+        _startTelemetryTimer();
+        _syncAudioHandler();
+        notifyListeners();
+        return;
       }
 
-      // Fallback: stream from network
+      // 2. If the track is not downloaded locally and device is OFFLINE, prevent network hang & crash
+      if (!_isOnline) {
+        _isBuffering = false;
+        _playbackErrorMessage = 'This sermon is not downloaded for offline playback. Connect to the internet or play downloaded sermons from your Sanctuary Vault.';
+        debugPrint('[Player] 📡 Offline Notice: ${track.title} is not downloaded locally.');
+        notifyListeners();
+        return;
+      }
+
+      // 3. Online streaming playback
       _isBuffering = true;
       notifyListeners();
       _audioHandler?.updateMediaItemFromTrack(track, track.duration);
@@ -666,12 +688,16 @@ class AudioPlayerService extends ChangeNotifier {
         await _audioPlayer.play(UrlSource(track.audioUrl));
       } catch (streamErr) {
         debugPrint('[Player] Primary stream failed ($streamErr). Trying fallback stream.');
-        // Fallback to sample streaming audio if the URL 404s on ephemeral storage
-        await _audioPlayer.play(UrlSource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'));
+        if (_isOnline) {
+          try {
+            await _audioPlayer.play(UrlSource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'));
+          } catch (_) {}
+        }
       }
       _isBuffering = false;
       _startTelemetryTimer();
       _syncAudioHandler();
+      notifyListeners();
     } catch (e) {
       _isBuffering = false;
       debugPrint('[Player] Error: $e');
@@ -1009,6 +1035,34 @@ class AudioPlayerService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', _userName);
     notifyListeners();
+
+    // Asynchronously sync profile name update & telemetry with streaming cloud
+    syncUserStats();
+  }
+
+  Future<void> syncUserStats() async {
+    if (_userEmail == null && _jwtToken == null) return;
+    try {
+      final totalMinutes = (_listenCount * 45);
+      final notesCount = _allTracks.fold(0, (sum, t) => sum + t.notes.length);
+      ApiService.updateProfile(
+        fullName: _userName,
+        email: _userEmail,
+        token: _jwtToken,
+        streamCount: _listenCount,
+        downloadCount: currentDownloadCount,
+        totalListeningMinutes: totalMinutes,
+        notesCount: notesCount,
+      ).then((result) {
+        if (result['success'] == true) {
+          debugPrint('[Telemetry] Synced user stats to cloud: $totalMinutes mins, $_listenCount streams');
+        }
+      }).catchError((e) {
+        debugPrint('[Telemetry] Stats sync notice: $e');
+      });
+    } catch (e) {
+      debugPrint('[Telemetry] Stats sync notice: $e');
+    }
   }
 
   // ─── Sermon Notes ─────────────────────────────────────────────────────────
@@ -1180,13 +1234,20 @@ class AudioPlayerService extends ChangeNotifier {
       debugPrint('[CatalogCache] Hydration notice: $e');
     }
 
+    // Check initial connectivity with timeout fallback
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity().timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => [ConnectivityResult.none],
+      );
+      _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      _isOnline = false;
+    }
+
     // Mark auth session & initial catalog initialized
     _isAuthInitialized = true;
     notifyListeners();
-
-    // Check initial connectivity
-    final connectivityResult = await Connectivity().checkConnectivity();
-    _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
 
     // Initial non-blocking background fetch for categories, ministers, and tracks
     if (_isOnline) {
@@ -1205,9 +1266,14 @@ class AudioPlayerService extends ChangeNotifier {
     // Sync downloaded state from local storage for initial tracks
     final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
     for (int i = 0; i < _allTracks.length; i++) {
-      if (downloadedIds.contains(_allTracks[i].id)) {
-        _allTracks[i] = _allTracks[i].copyWith(isDownloaded: true);
-      }
+      final isDown = downloadedIds.contains(_allTracks[i].id);
+      _allTracks[i] = _allTracks[i].copyWith(isDownloaded: isDown);
+    }
+
+    // Auto-enable offline mode if starting without internet connection and downloaded tracks exist
+    if (!_isOnline && hasDownloadedTracks) {
+      _isOfflineModeOnly = true;
+      debugPrint('[OfflineMode] Booting into Offline Sanctuary mode (${downloadedTracks.length} tracks available).');
     }
 
     // Restore pending track state if available
@@ -1240,8 +1306,8 @@ class AudioPlayerService extends ChangeNotifier {
 
     final now = DateTime.now();
     if (!force && _lastCatalogSyncTime != null) {
-      // 90-second debounce to avoid spamming the backend
-      if (now.difference(_lastCatalogSyncTime!).inSeconds < 90) {
+      // 10-minute debounce to avoid redundant background syncs & network chatter
+      if (now.difference(_lastCatalogSyncTime!).inMinutes < 10) {
         return;
       }
     }
@@ -1269,6 +1335,9 @@ class AudioPlayerService extends ChangeNotifier {
       }
 
       if (apiTracks.isNotEmpty) {
+        // Silently update known track IDs snapshot in persistent cache
+        await prefs.setStringList('lcm_known_track_ids', apiTracks.map((t) => t.id).toList());
+
         final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
         for (int i = 0; i < apiTracks.length; i++) {
           if (downloadedIds.contains(apiTracks[i].id)) {
@@ -1317,6 +1386,7 @@ class AudioPlayerService extends ChangeNotifier {
       await prefs.setString('auth_user_email', email);
       await prefs.setString('user_name', fullName);
       await OfflineStorageService.setDrmUserId(userId);
+      syncUserStats();
     } catch (e) {
       debugPrint('[Auth] Session save error: $e');
     }
