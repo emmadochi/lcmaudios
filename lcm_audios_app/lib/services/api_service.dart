@@ -5,13 +5,13 @@ import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
 
 class ApiService {
-  // Live Cloud Production URL deployed on Render.com
-  static const String _liveCloudUrl = 'https://lcmaudios.onrender.com/api/v1';
+  // Live Cloud Production URL on AWS (audios.lifechangerstouch.org)
+  static const String _liveCloudUrl = 'https://audios.lifechangerstouch.org/api/v1';
   static const String _localUrl = 'http://localhost:5000/api/v1';
 
   // Always use the live cloud URL if configured, enabling emulator & device to stream live tracks
   static String get baseUrl {
-    if (_liveCloudUrl.startsWith('https://')) {
+    if (_liveCloudUrl.startsWith('https://') || _liveCloudUrl.startsWith('http://')) {
       return _liveCloudUrl;
     }
     return _localUrl;
@@ -145,10 +145,48 @@ class ApiService {
           'user': data['user'],
         };
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Password reset failed.'};
+        return {'success': false, 'error': data['error'] ?? 'Failed to reset password.'};
       }
     } catch (e) {
       return {'success': false, 'error': 'Unable to connect to server. Please check your connection.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProfile({
+    required String fullName,
+    String? email,
+    String? token,
+    int? streamCount,
+    int? downloadCount,
+    int? totalListeningMinutes,
+    int? notesCount,
+  }) async {
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final response = await http.patch(
+        Uri.parse('$baseUrl/auth/profile'),
+        headers: headers,
+        body: json.encode({
+          'fullName': fullName.trim(),
+          if (email != null) 'email': email.trim().toLowerCase(),
+          if (streamCount != null) 'streamCount': streamCount,
+          if (downloadCount != null) 'downloadCount': downloadCount,
+          if (totalListeningMinutes != null) 'totalListeningMinutes': totalListeningMinutes,
+          if (notesCount != null) 'notesCount': notesCount,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'user': data['user']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to update profile'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error'};
     }
   }
 
@@ -175,7 +213,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/admin/categories'),
-      ).timeout(const Duration(seconds: 20));
+      ).timeout(const Duration(seconds: 7));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -200,7 +238,7 @@ class ApiService {
       }
 
       final response = await http.get(Uri.parse(endpoint)).timeout(
-        const Duration(seconds: 20),
+        const Duration(seconds: 7),
       );
 
       if (response.statusCode == 200) {
@@ -334,7 +372,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/ministers'),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 7));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -358,8 +396,8 @@ class ApiService {
       },
       {
         'id': 'min_2',
-        'name': 'Apostle Joshua Selman',
-        'role': 'Koinonia Eternity',
+        'name': 'Pastor Martins Omonua',
+        'role': 'Apostolic Teaching & Impartation',
         'avatar': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
         'avatarUrl': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
       },

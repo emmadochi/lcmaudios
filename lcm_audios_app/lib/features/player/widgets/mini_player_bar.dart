@@ -17,13 +17,6 @@ class MiniPlayerBar extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        double progress = 0.0;
-        if (playerService.duration.inMilliseconds > 0) {
-          progress = (playerService.position.inMilliseconds /
-                  playerService.duration.inMilliseconds)
-              .clamp(0.0, 1.0);
-        }
-
         final bool isPausedWithProgress = !playerService.isPlaying && playerService.position.inSeconds > 0;
 
         return Dismissible(
@@ -41,12 +34,21 @@ class MiniPlayerBar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Top Edge Slim Scrub Progress Bar
-                LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 2.5,
-                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                // Top Edge Slim Scrub Progress Bar (Isolated high-performance listener)
+                ValueListenableBuilder<Duration>(
+                  valueListenable: playerService.positionNotifier,
+                  builder: (context, pos, _) {
+                    double progress = 0.0;
+                    if (playerService.duration.inMilliseconds > 0) {
+                      progress = (pos.inMilliseconds / playerService.duration.inMilliseconds).clamp(0.0, 1.0);
+                    }
+                    return LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 2.5,
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    );
+                  },
                 ),
 
                 // Player Row Content

@@ -32,6 +32,8 @@ class AudioPlayerService extends ChangeNotifier {
   bool _isBuffering = false;
   bool _isOnline = true;
   Duration _position = Duration.zero;
+  final ValueNotifier<Duration> _positionNotifier = ValueNotifier<Duration>(Duration.zero);
+  ValueNotifier<Duration> get positionNotifier => _positionNotifier;
   Duration _duration = Duration.zero;
   IntentCategory _selectedIntent = IntentCategory.all;
 
@@ -422,12 +424,14 @@ class AudioPlayerService extends ChangeNotifier {
 
     _positionSubscription = _audioPlayer.onPositionChanged.listen((p) {
       _position = p;
+      _positionNotifier.value = p;
 
       // 45-Second Anointed Preview Lock for Free Tier
       if (_currentTrack != null && _currentTrack!.isPremium && !_isCovenantPartner) {
         if (_position.inSeconds >= 45) {
           _previewLimitReached = true;
           _position = const Duration(seconds: 45);
+          _positionNotifier.value = _position;
           _audioPlayer.pause();
           _syncAudioHandler();
           notifyListeners();
@@ -444,7 +448,8 @@ class AudioPlayerService extends ChangeNotifier {
         _persistCurrentPosition();
       }
       _syncAudioHandler();
-      notifyListeners();
+      // High-performance optimization: High-frequency position ticks are routed
+      // exclusively through positionNotifier to eliminate full widget-tree rebuilds.
     });
   }
 
@@ -622,6 +627,7 @@ class AudioPlayerService extends ChangeNotifier {
     _isMiniPlayerDismissed = false;
     _currentTrack = track;
     _position = Duration.zero;
+    _positionNotifier.value = Duration.zero;
     _duration = track.duration;
     _resetTelemetry();
 
@@ -647,8 +653,6 @@ class AudioPlayerService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _audioPlayer.stop();
-
       // Configure native looping for repeat-one
       await _audioPlayer.setReleaseMode(_repeatMode == RepeatMode.one ? ReleaseMode.loop : ReleaseMode.stop);
 
@@ -736,6 +740,7 @@ class AudioPlayerService extends ChangeNotifier {
         await _audioPlayer.seek(target);
         await _audioPlayer.pause();
         _position = target;
+        _positionNotifier.value = target;
         _lastTelemetryPosition = target;
         _syncAudioHandler();
         notifyListeners();
@@ -745,6 +750,8 @@ class AudioPlayerService extends ChangeNotifier {
       }
     }
     await _audioPlayer.seek(target);
+    _position = target;
+    _positionNotifier.value = target;
     _lastTelemetryPosition = target;
   }
 
@@ -1234,20 +1241,20 @@ class AudioPlayerService extends ChangeNotifier {
       debugPrint('[CatalogCache] Hydration notice: $e');
     }
 
-    // Check initial connectivity with timeout fallback
-    try {
-      final connectivityResult = await Connectivity().checkConnectivity().timeout(
-        const Duration(seconds: 1),
-        onTimeout: () => [ConnectivityResult.none],
-      );
-      _isOnline = connectivityResult.any((r) => r != ConnectivityResult.none);
-    } catch (_) {
-      _isOnline = false;
-    }
-
-    // Mark auth session & initial catalog initialized
+    // Mark auth session & initial catalog initialized immediately (<15ms)
     _isAuthInitialized = true;
     notifyListeners();
+
+    // Check initial connectivity asynchronously without blocking first frame render
+    Connectivity().checkConnectivity().then((results) {
+      _isOnline = results.any((r) => r != ConnectivityResult.none);
+      if (_isOnline) {
+        syncCatalogSilently(force: true);
+      }
+      notifyListeners();
+    }).catchError((_) {
+      _isOnline = false;
+    });
 
     // Initial non-blocking background fetch for categories, ministers, and tracks
     if (_isOnline) {
@@ -1421,6 +1428,7 @@ class AudioPlayerService extends ChangeNotifier {
     _positionSubscription?.cancel();
     _playerStateSubscription?.cancel();
     _connectivitySubscription?.cancel();
+    _positionNotifier.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }

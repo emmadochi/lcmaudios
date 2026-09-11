@@ -611,8 +611,6 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
           );
         }
 
-        final double currentSeconds = playerService.position.inSeconds.toDouble();
-
         return Scaffold(
           backgroundColor: AppColors.background,
           body: Container(
@@ -856,44 +854,55 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                         ],
                         const SizedBox(height: 12),
 
-                        // Seek Slider & Time Labels
-                        SliderTheme(
-                          data: SliderThemeData(
-                            trackHeight: 4,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                            activeTrackColor: AppColors.primary,
-                            inactiveTrackColor: AppColors.surfaceLight,
-                            thumbColor: AppColors.textPrimary,
-                          ),
-                          child: Slider(
-                            value: playerService.position.inSeconds
-                                .toDouble()
-                                .clamp(0.0, playerService.duration.inSeconds.toDouble().clamp(1.0, 999999.0)),
-                            min: 0.0,
-                            max: playerService.duration.inSeconds.toDouble() > 0
+                        // Seek Slider & Time Labels (Isolated via ValueListenableBuilder)
+                        ValueListenableBuilder<Duration>(
+                          valueListenable: playerService.positionNotifier,
+                          builder: (context, currentPos, _) {
+                            final maxSec = playerService.duration.inSeconds.toDouble() > 0
                                 ? playerService.duration.inSeconds.toDouble()
-                                : 1.0,
-                            onChanged: (val) {
-                              playerService.seekTo(Duration(seconds: val.toInt()));
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatDuration(playerService.position),
-                                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                              ),
-                              Text(
-                                _formatDuration(playerService.duration),
-                                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                              ),
-                            ],
-                          ),
+                                : 1.0;
+                            final currentSec = currentPos.inSeconds.toDouble().clamp(0.0, maxSec);
+
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 4,
+                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    activeTrackColor: AppColors.primary,
+                                    inactiveTrackColor: AppColors.surfaceLight,
+                                    thumbColor: AppColors.textPrimary,
+                                  ),
+                                  child: Slider(
+                                    value: currentSec,
+                                    min: 0.0,
+                                    max: maxSec,
+                                    onChanged: (val) {
+                                      playerService.seekTo(Duration(seconds: val.toInt()));
+                                    },
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _formatDuration(currentPos),
+                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                      ),
+                                      Text(
+                                        _formatDuration(playerService.duration),
+                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -1232,30 +1241,36 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                                     style: TextStyle(color: AppColors.textMuted),
                                   ),
                                 )
-                              : ListView.builder(
-                                  itemCount: track.lyrics.length,
-                                  itemBuilder: (ctx, i) {
-                                    final line = track.lyrics[i];
-                                    final isCurrent = (currentSeconds >= line.timestampSeconds &&
-                                        (i == track.lyrics.length - 1 || currentSeconds < track.lyrics[i + 1].timestampSeconds));
+                              : ValueListenableBuilder<Duration>(
+                                  valueListenable: playerService.positionNotifier,
+                                  builder: (context, currentPos, _) {
+                                    final currentSeconds = currentPos.inSeconds.toDouble();
+                                    return ListView.builder(
+                                      itemCount: track.lyrics.length,
+                                      itemBuilder: (ctx, i) {
+                                        final line = track.lyrics[i];
+                                        final isCurrent = (currentSeconds >= line.timestampSeconds &&
+                                            (i == track.lyrics.length - 1 || currentSeconds < track.lyrics[i + 1].timestampSeconds));
 
-                                    return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 300),
-                                      margin: const EdgeInsets.symmetric(vertical: 4),
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: isCurrent ? AppColors.primaryGlow : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        line.text,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: isCurrent ? AppColors.primary : AppColors.textSecondary,
-                                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                                          fontSize: isCurrent ? 16 : 14,
-                                        ),
-                                      ),
+                                        return AnimatedContainer(
+                                          duration: const Duration(milliseconds: 300),
+                                          margin: const EdgeInsets.symmetric(vertical: 4),
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isCurrent ? AppColors.primaryGlow : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            line.text,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: isCurrent ? AppColors.primary : AppColors.textSecondary,
+                                              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                              fontSize: isCurrent ? 16 : 14,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
