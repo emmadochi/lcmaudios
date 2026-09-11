@@ -77,6 +77,16 @@ class AudioPlayerService extends ChangeNotifier {
   DateTime? _lastCatalogSyncTime;
   Timer? _catalogSyncTimer;
 
+  // ─── Windowed Pagination (Scale to 5,000+ Tracks) ──────────────────────────
+  int _currentPage = 1;
+  int get currentPage => _currentPage;
+  bool _hasMoreTracks = true;
+  bool get hasMoreTracks => _hasMoreTracks;
+  bool _isLoadingMoreTracks = false;
+  bool get isLoadingMoreTracks => _isLoadingMoreTracks;
+  int _totalCatalogCount = 0;
+  int get totalCatalogCount => _totalCatalogCount > 0 ? _totalCatalogCount : _allTracks.length;
+
   // ─── Download progress ────────────────────────────────────────────────────
   final Map<String, double> _downloadProgress = {};
 
@@ -603,7 +613,50 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> refreshAll() async {
+    _currentPage = 1;
+    _hasMoreTracks = true;
     await _loadTracksAndStorage();
+  }
+
+  /// Progressive infinite scroll loader for 5,000+ track catalogs
+  Future<void> loadMoreTracks() async {
+    if (_isLoadingMoreTracks || !_hasMoreTracks || !_isOnline) return;
+
+    _isLoadingMoreTracks = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _currentPage + 1;
+      final result = await ApiService.fetchTracksPaginated(
+        page: nextPage,
+        limit: 50,
+        categoryKey: _selectedCategoryKey,
+      );
+
+      if (result.tracks.isNotEmpty) {
+        final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
+        final newTracks = result.tracks.map((t) {
+          return t.copyWith(isDownloaded: downloadedIds.contains(t.id));
+        }).toList();
+
+        final existingIds = _allTracks.map((t) => t.id).toSet();
+        for (final t in newTracks) {
+          if (!existingIds.contains(t.id)) {
+            _allTracks.add(t);
+          }
+        }
+        _currentPage = nextPage;
+        _hasMoreTracks = result.hasMore;
+        _totalCatalogCount = result.total;
+      } else {
+        _hasMoreTracks = false;
+      }
+    } catch (e) {
+      debugPrint('[Catalog] Error loading next page: $e');
+    } finally {
+      _isLoadingMoreTracks = false;
+      notifyListeners();
+    }
   }
 
   Future<void> resumeTrack(AudioTrack track, {Duration? startAt}) async {
@@ -1323,12 +1376,16 @@ class AudioPlayerService extends ChangeNotifier {
       final results = await Future.wait([
         ApiService.fetchCategories(),
         ApiService.fetchMinisters(),
-        ApiService.fetchTracks(),
+        ApiService.fetchTracksPaginated(page: 1, limit: 50),
       ]);
 
       final fetchedCats = results[0] as List;
       final fetchedMinisters = results[1] as List<Map<String, dynamic>>;
-      final apiTracks = results[2] as List<AudioTrack>;
+      final paginated = results[2] as PaginatedTracksResult;
+      final apiTracks = paginated.tracks;
+      _totalCatalogCount = paginated.total;
+      _hasMoreTracks = paginated.hasMore;
+      _currentPage = 1;
 
       final prefs = await SharedPreferences.getInstance();
 
@@ -1362,8 +1419,9 @@ class AudioPlayerService extends ChangeNotifier {
           }
         }
 
-        // Persist snapshot to disk cache for instant offline launch next time
-        final tracksJson = json.encode(apiTracks.map((t) => t.toJson()).toList());
+        // Persist fast top-100 snapshot to disk cache (< 75KB) for instant offline launch next time
+        final cacheTracks = _allTracks.take(100).toList();
+        final tracksJson = json.encode(cacheTracks.map((t) => t.toJson()).toList());
         prefs.setString('lcm_catalog_cache_tracks', tracksJson);
       }
 

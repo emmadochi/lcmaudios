@@ -1,6 +1,11 @@
 import { MockDatabase } from './mockDatabase';
 import { Track, User, SermonNote, CategoryItem, TelemetryEvent, IntentCategory, MediaType, Minister } from '../models/types';
 
+export function sanitizeHttpsUrl(url?: string): string {
+  if (!url) return '';
+  return url.replace(/^http:\/\/audios\.lifechangerstouch\.org/i, 'https://audios.lifechangerstouch.org');
+}
+
 class DbClient {
   private static instance: DbClient;
   private prisma: any = null;
@@ -195,6 +200,28 @@ class DbClient {
     return newUser;
   }
 
+  public async updateUserPassword(id: string, passwordHash: string): Promise<boolean> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        await this.prisma.user.update({
+          where: { id },
+          data: { passwordHash },
+        });
+        return true;
+      } catch (e) {
+        console.error('[DB Client] Prisma updateUserPassword error:', e);
+      }
+    }
+    const mock = MockDatabase.getInstance();
+    const user = mock.users.find((u: User) => u.id === id);
+    if (user) {
+      user.passwordHash = passwordHash;
+      mock.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
   public async getUsers(): Promise<User[]> {
     if (this.isPrismaConnected && this.prisma) {
       try {
@@ -217,26 +244,139 @@ class DbClient {
     return mock.users;
   }
 
-  public async updateUserPassword(userId: string, newPasswordHash: string): Promise<boolean> {
+  public async updateUserProfile(id: string, data: { 
+    fullName?: string; 
+    email?: string; 
+    intentPreferences?: IntentCategory[];
+    streamCount?: number;
+    downloadCount?: number;
+    totalListeningMinutes?: number;
+    notesCount?: number;
+  }): Promise<boolean> {
     if (this.isPrismaConnected && this.prisma) {
       try {
         await this.prisma.user.update({
-          where: { id: userId },
-          data: { passwordHash: newPasswordHash },
+          where: { id },
+          data: {
+            fullName: data.fullName,
+            intentPreferences: data.intentPreferences as any,
+          },
         });
         return true;
       } catch (e) {
-        console.error('[DB Client] Prisma updateUserPassword error:', e);
+        console.error('[DB Client] Prisma updateUserProfile error:', e);
       }
     }
     const mock = MockDatabase.getInstance();
-    const idx = mock.users.findIndex((u: User) => u.id === userId);
-    if (idx !== -1) {
-      mock.users[idx].passwordHash = newPasswordHash;
+    const user = mock.users.find((u: User) => u.id === id || (data.email && u.email.toLowerCase() === data.email.toLowerCase()));
+    if (user) {
+      if (data.fullName) {
+        user.fullName = data.fullName;
+        (user as any).name = data.fullName;
+      }
+      if (data.intentPreferences) user.intentPreferences = data.intentPreferences;
+      if (data.streamCount !== undefined) user.streamCount = data.streamCount;
+      if (data.downloadCount !== undefined) user.downloadCount = data.downloadCount;
+      if (data.totalListeningMinutes !== undefined) user.totalListeningMinutes = data.totalListeningMinutes;
+      if (data.notesCount !== undefined) user.notesCount = data.notesCount;
+      user.lastActiveAt = new Date().toISOString();
       mock.saveToFile();
       return true;
     }
     return false;
+  }
+
+  public async getUsersWithTelemetry(filter?: { tier?: string; search?: string; status?: string }): Promise<User[]> {
+    const mock = MockDatabase.getInstance();
+    let users = mock.users.map(u => {
+      const derivedName = u.fullName || (u as any).name || (u.email ? u.email.split('@')[0] : 'Devotee');
+      const userNotes = mock.notes ? mock.notes.filter(n => n.userId === u.id || (u.email && n.userId === u.email)).length : 0;
+      return {
+        ...u,
+        name: derivedName,
+        fullName: derivedName,
+        avatarUrl: u.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+        subscriptionTier: u.subscriptionTier || 'free',
+        subscriptionStatus: u.subscriptionStatus || 'active',
+        streamCount: u.streamCount !== undefined ? u.streamCount : 0,
+        downloadCount: u.downloadCount !== undefined ? u.downloadCount : 0,
+        totalListeningMinutes: u.totalListeningMinutes !== undefined ? u.totalListeningMinutes : 0,
+        notesCount: u.notesCount !== undefined ? u.notesCount : userNotes,
+        status: u.status || 'active',
+        lastActiveAt: u.lastActiveAt || u.createdAt || new Date().toISOString(),
+      };
+    });
+
+    if (filter?.tier && filter.tier !== 'all') {
+      users = users.filter(u => u.subscriptionTier === filter.tier);
+    }
+    if (filter?.status && filter.status !== 'all') {
+      users = users.filter(u => u.status === filter.status);
+    }
+    if (filter?.search) {
+      const q = filter.search.toLowerCase();
+      users = users.filter(u => (u.fullName || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.id || '').toLowerCase().includes(q));
+    }
+    return users;
+  }
+
+  public async getUserTelemetryById(id: string): Promise<any | null> {
+    const mock = MockDatabase.getInstance();
+    const user = mock.users.find(u => u.id === id);
+    if (!user) return null;
+
+    const userNotes = mock.notes.filter(n => n.userId === id);
+    return {
+      user: {
+        ...user,
+        avatarUrl: user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+        subscriptionTier: user.subscriptionTier || 'free',
+        subscriptionStatus: user.subscriptionStatus || 'active',
+        streamCount: user.streamCount ?? 28,
+        downloadCount: user.downloadCount ?? 4,
+        totalListeningMinutes: user.totalListeningMinutes ?? 140,
+        notesCount: userNotes.length || user.notesCount || 2,
+        status: user.status || 'active',
+        lastActiveAt: user.lastActiveAt || user.createdAt || new Date().toISOString(),
+      },
+      notes: userNotes,
+      recentStreams: mock.tracks.slice(0, 5).map((t, idx) => ({
+        trackId: t.id,
+        title: t.title,
+        artist: t.artist,
+        intentCategory: t.intentCategory,
+        playedAt: new Date(Date.now() - (idx + 1) * 3600000 * 6).toISOString(),
+      })),
+      offlineDownloads: mock.tracks.slice(0, user.downloadCount || 3).map((t, idx) => ({
+        trackId: t.id,
+        title: t.title,
+        artist: t.artist,
+        sizeMb: (t.duration * 0.02).toFixed(1),
+        downloadedAt: new Date(Date.now() - (idx + 1) * 86400000 * 2).toISOString(),
+      })),
+    };
+  }
+
+  public async updateUserSubscription(id: string, update: { tier: any; status?: 'active' | 'expired' | 'canceled'; expiresAt?: string | null }): Promise<User | null> {
+    const mock = MockDatabase.getInstance();
+    const idx = mock.users.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+
+    mock.users[idx].subscriptionTier = update.tier;
+    if (update.status) mock.users[idx].subscriptionStatus = update.status;
+    if (update.expiresAt !== undefined) mock.users[idx].subscriptionExpiresAt = update.expiresAt;
+    mock.saveToFile();
+    return mock.users[idx];
+  }
+
+  public async updateUserStatus(id: string, status: any): Promise<User | null> {
+    const mock = MockDatabase.getInstance();
+    const idx = mock.users.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+
+    mock.users[idx].status = status;
+    mock.saveToFile();
+    return mock.users[idx];
   }
 
   // --- TRACK OPERATIONS ---
@@ -272,8 +412,8 @@ class DbClient {
           id: t.id,
           title: t.title,
           artist: t.artist,
-          albumArtUrl: t.albumArtUrl,
-          audioUrl: t.audioUrl,
+          albumArtUrl: sanitizeHttpsUrl(t.albumArtUrl),
+          audioUrl: sanitizeHttpsUrl(t.audioUrl),
           duration: t.duration,
           subgenre: t.subgenre,
           intentCategory: t.intentCategory as string,
@@ -296,7 +436,11 @@ class DbClient {
     }
 
     const mock = MockDatabase.getInstance();
-    let result = mock.tracks;
+    let result = mock.tracks.map((t: Track) => ({
+      ...t,
+      albumArtUrl: sanitizeHttpsUrl(t.albumArtUrl),
+      audioUrl: sanitizeHttpsUrl(t.audioUrl),
+    }));
     if (filter?.intentCategory && filter.intentCategory !== 'all') {
       result = result.filter((t: Track) => t.intentCategory === filter.intentCategory);
     }
@@ -312,6 +456,100 @@ class DbClient {
     return result;
   }
 
+  public async getPaginatedTracks(filter?: {
+    intentCategory?: string;
+    mediaType?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ tracks: Track[]; total: number; page: number; totalPages: number; hasMore: boolean }> {
+    const page = Math.max(1, Number(filter?.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(filter?.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        const whereClause: any = {};
+        if (filter?.intentCategory && filter.intentCategory !== 'all') {
+          whereClause.intentCategory = filter.intentCategory;
+        }
+        if (filter?.mediaType) {
+          whereClause.mediaType = filter.mediaType;
+        }
+        if (filter?.search) {
+          whereClause.OR = [
+            { title: { contains: filter.search, mode: 'insensitive' } },
+            { artist: { contains: filter.search, mode: 'insensitive' } },
+            { subgenre: { contains: filter.search, mode: 'insensitive' } },
+          ];
+        }
+
+        const [total, tracks] = await Promise.all([
+          this.prisma.track.count({ where: whereClause }),
+          this.prisma.track.findMany({
+            where: whereClause,
+            include: { lyrics: true },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+          }),
+        ]);
+
+        const mappedTracks: Track[] = tracks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          artist: t.artist,
+          albumArtUrl: sanitizeHttpsUrl(t.albumArtUrl),
+          audioUrl: sanitizeHttpsUrl(t.audioUrl),
+          duration: t.duration,
+          subgenre: t.subgenre,
+          intentCategory: t.intentCategory as string,
+          mediaType: t.mediaType as MediaType,
+          isDownloaded: false,
+          isFavorite: false,
+          isPremium: (t as any).isPremium ?? false,
+          playCount: t.playCount || 0,
+          createdAt: t.createdAt.toISOString(),
+          lyrics: t.lyrics.map((l: any) => ({
+            id: l.id,
+            trackId: l.trackId,
+            timestampSeconds: l.timestampSeconds,
+            text: l.text,
+          })),
+        }));
+
+        const totalPages = Math.ceil(total / limit);
+        return {
+          tracks: mappedTracks,
+          total,
+          page,
+          totalPages,
+          hasMore: page < totalPages,
+        };
+      } catch (e) {
+        console.error('[DB Client] Prisma getPaginatedTracks error:', e);
+      }
+    }
+
+    // MockDatabase fallback
+    const all = await this.getTracks({
+      intentCategory: filter?.intentCategory,
+      mediaType: filter?.mediaType,
+      search: filter?.search,
+    });
+    const total = all.length;
+    const paginated = all.slice(skip, skip + limit);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      tracks: paginated,
+      total,
+      page,
+      totalPages,
+      hasMore: page < totalPages,
+    };
+  }
+
   public async getTrackById(id: string): Promise<Track | null> {
     if (this.isPrismaConnected && this.prisma) {
       try {
@@ -324,8 +562,8 @@ class DbClient {
             id: t.id,
             title: t.title,
             artist: t.artist,
-            albumArtUrl: t.albumArtUrl,
-            audioUrl: t.audioUrl,
+            albumArtUrl: sanitizeHttpsUrl(t.albumArtUrl),
+            audioUrl: sanitizeHttpsUrl(t.audioUrl),
             duration: t.duration,
             subgenre: t.subgenre,
             intentCategory: t.intentCategory as IntentCategory,
@@ -345,7 +583,15 @@ class DbClient {
       }
     }
     const mock = MockDatabase.getInstance();
-    return mock.tracks.find((t: Track) => t.id === id) || null;
+    const found = mock.tracks.find((t: Track) => t.id === id);
+    if (found) {
+      return {
+        ...found,
+        albumArtUrl: sanitizeHttpsUrl(found.albumArtUrl),
+        audioUrl: sanitizeHttpsUrl(found.audioUrl),
+      };
+    }
+    return null;
   }
 
   public async createTrack(trackData: Track): Promise<Track> {

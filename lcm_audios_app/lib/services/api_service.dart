@@ -4,6 +4,22 @@ import 'package:http/http.dart' as http;
 import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
 
+class PaginatedTracksResult {
+  final List<AudioTrack> tracks;
+  final int total;
+  final int page;
+  final int totalPages;
+  final bool hasMore;
+
+  const PaginatedTracksResult({
+    required this.tracks,
+    required this.total,
+    required this.page,
+    required this.totalPages,
+    required this.hasMore,
+  });
+}
+
 class ApiService {
   // Live Cloud Production URL on AWS (audios.lifechangerstouch.org)
   static const String _liveCloudUrl = 'https://audios.lifechangerstouch.org/api/v1';
@@ -227,6 +243,62 @@ class ApiService {
       debugPrint('[ApiService] Categories fetch error: $e');
     }
     return SpiritualIntent.defaultCategories;
+  }
+
+  // Fetch windowed page of audio tracks for progressive infinite scroll at 5,000+ scale
+  static Future<PaginatedTracksResult> fetchTracksPaginated({
+    int page = 1,
+    int limit = 50,
+    IntentCategory? intent,
+    String? categoryKey,
+    String? search,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      if (categoryKey != null && categoryKey != 'all') {
+        queryParams['intentCategory'] = categoryKey;
+      } else if (intent != null && intent != IntentCategory.all) {
+        queryParams['intentCategory'] = intent.name;
+      }
+      if (search != null && search.trim().isNotEmpty) {
+        queryParams['search'] = search.trim();
+      }
+
+      final uri = Uri.parse('$baseUrl/tracks').replace(queryParameters: queryParams);
+      final response = await http.get(uri).timeout(const Duration(seconds: 7));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data['tracks'] ?? [];
+        final tracks = list.map((json) => AudioTrack.fromJson(json)).toList();
+        final total = data['total'] is int ? data['total'] as int : tracks.length;
+        final resPage = data['page'] is int ? data['page'] as int : page;
+        final totalPages = data['totalPages'] is int ? data['totalPages'] as int : 1;
+        final hasMore = data['hasMore'] is bool ? data['hasMore'] as bool : (page < totalPages);
+
+        return PaginatedTracksResult(
+          tracks: tracks,
+          total: total,
+          page: resPage,
+          totalPages: totalPages,
+          hasMore: hasMore,
+        );
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Paginated tracks fetch error: $e');
+    }
+
+    final fallback = _getFallbackTracks();
+    return PaginatedTracksResult(
+      tracks: fallback,
+      total: fallback.length,
+      page: 1,
+      totalPages: 1,
+      hasMore: false,
+    );
   }
 
   // Fetch catalog of audio tracks with optional intent category filter
