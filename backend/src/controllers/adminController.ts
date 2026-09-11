@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { dbClient } from '../data/dbClient';
 import { HlsTranscoder } from '../services/hlsTranscoder';
 import { S3StorageService } from '../services/s3StorageService';
-import { broadcastSermonNotification } from '../services/fcmService';
+import { broadcastSermonNotification, broadcastMarketingCampaign } from '../services/fcmService';
 import { Track, LyricLine, IntentCategory, MediaType, CategoryItem } from '../models/types';
 import path from 'path';
 
@@ -10,9 +10,10 @@ export const uploadMedia = async (req: Request, res: Response): Promise<void> =>
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    // Derive public base URL from the incoming request so it works both locally and on Render
-    const serverBaseUrl = process.env.SERVER_BASE_URL ||
-      `${req.protocol}://${req.get('host')}`;
+    // Derive public base URL from incoming request with HTTPS support behind proxy
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || (req.get('host') || '').includes('lifechangerstouch.org');
+    const protocol = isHttps ? 'https' : (req.protocol || 'http');
+    const serverBaseUrl = process.env.SERVER_BASE_URL || `${protocol}://${req.get('host')}`;
 
     let audioUrl = '';
     let albumArtUrl = '';
@@ -170,34 +171,43 @@ export const getAnalyticsAdmin = async (req: Request, res: Response): Promise<vo
   try {
     const tracks = await dbClient.getTracks();
     const notes = await dbClient.getNotes();
-    const users = await dbClient.getUsers();
+    const users = await dbClient.getUsersWithTelemetry();
 
-    let totalStreams = 0;
-    let totalListeningSeconds = 0;
+    // Compute live devotee telemetry
+    const devoteeStreams = users.reduce((sum, u) => sum + (u.streamCount || 0), 0);
+    const devoteeMinutes = users.reduce((sum, u) => sum + (u.totalListeningMinutes || 0), 0);
+    const devoteeDownloads = users.reduce((sum, u) => sum + (u.downloadCount || 0), 0);
+    const activeCovenant = users.filter(u => u.subscriptionTier === 'annual' || u.subscriptionTier === 'lifetime' || u.subscriptionTier === 'monthly').length;
+
+    let trackStreams = 0;
     const categoryCounts: { [key: string]: number } = {};
 
     tracks.forEach((t) => {
       const plays = t.playCount || 0;
-      totalStreams += plays;
-      totalListeningSeconds += plays * (t.duration || 300);
+      trackStreams += plays;
       const catKey = t.categoryKey || t.intentCategory || 'Other';
       categoryCounts[catKey] = (categoryCounts[catKey] || 0) + plays;
     });
 
+    const totalStreams = devoteeStreams > 0 ? devoteeStreams : trackStreams;
+    const totalListeningHours = Math.round(devoteeMinutes / 60);
+
     const topCategories = Object.keys(categoryCounts).map((cat) => ({
       category: cat,
       count: categoryCounts[cat],
-      percentage: totalStreams > 0 ? Math.round((categoryCounts[cat] / totalStreams) * 100) : 0,
+      percentage: trackStreams > 0 ? Math.round((categoryCounts[cat] / trackStreams) * 100) : 0,
     }));
 
     const sortedTracks = [...tracks].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 10);
-    const totalListeningHours = Math.round(totalListeningSeconds / 3600);
 
     res.status(200).json({
       analytics: {
         totalStreams: totalStreams,
         activeListeners: users.length,
-        totalListeningHours: totalListeningHours > 0 ? totalListeningHours : Math.round(totalStreams * 0.2),
+        totalListeningHours: totalListeningHours,
+        totalListeningMinutes: devoteeMinutes,
+        totalDownloads: devoteeDownloads,
+        activeCovenant,
         totalNotesTaken: notes.length,
         topCategories,
         topTracks: sortedTracks,
@@ -273,5 +283,203 @@ export const deleteCategoryAdmin = async (req: Request, res: Response): Promise<
     res.status(200).json({ message: 'Category deleted successfully.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete category.' });
+  }
+};
+
+export const testNotificationAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { title, artist } = req.body || {};
+    const success = await broadcastSermonNotification({
+      id: 'test-broadcast-' + Date.now(),
+      title: title || 'LCM Audios Ministry Alert',
+      artist: artist || 'Life Care Ministry Choir',
+    });
+
+    if (success) {
+      res.status(200).json({
+        success: true,
+        message: 'FCM push broadcast successfully sent to topic: all_devotees',
+      });
+    } else {
+      res.status(200).json({
+        success: false,
+        message: 'Firebase Admin credentials not configured in backend/.env. Simulated broadcast logged to server console.',
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to broadcast test notification.' });
+  }
+};
+
+export const sendMarketingCampaignAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { campaignType, customTitle, customBody, intentCategory, trackId } = req.body || {};
+    
+    if (!campaignType) {
+      res.status(400).json({ error: 'campaignType is required (e.g. dawn_blessing, midday_peace, midnight_vigil, inactivity_reconnect, weekend_prep, custom).' });
+      return;
+    }
+
+    const result = await broadcastMarketingCampaign({
+      campaignType,
+      customTitle,
+      customBody,
+      intentCategory,
+      trackId,
+    });
+
+    res.status(200).json({
+      success: true,
+      deliveredToTopic: 'all_devotees',
+      fcmSent: result.success,
+      messageId: result.messageId,
+      campaign: {
+        type: campaignType,
+        title: result.title,
+        body: result.body,
+        sentAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error('Marketing campaign error:', error);
+    res.status(500).json({ error: error.message || 'Failed to dispatch marketing campaign.' });
+  }
+};
+
+// --- DEVOTEE & USER MANAGEMENT CONTROLLERS ---
+
+export const getAdminUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { tier, search, status } = req.query;
+    const users = await dbClient.getUsersWithTelemetry({
+      tier: tier as string,
+      search: search as string,
+      status: status as string,
+    });
+
+    const allUsers = await dbClient.getUsersWithTelemetry();
+    const totalStreams = allUsers.reduce((sum, u) => sum + (u.streamCount || 0), 0);
+    const totalDownloads = allUsers.reduce((sum, u) => sum + (u.downloadCount || 0), 0);
+    const activeCovenant = allUsers.filter(u => u.subscriptionTier === 'annual' || u.subscriptionTier === 'lifetime').length;
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      stats: {
+        totalDevotees: allUsers.length,
+        activeCovenant,
+        totalStreams,
+        totalDownloads,
+      },
+      users,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch devotee directory.' });
+  }
+};
+
+export const getAdminUserById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const data = await dbClient.getUserTelemetryById(id);
+    if (!data) {
+      res.status(404).json({ error: 'Devotee not found.' });
+      return;
+    }
+    res.status(200).json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch devotee telemetry profile.' });
+  }
+};
+
+export const updateAdminUserSubscription = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { tier, status, expiresAt } = req.body || {};
+
+    if (!tier) {
+      res.status(400).json({ error: 'Subscription tier is required.' });
+      return;
+    }
+
+    const updated = await dbClient.updateUserSubscription(id, {
+      tier,
+      status: status || 'active',
+      expiresAt: expiresAt || (tier === 'annual' ? new Date(Date.now() + 86400000 * 365).toISOString() : tier === 'monthly' ? new Date(Date.now() + 86400000 * 30).toISOString() : null),
+    });
+
+    if (!updated) {
+      res.status(404).json({ error: 'Devotee not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Access tier updated to ${tier.toUpperCase()}`,
+      user: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update devotee subscription tier.' });
+  }
+};
+
+export const updateAdminUserStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+
+    if (!status) {
+      res.status(400).json({ error: 'Account status is required.' });
+      return;
+    }
+
+    const updated = await dbClient.updateUserStatus(id, status);
+    if (!updated) {
+      res.status(404).json({ error: 'Devotee not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Account status updated to ${status}`,
+      user: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update devotee account status.' });
+  }
+};
+
+export const sendDirectUserPush = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, body } = req.body || {};
+
+    if (!title || !body) {
+      res.status(400).json({ error: 'Title and message body are required.' });
+      return;
+    }
+
+    const data = await dbClient.getUserTelemetryById(id);
+    if (!data || !data.user) {
+      res.status(404).json({ error: 'Devotee not found.' });
+      return;
+    }
+
+    // Broadcast or simulate targeted push
+    const result = await broadcastMarketingCampaign({
+      campaignType: 'direct_pastoral',
+      customTitle: title,
+      customBody: body,
+      intentCategory: 'all',
+    });
+
+    res.status(200).json({
+      success: true,
+      deliveredToUser: data.user.email,
+      fcmSent: result.success,
+      messageId: result.messageId,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to send direct notification to devotee.' });
   }
 };

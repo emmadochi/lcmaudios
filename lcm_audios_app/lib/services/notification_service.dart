@@ -48,37 +48,29 @@ class NotificationService {
         },
       );
 
-      // Request notification permissions for Android 13+ (API 33+)
+      // Request notification permissions for Android 13+ (API 33+) & Create Channel
       final androidImpl = _notificationsPlugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidImpl != null) {
+        await androidImpl.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'lcm_broadcasts_channel',
+            'LCM Broadcast Alerts',
+            description: 'Announcements, new sermon releases, and live prayer alarms',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+        );
         await androidImpl.requestNotificationsPermission();
       }
 
-      // Initialize Firebase Cloud Messaging & Topic Subscription
-      try {
-        final fcm = FirebaseMessaging.instance;
-        await fcm.requestPermission(alert: true, badge: true, sound: true);
-        await fcm.subscribeToTopic('all_devotees');
-        debugPrint('[FCM] Subscribed to all_devotees broadcast topic.');
-
-        // Listen for foreground push notifications
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          debugPrint('[FCM] Foreground message received: ${message.notification?.title}');
-          final notif = message.notification;
-          if (notif != null) {
-            showInstantNotification(
-              title: notif.title ?? 'LCM Audios Faith Broadcast',
-              body: notif.body ?? 'New message received from Life Care Ministry.',
-              payload: message.data['trackId'],
-            );
-          }
-        });
-      } catch (fcmErr) {
-        debugPrint('[FCM] Setup notice: $fcmErr');
-      }
+      // Initialize Firebase Cloud Messaging asynchronously so offline startup is immediate
+      _initFcmAsync();
 
       _isInitialized = true;
+      // Prime digital marketing retention & win-back engagement triggers
+      await refreshEngagementTriggers();
     } catch (e) {
       debugPrint('[NotificationService] Init error: $e');
     }
@@ -120,6 +112,68 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint('[NotificationService] showInstantNotification error: $e');
+    }
+  }
+
+  /// Initialize Firebase Cloud Messaging asynchronously with safety timeouts so offline startup is never blocked
+  Future<void> _initFcmAsync() async {
+    try {
+      final fcm = FirebaseMessaging.instance;
+      try {
+        await fcm.requestPermission(
+          alert: true,
+          announcement: true,
+          badge: true,
+          carPlay: false,
+          criticalAlert: false,
+          provisional: false,
+          sound: true,
+        ).timeout(const Duration(seconds: 2));
+      } catch (_) {
+        // Notification permission request skipped or timed out
+      }
+
+      // Get FCM token with timeout
+      fcm.getToken().timeout(const Duration(seconds: 3)).then((token) {
+        if (token != null) debugPrint('[FCM] Device Registration Token: $token');
+      }).catchError((err) {
+        debugPrint('[FCM] Token fetch notice (offline/skipped): $err');
+      });
+
+      // Subscribe to broadcast topic with timeout
+      fcm.subscribeToTopic('all_devotees').timeout(const Duration(seconds: 3)).then((_) {
+        debugPrint('[FCM] Subscribed to all_devotees broadcast topic.');
+      }).catchError((err) {
+        debugPrint('[FCM] Topic subscription notice (offline/skipped): $err');
+      });
+
+      // Listen for foreground push notifications
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('[FCM] Foreground message received: ${message.notification?.title ?? message.data['title']}');
+        final title = message.notification?.title ?? message.data['title'] ?? 'New Faith Release';
+        final body = message.notification?.body ?? message.data['body'] ?? 'A new sermon has just been published on LCM Audios.';
+        final trackId = message.data['trackId'];
+
+        showInstantNotification(
+          title: title,
+          body: body,
+          payload: trackId,
+        );
+      });
+
+      // Listen for notification taps when app is in background
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('[FCM] Notification tapped in background: ${message.data}');
+      });
+
+      // Check if app was opened directly from a terminated state notification
+      fcm.getInitialMessage().timeout(const Duration(seconds: 2)).then((initialMsg) {
+        if (initialMsg != null) {
+          debugPrint('[FCM] App opened from cold terminated state with notification: ${initialMsg.data}');
+        }
+      }).catchError((_) {});
+    } catch (fcmErr) {
+      debugPrint('[FCM] Setup notice: $fcmErr');
     }
   }
 
@@ -309,5 +363,70 @@ class NotificationService {
         duration: const Duration(seconds: 5),
       ),
     );
+  }
+
+  /// Prime Digital Marketing Engagement & Inactivity Win-Back Triggers (3d, 7d, 14d)
+  /// Automatically resets whenever user interacts with the app.
+  Future<void> refreshEngagementTriggers() async {
+    try {
+      const AndroidNotificationDetails winBackDetails = AndroidNotificationDetails(
+        'lcm_winback_channel',
+        'Spiritual Care & Reconnection',
+        channelDescription: 'Gentle spiritual prompts and prayer anchors when you have been away',
+        importance: Importance.high,
+        priority: Priority.high,
+        color: Color(0xFFE63946),
+        playSound: true,
+        enableVibration: true,
+      );
+
+      const NotificationDetails platformDetails = NotificationDetails(android: winBackDetails);
+      final now = tz.TZDateTime.now(tz.local);
+
+      // Cancel prior win-back alarms
+      await _notificationsPlugin.cancel(2003);
+      await _notificationsPlugin.cancel(2007);
+      await _notificationsPlugin.cancel(2014);
+
+      // 1. Schedule 3-Day Inactivity Reminder (Gentle Stillness)
+      final threeDaysLater = now.add(const Duration(days: 3));
+      await _notificationsPlugin.zonedSchedule(
+        2003,
+        '🕊️ A moment of stillness awaits you...',
+        'Take 3 minutes today to rest in God\'s presence. Renew your strength with a short worship session.',
+        threeDaysLater,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      // 2. Schedule 7-Day Inactivity Reminder (Spiritual Care)
+      final sevenDaysLater = now.add(const Duration(days: 7));
+      await _notificationsPlugin.zonedSchedule(
+        2007,
+        '✨ We\'re holding you in prayer today',
+        'Life gets busy, but your spiritual peace matters. Tap to play today\'s Word of breakthrough.',
+        sevenDaysLater,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      // 3. Schedule 14-Day Inactivity Reminder (Loving Return to Secret Place)
+      final fourteenDaysLater = now.add(const Duration(days: 14));
+      await _notificationsPlugin.zonedSchedule(
+        2014,
+        '🌿 Come back to the secret place',
+        'Your altar is always open. Listen to Pastor Martins Omonua\'s latest prayer anchor.',
+        fourteenDaysLater,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('[NotificationService] 🎯 Digital Marketing Inactivity triggers primed (3d, 7d, 14d).');
+    } catch (e) {
+      debugPrint('[NotificationService] Inactivity trigger scheduling notice: $e');
+    }
   }
 }

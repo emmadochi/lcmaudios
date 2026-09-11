@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
 import '../core/models/custom_playlist.dart';
+import '../core/models/sermon_series.dart';
 import 'api_service.dart';
 import 'mock_data_service.dart';
 import 'offline_storage_service.dart';
@@ -39,6 +40,10 @@ class AudioPlayerService extends ChangeNotifier {
 
   List<SpiritualIntent> _categories = List.from(SpiritualIntent.defaultCategories);
   String _selectedCategoryKey = 'all';
+
+  // ─── Sermon Series Albums (Scale to 50,000 Audios) ────────────────────────
+  final List<SermonSeries> _allSeries = List.from(MockDataService.sampleSeries);
+  List<SermonSeries> get allSeries => _allSeries;
 
   // ─── Custom Playlists & Active Queue State ────────────────────────────────
   List<CustomPlaylist> _customPlaylists = [];

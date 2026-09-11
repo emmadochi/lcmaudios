@@ -86,6 +86,13 @@ class AudioTrack {
   final bool isPremium;
   final List<LyricLine> lyrics;
   final List<SermonNote> notes;
+  final String? seriesId;
+  final String? seriesTitle;
+  final int? seriesPart;
+  final String? scriptureReference;
+  final String? scriptureBook;
+  final int? scriptureChapter;
+  final String? ministerId;
 
   AudioTrack({
     required this.id,
@@ -103,6 +110,13 @@ class AudioTrack {
     this.isPremium = false,
     this.lyrics = const [],
     this.notes = const [],
+    this.seriesId,
+    this.seriesTitle,
+    this.seriesPart,
+    this.scriptureReference,
+    this.scriptureBook,
+    this.scriptureChapter,
+    this.ministerId,
   });
 
   String get formattedDuration {
@@ -161,6 +175,13 @@ class AudioTrack {
           json['is_premium'] == 1,
       lyrics: (json['lyrics'] as List?)?.map((e) => LyricLine.fromJson(e)).toList() ?? [],
       notes: (json['notes'] as List?)?.map((e) => SermonNote.fromJson(e)).toList() ?? [],
+      seriesId: json['seriesId'] as String? ?? json['series_id'] as String?,
+      seriesTitle: json['seriesTitle'] as String? ?? json['series_title'] as String?,
+      seriesPart: (json['seriesPart'] as num?)?.toInt() ?? (json['series_part'] as num?)?.toInt(),
+      scriptureReference: json['scriptureReference'] as String? ?? json['scripture_reference'] as String?,
+      scriptureBook: json['scriptureBook'] as String? ?? json['scripture_book'] as String?,
+      scriptureChapter: (json['scriptureChapter'] as num?)?.toInt() ?? (json['scripture_chapter'] as num?)?.toInt(),
+      ministerId: json['ministerId'] as String? ?? json['minister_id'] as String?,
     );
   }
 
@@ -169,6 +190,13 @@ class AudioTrack {
     bool? isFavorite,
     bool? isPremium,
     List<SermonNote>? notes,
+    String? seriesId,
+    String? seriesTitle,
+    int? seriesPart,
+    String? scriptureReference,
+    String? scriptureBook,
+    int? scriptureChapter,
+    String? ministerId,
   }) {
     return AudioTrack(
       id: id,
@@ -186,6 +214,13 @@ class AudioTrack {
       isPremium: isPremium ?? this.isPremium,
       lyrics: lyrics,
       notes: notes ?? this.notes,
+      seriesId: seriesId ?? this.seriesId,
+      seriesTitle: seriesTitle ?? this.seriesTitle,
+      seriesPart: seriesPart ?? this.seriesPart,
+      scriptureReference: scriptureReference ?? this.scriptureReference,
+      scriptureBook: scriptureBook ?? this.scriptureBook,
+      scriptureChapter: scriptureChapter ?? this.scriptureChapter,
+      ministerId: ministerId ?? this.ministerId,
     );
   }
 
@@ -206,6 +241,13 @@ class AudioTrack {
       'isPremium': isPremium,
       'lyrics': lyrics.map((l) => l.toJson()).toList(),
       'notes': notes.map((n) => n.toJson()).toList(),
+      if (seriesId != null) 'seriesId': seriesId,
+      if (seriesTitle != null) 'seriesTitle': seriesTitle,
+      if (seriesPart != null) 'seriesPart': seriesPart,
+      if (scriptureReference != null) 'scriptureReference': scriptureReference,
+      if (scriptureBook != null) 'scriptureBook': scriptureBook,
+      if (scriptureChapter != null) 'scriptureChapter': scriptureChapter,
+      if (ministerId != null) 'ministerId': ministerId,
     };
   }
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, googleAuth, forgotPassword, resetPassword } from '../controllers/authController';
+import { register, login, getMe, googleAuth, forgotPassword, resetPassword, updateProfile, adminLogin, verifyAdminSession } from '../controllers/authController';
 import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
 import { getNotes, createNote } from '../controllers/noteController';
 import { logTelemetry } from '../controllers/telemetryController';
@@ -19,18 +19,43 @@ import {
   createCategoryAdmin,
   updateCategoryAdmin,
   deleteCategoryAdmin,
+  testNotificationAdmin,
+  sendMarketingCampaignAdmin,
+  getAdminUsers,
+  getAdminUserById,
+  updateAdminUserSubscription,
+  updateAdminUserStatus,
+  sendDirectUserPush,
 } from '../controllers/adminController';
 import { uploadMediaMiddleware } from '../middleware/upload';
 
 const apiRouter = Router();
 
-// Auth Routes
+// Devotee & User Management Routes (Admin)
+apiRouter.get('/admin/users', getAdminUsers);
+apiRouter.get('/admin/users/:id', getAdminUserById);
+apiRouter.patch('/admin/users/:id/subscription', updateAdminUserSubscription);
+apiRouter.patch('/admin/users/:id/status', updateAdminUserStatus);
+apiRouter.post('/admin/users/:id/push', sendDirectUserPush);
+
+// Admin Authentication & Session Verification Routes
+apiRouter.post('/auth/admin/login', adminLogin);
+apiRouter.get('/auth/admin/verify', verifyAdminSession);
+
+// Push Notifications & Growth Marketing Routes
+apiRouter.post('/admin/notifications/test', testNotificationAdmin);
+apiRouter.get('/admin/notifications/test', testNotificationAdmin);
+apiRouter.post('/admin/marketing/broadcast', sendMarketingCampaignAdmin);
+
+// Auth Routes (User Mobile App)
 apiRouter.post('/auth/register', register);
 apiRouter.post('/auth/login', login);
 apiRouter.post('/auth/google', googleAuth);
 apiRouter.post('/auth/forgot-password', forgotPassword);
 apiRouter.post('/auth/reset-password', resetPassword);
 apiRouter.get('/auth/me', getMe);
+apiRouter.patch('/auth/profile', updateProfile);
+apiRouter.post('/auth/profile', updateProfile);
 
 // Paystack Covenant Partner Payments
 apiRouter.post('/payments/initialize', initializePayment);

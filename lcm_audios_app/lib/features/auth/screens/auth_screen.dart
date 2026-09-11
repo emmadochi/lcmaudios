@@ -493,6 +493,15 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _handleOfflineAccess() {
+    final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+    playerService.setOfflineModeOnly(true);
+    playerService.setUserName('Grace Worshipper');
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainNavigationShell(initialIndex: 2)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -709,7 +718,38 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  // Direct Offline Vault Access Button (Always accessible without internet or login)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 16),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFFDF79),
+                        side: BorderSide(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.7),
+                          width: 1.3,
+                        ),
+                        backgroundColor: const Color(0xFF1E1430).withValues(alpha: 0.85),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        elevation: 4,
+                      ),
+                      icon: const Icon(Icons.download_for_offline_rounded, size: 22, color: Color(0xFFFFDF79)),
+                      label: Consumer<AudioPlayerService>(
+                        builder: (context, ps, _) {
+                          final count = ps.downloadedTracks.length;
+                          return Text(
+                            count > 0
+                                ? '🎧 Access Offline Vault ($count Sermons)'
+                                : '🎧 Access Offline Downloads',
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                          );
+                        },
+                      ),
+                      onPressed: _handleOfflineAccess,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   // Guest Entry Link
                   TextButton(

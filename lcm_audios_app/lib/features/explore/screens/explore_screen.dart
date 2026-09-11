@@ -6,6 +6,9 @@ import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
 import 'intent_playlist_screen.dart';
+import 'sermon_series_detail_screen.dart';
+import 'minister_profile_screen.dart';
+import 'scripture_chapter_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -35,8 +38,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
     },
     {
-      'name': 'Apostle Joshua Selman',
-      'role': 'Koinonia Eternity',
+      'name': 'Pastor Martins Omonua',
+      'role': 'Apostolic Teaching & Impartation',
       'avatar': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
     },
     {
@@ -498,10 +501,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
                                       return GestureDetector(
                                         onTap: () {
-                                          _searchController.text = name;
-                                          setState(() {
-                                            _searchQuery = name;
-                                          });
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => MinisterProfileScreen(minister: m),
+                                            ),
+                                          );
                                         },
                                         child: Column(
                                           children: [
@@ -735,42 +740,169 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             const SizedBox(height: 10),
                             SizedBox(
                               height: 120,
+                              child: Builder(
+                                builder: (context) {
+                                  final seriesList = playerService.allSeries;
+                                  final colors = [
+                                    const Color(0xFF6366F1),
+                                    const Color(0xFFEC4899),
+                                    const Color(0xFFF59E0B),
+                                    const Color(0xFF10B981),
+                                    const Color(0xFF8B5CF6),
+                                  ];
+
+                                  return ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: seriesList.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                    itemBuilder: (context, idx) {
+                                      final s = seriesList[idx];
+                                      final accent = colors[idx % colors.length];
+
+                                      return _buildSeriesCard(
+                                        context: context,
+                                        title: s.title,
+                                        minister: s.ministerName,
+                                        partsCount: '${s.partsCount} Parts',
+                                        accentColor: accent,
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => SermonSeriesDetailScreen(series: s),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 4. 📖 Scripture Library & Chapter Expositions
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '📖 Scripture Library & Commentaries',
+                              style: TextStyle(
+                                color: AppColors.text(context),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Listen to audio messages mapped directly to God\'s Word',
+                              style: TextStyle(color: AppColors.muted(context), fontSize: 12),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 110,
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
-                                  _buildSeriesCard(
+                                  _buildScriptureCard(
                                     context: context,
-                                    title: 'Critical Mind Series',
-                                    minister: 'Pastor Martins Omonua',
-                                    partsCount: '3 Parts',
-                                    accentColor: const Color(0xFF6366F1),
+                                    book: 'Romans',
+                                    chapter: 8,
+                                    theme: 'Life in the Spirit',
+                                    accentColor: const Color(0xFF10B981),
                                     onTap: () {
-                                      _searchController.text = 'Critical Mind';
-                                      setState(() => _searchQuery = 'Critical Mind');
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'Romans', chapter: 8),
+                                        ),
+                                      );
                                     },
                                   ),
                                   const SizedBox(width: 12),
-                                  _buildSeriesCard(
+                                  _buildScriptureCard(
                                     context: context,
-                                    title: 'Divine Direction & Wisdom',
-                                    minister: 'Pastor Martins Omonua',
-                                    partsCount: '4 Parts',
-                                    accentColor: const Color(0xFFEC4899),
+                                    book: 'Psalms',
+                                    chapter: 91,
+                                    theme: 'The Secret Place',
+                                    accentColor: const Color(0xFF3B82F6),
                                     onTap: () {
-                                      _searchController.text = 'Divine Direction';
-                                      setState(() => _searchQuery = 'Divine Direction');
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'Psalms', chapter: 91),
+                                        ),
+                                      );
                                     },
                                   ),
                                   const SizedBox(width: 12),
-                                  _buildSeriesCard(
+                                  _buildScriptureCard(
                                     context: context,
-                                    title: 'Atmosphere of Glory & Deep Worship',
-                                    minister: 'LCM Worship Sanctuary',
-                                    partsCount: '6 Chants',
+                                    book: 'John',
+                                    chapter: 14,
+                                    theme: 'Peace & Holy Spirit',
                                     accentColor: const Color(0xFFF59E0B),
                                     onTap: () {
-                                      _searchController.text = 'Worship';
-                                      setState(() => _searchQuery = 'Worship');
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'John', chapter: 14),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildScriptureCard(
+                                    context: context,
+                                    book: 'Ephesians',
+                                    chapter: 6,
+                                    theme: 'Whole Armor of God',
+                                    accentColor: const Color(0xFF8B5CF6),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'Ephesians', chapter: 6),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildScriptureCard(
+                                    context: context,
+                                    book: 'Hebrews',
+                                    chapter: 11,
+                                    theme: 'The Hall of Faith',
+                                    accentColor: const Color(0xFFEC4899),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'Hebrews', chapter: 11),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildScriptureCard(
+                                    context: context,
+                                    book: 'Isaiah',
+                                    chapter: 40,
+                                    theme: 'Mount Up With Wings',
+                                    accentColor: const Color(0xFF14B8A6),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ScriptureChapterScreen(book: 'Isaiah', chapter: 40),
+                                        ),
+                                      );
                                     },
                                   ),
                                 ],
@@ -992,6 +1124,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 Text(
                   minister,
                   style: TextStyle(color: AppColors.subtext(context), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScriptureCard({
+    required BuildContext context,
+    required String book,
+    required int chapter,
+    required String theme,
+    required Color accentColor,
+    required VoidCallback onTap,
+  }) {
+    final isDark = AppColors.isDarkMode(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 175,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.card(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accentColor.withValues(alpha: isDark ? 0.4 : 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow(context),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          gradient: LinearGradient(
+            colors: [
+              accentColor.withValues(alpha: isDark ? 0.20 : 0.12),
+              AppColors.card(context),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: isDark ? 0.3 : 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu_book_rounded, color: accentColor, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'EXPOSITION',
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_rounded, color: AppColors.muted(context), size: 14),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$book $chapter',
+                  style: TextStyle(
+                    color: AppColors.text(context),
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  theme,
+                  style: TextStyle(
+                    color: AppColors.subtext(context),
+                    fontSize: 11,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

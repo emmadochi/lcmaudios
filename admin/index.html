@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LCM Audios — Content Ingestion & Admin Dashboard</title>
+  <link rel="icon" type="image/png" href="logo2White.png">
+  <link rel="shortcut icon" type="image/png" href="logo2White.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -38,77 +40,430 @@
       flex-direction: column;
     }
 
-    /* Header */
+    /* Header & Navigation */
     header {
-      background: rgba(22, 25, 38, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 32px;
+      background: rgba(14, 17, 26, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
+      gap: 16px;
+      transition: all 0.2s ease;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .brand-admin-tag {
+      font-size: 11px;
       font-weight: 800;
-      letter-spacing: 1px;
+      color: #FF758C;
+      background: rgba(230, 57, 70, 0.12);
+      border: 1px solid rgba(230, 57, 70, 0.3);
+      padding: 4px 9px;
+      border-radius: 8px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      box-shadow: 0 0 12px rgba(230, 57, 70, 0.15);
     }
 
-    .brand-icon {
-      background: var(--primary);
-      color: white;
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+    /* Desktop Navigation Tabs */
+    .nav-tabs-desktop {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 0 16px var(--primary-glow);
-    }
-
-    .brand span {
-      color: var(--primary);
-    }
-
-    .nav-tabs {
-      display: flex;
-      gap: 6px;
-      background: var(--surface-light);
-      padding: 4px;
+      gap: 3px;
+      background: rgba(22, 26, 39, 0.85);
+      padding: 3px 5px;
       border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      align-items: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .nav-tabs-desktop::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-btn {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 8px 16px;
+      padding: 6px 11px;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .tab-btn.active {
-      background: var(--primary);
+      background: linear-gradient(135deg, #E63946, #D90429);
+      color: #ffffff;
+      box-shadow: 0 3px 12px rgba(230, 57, 70, 0.4);
+      font-weight: 700;
+    }
+
+    /* Admin Profile Popover Dropdown */
+    .admin-profile-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .admin-profile-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 10px 4px 5px;
+      border-radius: 20px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .admin-profile-pill:hover, .admin-profile-pill.active {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(230, 57, 70, 0.5);
+      box-shadow: 0 0 12px rgba(230, 57, 70, 0.2);
+    }
+
+    .admin-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #E63946, #D90429);
       color: white;
-      box-shadow: 0 2px 10px var(--primary-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(230, 57, 70, 0.4);
+    }
+
+    .admin-pill-name {
+      max-width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .admin-pill-arrow {
+      font-size: 10px;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    .admin-profile-pill.active .admin-pill-arrow {
+      transform: rotate(180deg);
+    }
+
+    .admin-popover-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 250px;
+      background: #141724;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(230, 57, 70, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 1005;
+      display: none;
+      animation: popoverSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes popoverSlideIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .admin-popover-menu.show {
+      display: block;
+    }
+
+    .popover-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 6px 8px;
+    }
+
+    .popover-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #E63946, #D90429);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .popover-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .popover-email {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .popover-badge {
+      font-size: 10.5px;
+      color: var(--green);
+      font-weight: 600;
+      margin-top: 1px;
+    }
+
+    .popover-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      margin: 8px 0;
+    }
+
+    .popover-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 4px 6px;
+    }
+
+    .status-indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .popover-action-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+
+    .popover-action-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+    }
+
+    .popover-action-btn.logout-action {
+      color: #FF758C;
+      margin-top: 4px;
+    }
+
+    .popover-action-btn.logout-action:hover {
+      background: rgba(230, 57, 70, 0.15);
+      color: #fff;
+    }
+
+    /* Mobile Subnav Strip (Horizontally Scrollable) */
+    .mobile-subnav {
+      display: none;
+      background: rgba(18, 22, 34, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      position: sticky;
+      top: 60px;
+      z-index: 990;
+    }
+
+    .mobile-subnav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mobile-subnav .tab-btn {
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .mobile-subnav .tab-btn.active {
+      background: linear-gradient(135deg, #E63946, #D90429);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(230, 57, 70, 0.4);
+    }
+
+    /* Mobile Drawer Toggle & Drawer */
+    .mobile-menu-btn {
+      display: none;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .mobile-menu-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+    }
+
+    .mobile-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 310px;
+      max-width: 85vw;
+      background: #121522;
+      border-left: 1px solid var(--border);
+      z-index: 10001;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+    }
+
+    .mobile-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drawer-nav-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .drawer-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+    }
+
+    .drawer-nav-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+
+    .drawer-nav-item.active {
+      background: linear-gradient(135deg, rgba(230, 57, 70, 0.18), rgba(217, 4, 41, 0.18));
+      border-color: rgba(230, 57, 70, 0.4);
+      color: #FF758C;
+      font-weight: 700;
+    }
+
+    .drawer-footer {
+      padding: 18px 20px;
+      border-top: 1px solid var(--border);
+      background: rgba(14, 17, 26, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     /* Container */
     main {
-      max-width: 1200px;
+      max-width: 1240px;
       width: 100%;
-      margin: 32px auto;
+      margin: 28px auto;
       padding: 0 24px;
       flex: 1;
     }
@@ -430,29 +785,330 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
     }
+    /* Table Wrapper for Horizontal Scrolling */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      margin-top: 12px;
+    }
+
+    .table-container table {
+      margin-top: 0;
+      min-width: 680px;
+    }
+
+    /* Responsive Media Queries */
+    @media (max-width: 1040px) {
+      .nav-tabs-desktop {
+        display: none !important;
+      }
+
+      .mobile-subnav {
+        display: flex !important;
+      }
+
+      .mobile-menu-btn {
+        display: inline-flex !important;
+      }
+
+      .logout-quick-btn {
+        display: none !important;
+      }
+
+      header {
+        padding: 10px 18px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 10px 14px;
+      }
+
+      .brand img {
+        height: 30px !important;
+      }
+
+      .brand-admin-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+      }
+
+      .admin-pill-name {
+        display: none !important;
+      }
+
+      .admin-profile-pill {
+        padding: 3px 6px 3px 3px !important;
+        gap: 4px !important;
+      }
+
+      main {
+        margin: 16px auto;
+        padding: 0 12px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+      }
+
+      .card-title {
+        font-size: 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .stat-card {
+        padding: 14px;
+        border-radius: 14px;
+      }
+
+      .stat-value {
+        font-size: 20px;
+      }
+
+      .stat-label {
+        font-size: 10.5px;
+      }
+
+      .categories-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .modal-card {
+        padding: 20px 16px;
+        max-width: 95vw;
+        border-radius: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
 
+  <!-- ADMIN AUTHENTICATION LOGIN OVERLAY -->
+  <div id="adminLoginOverlay" style="position: fixed; inset: 0; background: rgba(11, 14, 23, 0.96); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 24px; width: 100%; max-width: 440px; padding: 36px 32px; box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 40px rgba(230,57,70,0.15); text-align: center;">
+      
+      <!-- Ministry Branding Emblem -->
+      <div style="margin-bottom: 24px;">
+        <img src="logo2White.png" alt="LCM Audios" style="height: 52px; object-fit: contain; margin-bottom: 12px;" />
+        <h2 style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;">Admin Portal Access</h2>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">Sign in with authorized administrator credentials to manage audio streams, sermons, and push broadcasts.</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" style="text-align: left;">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 700; color: #fff;">Admin Email</label>
+          <input type="email" id="loginAdminEmail" placeholder="Enter admin email address" required style="width: 100%; padding: 12px 14px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 14px;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 18px;">
+          <label style="font-size: 12px; font-weight: 700; color: #fff;">Admin Master Password</label>
+          <div style="position: relative;">
+            <input type="password" id="loginAdminPassword" placeholder="••••••••••••" required style="width: 100%; padding: 12px 42px 12px 14px; border-radius: 10px; background: var(--surface-light); border: 1px solid var(--border); color: #fff; font-size: 14px;" />
+            <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;">👁️</button>
+          </div>
+        </div>
+
+        <!-- Error feedback box -->
+        <div id="loginErrorBox" style="display: none; background: rgba(230,57,70,0.15); border: 1px solid var(--primary); color: #FF758C; padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; margin-bottom: 16px; line-height: 1.4;"></div>
+
+        <button type="submit" id="adminLoginBtn" class="btn" style="width: 100%; padding: 14px; font-size: 14px; font-weight: 800; background: linear-gradient(135deg, #E63946, #D90429); box-shadow: 0 4px 18px rgba(230,57,70,0.4); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; gap: 8px;">
+          <span>🔓 SIGN IN TO ADMIN PORTAL</span>
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; font-size: 11px; color: var(--text-muted);">
+        🔒 Protected by 256-bit JWT Cryptographic Authorization
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header>
-    <div class="brand" style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo2White.png" alt="LCM Audios" style="height: 38px; object-fit: contain;" />
-      <span style="font-size: 13px; font-weight: 800; color: var(--text-muted); background: var(--surface-light); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); letter-spacing: 1px;">ADMIN PORTAL</span>
+    <!-- Brand / Logo -->
+    <div class="brand">
+      <img src="logo2White.png" alt="LCM Audios" style="height: 34px; object-fit: contain;" />
+      <span class="brand-admin-tag">ADMIN</span>
     </div>
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('analytics')">Analytics 📊</button>
-      <button class="tab-btn" onclick="switchTab('ministers')">Ministers & Preachers 🎙️</button>
-      <button class="tab-btn" onclick="switchTab('categories')">Intent Categories 🏷️</button>
-      <button class="tab-btn" onclick="switchTab('catalog')">Media Catalog 🎵</button>
-      <button class="tab-btn" onclick="switchTab('ingest')">Ingest Media 🚀</button>
-      <button class="tab-btn" onclick="switchTab('partners')">Covenant Partners & Ledger 👑</button>
+
+    <!-- Desktop Navigation Tabs (Hidden on <= 1040px) -->
+    <nav class="nav-tabs-desktop">
+      <button class="tab-btn active" data-tab="analytics" onclick="switchTab('analytics')"><span>📊</span> Analytics</button>
+      <button class="tab-btn" data-tab="devotees" onclick="switchTab('devotees')"><span>👥</span> Devotees</button>
+      <button class="tab-btn" data-tab="ministers" onclick="switchTab('ministers')"><span>🎙️</span> Ministers</button>
+      <button class="tab-btn" data-tab="categories" onclick="switchTab('categories')"><span>🏷️</span> Categories</button>
+      <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')"><span>🎵</span> Catalog</button>
+      <button class="tab-btn" data-tab="ingest" onclick="switchTab('ingest')"><span>🚀</span> Ingest</button>
+      <button class="tab-btn" data-tab="partners" onclick="switchTab('partners')"><span>👑</span> Partners</button>
+      <button class="tab-btn" data-tab="marketing" onclick="switchTab('marketing')"><span>📣</span> Marketing</button>
+    </nav>
+
+    <!-- Header Actions (Right) -->
+    <div id="adminUserSection" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+      <!-- Interactive Admin Profile Popover -->
+      <div class="admin-profile-dropdown" id="adminProfileDropdown">
+        <button type="button" class="admin-profile-pill" onclick="toggleAdminProfileMenu(event)" title="Admin Account Settings">
+          <div class="admin-avatar">A</div>
+          <span class="admin-pill-name" id="headerAdminEmail">Admin</span>
+          <span class="admin-pill-arrow">▾</span>
+        </button>
+        
+        <div class="admin-popover-menu" id="adminPopoverMenu">
+          <div class="popover-header">
+            <div class="popover-avatar">A</div>
+            <div class="popover-info">
+              <div id="popoverAdminEmail" class="popover-email">admin@lifechangerstouch.org</div>
+              <div class="popover-badge">Super Administrator</div>
+            </div>
+          </div>
+          <div class="popover-divider"></div>
+          <div class="popover-status">
+            <span class="status-indicator-dot"></span>
+            <span>Live Server & FCM Connected</span>
+          </div>
+          <div class="popover-divider"></div>
+          <button class="popover-action-btn" onclick="testDirectFCM(); closeAdminProfileMenu();">
+            <span>🔔</span> Ping FCM Notifications
+          </button>
+          <button class="popover-action-btn logout-action" onclick="adminLogout()">
+            <span>🚪</span> Sign Out of Portal
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Logout Button -->
+      <button class="btn btn-secondary logout-quick-btn" style="padding: 6px 10px; font-size: 11.5px; border-color: rgba(230,57,70,0.35); color: #FF758C; font-weight: 600;" onclick="adminLogout()" title="Sign Out">
+        <span>🚪</span>
+      </button>
+
+      <!-- Mobile Drawer Hamburger Toggle Button -->
+      <button class="mobile-menu-btn" onclick="toggleMobileDrawer()" aria-label="Open Navigation Menu" title="Menu">
+        <span>☰</span>
+      </button>
     </div>
   </header>
+
+  <!-- Mobile Swipeable Horizontal Navigation Bar (Visible <= 1040px) -->
+  <nav class="mobile-subnav">
+    <button class="tab-btn active" data-tab="analytics" onclick="switchTab('analytics')">📊 Analytics</button>
+    <button class="tab-btn" data-tab="devotees" onclick="switchTab('devotees')">👥 Devotees</button>
+    <button class="tab-btn" data-tab="ministers" onclick="switchTab('ministers')">🎙️ Ministers</button>
+    <button class="tab-btn" data-tab="categories" onclick="switchTab('categories')">🏷️ Categories</button>
+    <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">🎵 Catalog</button>
+    <button class="tab-btn" data-tab="ingest" onclick="switchTab('ingest')">🚀 Ingest</button>
+    <button class="tab-btn" data-tab="partners" onclick="switchTab('partners')">👑 Partners</button>
+    <button class="tab-btn" data-tab="marketing" onclick="switchTab('marketing')">📣 Marketing</button>
+  </nav>
+
+  <!-- Mobile Drawer Slide-in Menu -->
+  <div id="drawerOverlay" class="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+  <aside id="mobileDrawer" class="mobile-drawer">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="logo2White.png" alt="LCM Audios" style="height: 30px; object-fit: contain;" />
+        <span class="brand-admin-tag">ADMIN</span>
+      </div>
+      <button onclick="closeMobileDrawer()" style="background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; padding: 4px 8px;">✕</button>
+    </div>
+
+    <!-- Admin Profile inside Drawer -->
+    <div style="padding: 16px 20px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #E63946, #D90429); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; font-weight: 800; box-shadow: 0 4px 12px rgba(230,57,70,0.3);">
+        A
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div id="drawerAdminEmail" style="font-size: 12.5px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">admin@lifechangerstouch.org</div>
+        <div style="font-size: 11px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block;"></span>
+          Authorized Admin
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Navigation Links -->
+    <div class="drawer-nav-list">
+      <button class="drawer-nav-item active" data-tab="analytics" onclick="switchTab('analytics')">
+        <span style="font-size: 18px;">📊</span>
+        <span>Analytics Dashboard</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="devotees" onclick="switchTab('devotees')">
+        <span style="font-size: 18px;">👥</span>
+        <span>Devotee & Member Directory</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="ministers" onclick="switchTab('ministers')">
+        <span style="font-size: 18px;">🎙️</span>
+        <span>Ministers & Preachers</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="categories" onclick="switchTab('categories')">
+        <span style="font-size: 18px;">🏷️</span>
+        <span>Spiritual Intent Categories</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="catalog" onclick="switchTab('catalog')">
+        <span style="font-size: 18px;">🎵</span>
+        <span>Media Catalog & Tracks</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="ingest" onclick="switchTab('ingest')">
+        <span style="font-size: 18px;">🚀</span>
+        <span>Ingest & Upload Media</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="partners" onclick="switchTab('partners')">
+        <span style="font-size: 18px;">👑</span>
+        <span>Covenant Partners & Ledger</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="marketing" onclick="switchTab('marketing')">
+        <span style="font-size: 18px;">📣</span>
+        <span>Push Marketing Hub</span>
+      </button>
+    </div>
+
+    <!-- Drawer Footer with Logout -->
+    <div class="drawer-footer">
+      <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between;">
+        <span>🔒 256-bit SSL Active</span>
+        <span style="color: var(--green);">● Server Live</span>
+      </div>
+      <button class="btn btn-secondary" style="width: 100%; justify-content: center; color: #FF758C; border-color: rgba(230,57,70,0.4); padding: 12px;" onclick="adminLogout()">
+        🚪 Sign Out of Admin
+      </button>
+    </div>
+  </aside>
 
   <main>
     <!-- TAB 1: Analytics Overview -->
     <div id="tab-analytics" class="tab-content active">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 18px; font-weight: 800; color: #fff;">📊 Streaming Analytics & Engagement</div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--green); font-weight: 700; background: rgba(16,185,129,0.12); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(16,185,129,0.3);">
+          <span class="status-indicator-dot"></span>
+          <span>Live Real-Time Telemetry</span>
+        </div>
+      </div>
       <div class="stats-grid">
         <div class="stat-card">
           <span class="stat-label">Total Audio Streams</span>
@@ -485,20 +1141,102 @@
 
       <div class="card">
         <div class="card-title">Top Performing Streams Leaderboard</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Stream Title & Preacher</th>
-              <th>Intent Category</th>
-              <th>Total Plays</th>
-              <th>Engagement Share</th>
-            </tr>
-          </thead>
-          <tbody id="top-tracks-body">
-            <!-- Populated via JS -->
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Stream Title & Preacher</th>
+                <th>Intent Category</th>
+                <th>Total Plays</th>
+                <th>Engagement Share</th>
+              </tr>
+            </thead>
+            <tbody id="top-tracks-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Devotees & User Management -->
+    <div id="tab-devotees" class="tab-content">
+      <!-- Devotees KPI Grid -->
+      <div class="stats-grid">
+        <div class="stat-card" style="border-top-color: #3B82F6;">
+          <span class="stat-label">Total Devotees</span>
+          <span class="stat-value" id="devotee-stat-total">0</span>
+          <span class="stat-sub">Registered Worshippers</span>
+        </div>
+        <div class="stat-card" style="border-top-color: #D4AF37;">
+          <span class="stat-label">Active Covenant VIPs</span>
+          <span class="stat-value" id="devotee-stat-vips" style="color: #FFDF79;">0</span>
+          <span class="stat-sub">Monthly, Annual & Lifetime</span>
+        </div>
+        <div class="stat-card" style="border-top-color: #10B981;">
+          <span class="stat-label">Total Streams Played</span>
+          <span class="stat-value" id="devotee-stat-streams" style="color: #10B981;">0</span>
+          <span class="stat-sub">Spiritual Stream Count</span>
+        </div>
+        <div class="stat-card" style="border-top-color: #8B5CF6;">
+          <span class="stat-label">Offline Sermons Cached</span>
+          <span class="stat-value" id="devotee-stat-downloads" style="color: #8B5CF6;">0</span>
+          <span class="stat-sub">Downloaded for Offline Praying</span>
+        </div>
+      </div>
+
+      <!-- Devotees Directory Card -->
+      <div class="card">
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div>
+            <span style="font-size: 18px; font-weight: 800;">Devotee & Member Directory</span>
+            <p style="color: var(--text-muted); font-size: 12.5px; margin: 4px 0 0 0; font-weight: 400;">
+              Manage worshipper accounts, grant manual VIP/Covenant tier overrides, view streaming telemetry, and dispatch direct pastoral push notifications.
+            </p>
+          </div>
+          <button class="btn btn-secondary" onclick="loadDevotees()" style="display: flex; align-items: center; gap: 6px;">
+            <span>🔄</span> Refresh Devotees
+          </button>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; padding: 14px 16px; background: var(--surface-light); border: 1px solid var(--border); border-radius: 14px;">
+          <div style="flex: 1; min-width: 240px; position: relative;">
+            <input type="text" id="devoteeSearchInput" placeholder="🔍 Search devotees by name or email..." oninput="filterDevoteesList()" style="width: 100%; padding: 10px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); color: #fff; font-size: 13px;" />
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="devoteeFilterChips">
+            <button class="btn btn-secondary devotee-chip active" onclick="setDevoteeFilter('all', this)" style="padding: 6px 12px; font-size: 11.5px; border-radius: 20px;">All (<span id="count-chip-all">0</span>)</button>
+            <button class="btn btn-secondary devotee-chip" onclick="setDevoteeFilter('vip', this)" style="padding: 6px 12px; font-size: 11.5px; border-radius: 20px; border-color: rgba(212,175,55,0.4); color: #FFDF79;">👑 VIP / Covenant (<span id="count-chip-vip">0</span>)</button>
+            <button class="btn btn-secondary devotee-chip" onclick="setDevoteeFilter('monthly', this)" style="padding: 6px 12px; font-size: 11.5px; border-radius: 20px;">🌱 Monthly Seed (<span id="count-chip-monthly">0</span>)</button>
+            <button class="btn btn-secondary devotee-chip" onclick="setDevoteeFilter('free', this)" style="padding: 6px 12px; font-size: 11.5px; border-radius: 20px;">🕊️ Free Tier (<span id="count-chip-free">0</span>)</button>
+            <button class="btn btn-secondary devotee-chip" onclick="setDevoteeFilter('suspended', this)" style="padding: 6px 12px; font-size: 11.5px; border-radius: 20px; color: #FF758C;">⚠️ Suspended (<span id="count-chip-suspended">0</span>)</button>
+          </div>
+        </div>
+
+        <!-- Devotees Table -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Devotee / Worshipper</th>
+                <th>Subscription Tier</th>
+                <th>Streaming & Listening</th>
+                <th>Offline & Notes</th>
+                <th>Account Status</th>
+                <th>Last Active</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="devotees-table-body">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Loading devotees directory...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -538,23 +1276,25 @@
           <span>Managed Audio Streams & Sermons</span>
           <button class="btn" onclick="switchTab('ingest')">+ Ingest Media</button>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Artwork</th>
-              <th>Title & Artist</th>
-              <th>Access Tier</th>
-              <th>Intent Category</th>
-              <th>Subgenre</th>
-              <th>Duration</th>
-              <th>Audio Preview</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="catalog-table-body">
-            <!-- Populated via JS -->
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Artwork</th>
+                <th>Title & Artist</th>
+                <th>Access Tier</th>
+                <th>Intent Category</th>
+                <th>Subgenre</th>
+                <th>Duration</th>
+                <th>Audio Preview</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="catalog-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -596,7 +1336,7 @@
 
             <div class="form-group">
               <label>Artist / Preacher Name *</label>
-              <input type="text" id="artist" placeholder="e.g. Nathaniel Bassey & LCM Worship" required />
+              <input type="text" id="artist" value="Pastor Martins Omonua" placeholder="e.g. Pastor Martins Omonua" required />
             </div>
 
             <div class="form-group">
@@ -737,22 +1477,299 @@
           <span>👑 Paystack Partnership Transactions Ledger</span>
           <button class="btn btn-secondary" onclick="loadPartnerLedger()">🔄 Refresh Ledger</button>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Reference</th>
-              <th>Partner Email</th>
-              <th>Offering Tier</th>
-              <th>Amount</th>
-              <th>Gateway</th>
-              <th>Date & Time</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="partner-ledger-table-body">
-            <!-- Populated via JS -->
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Partner Email</th>
+                <th>Offering Tier</th>
+                <th>Amount</th>
+                <th>Gateway</th>
+                <th>Date & Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="partner-ledger-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: Push Marketing & Spiritual Retention Hub -->
+    <div id="tab-marketing" class="tab-content">
+      <!-- Hub Header Banner -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(230,57,70,0.12), rgba(30,27,75,0.4)); border-color: rgba(230,57,70,0.3); margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+              <span style="background: var(--primary); color: white; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.8px;">GROWTH & RETENTION</span>
+              <span style="font-size: 12px; color: var(--text-muted);">Topic: <strong style="color: #fff;">all_devotees</strong></span>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px;">Push Marketing & Engagement Hub</h2>
+            <p style="font-size: 13px; color: var(--text-muted); max-width: 680px;">
+              Engage devotees at pivotal spiritual moments: Dawn Devotions, Midday Peace Pauses, Midnight Altars, and Inactivity Win-Back prompts to maintain consistent prayer habits.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" onclick="testDirectFCM()">🔔 Send System Ping</button>
+            <button class="btn" onclick="scrollToComposer()">⚡ Custom Broadcast</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1-Click Preset Campaign Cards Grid -->
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+          <span>🎯 1-Click High-Converting Campaign Presets</span>
+          <small style="font-size: 12px; font-weight: 500; color: var(--text-muted);">(Pre-written spiritual hooks designed for 40%+ open rates)</small>
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+          
+          <!-- Card 1: Dawn Blessing -->
+          <div class="category-card" style="border-left: 4px solid #F59E0B;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🌅</span>
+                <strong style="font-size: 14px; color: #fff;">Dawn Devotion</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(245,158,11,0.15); color: #F59E0B; padding: 2px 6px; border-radius: 4px; font-weight: 700;">6:00 AM - 7:30 AM</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">🌅 First Fruit of the Morning</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "Command your morning! Start your day soaked in prophetic prayer and divine direction."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('dawn_blessing')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="sendPresetDirect('dawn_blessing')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+          <!-- Card 2: Midday Grace Pause -->
+          <div class="category-card" style="border-left: 4px solid #06B6D4;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">⏳</span>
+                <strong style="font-size: 14px; color: #fff;">Midday Grace Pause</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(6,182,212,0.15); color: #06B6D4; padding: 2px 6px; border-radius: 4px; font-weight: 700;">12:00 PM - 1:30 PM</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">⏳ Take a 2-Minute Peace Pause</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "Pause the busy day. Let sacred worship restore your focus and divine peace right now."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('midday_peace')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #06B6D4;" onclick="sendPresetDirect('midday_peace')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+          <!-- Card 3: Midnight Vigil -->
+          <div class="category-card" style="border-left: 4px solid #8B5CF6;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🌙</span>
+                <strong style="font-size: 14px; color: #fff;">Midnight Altar & Sleep</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(139,92,246,0.15); color: #8B5CF6; padding: 2px 6px; border-radius: 4px; font-weight: 700;">10:30 PM - 12:00 AM</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">🌙 Peace for Your Sleep & Night Vigil</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "Cast your cares upon Him. Fall asleep to anointed soaking worship and night prayer."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('midnight_vigil')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #8B5CF6;" onclick="sendPresetDirect('midnight_vigil')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+          <!-- Card 4: Inactivity Reconnect -->
+          <div class="category-card" style="border-left: 4px solid #EC4899;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🕊️</span>
+                <strong style="font-size: 14px; color: #fff;">Inactivity Win-Back</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(236,72,153,0.15); color: #EC4899; padding: 2px 6px; border-radius: 4px; font-weight: 700;">3 - 14 Days Inactive</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">✨ We're Holding You in Prayer Today</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "Life gets busy, but your spiritual peace matters. Tap to play today's Word of breakthrough."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('inactivity_reconnect')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #EC4899;" onclick="sendPresetDirect('inactivity_reconnect')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+          <!-- Card 5: Weekend Sabbath Preparation -->
+          <div class="category-card" style="border-left: 4px solid #10B981;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">📖</span>
+                <strong style="font-size: 14px; color: #fff;">Weekend Sabbath Prep</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(16,185,129,0.15); color: #10B981; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Saturday 6:00 PM - 9:00 PM</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">📖 Prepare Your Heart for the Sabbath</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "Tune your spirit ahead of Sunday service with our anointed praise & worship collection."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('weekend_prep')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #10B981;" onclick="sendPresetDirect('weekend_prep')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+          <!-- Card 6: Fresh Manna Drop -->
+          <div class="category-card" style="border-left: 4px solid #E63946;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">⚡</span>
+                <strong style="font-size: 14px; color: #fff;">Prophetic Release Alert</strong>
+              </div>
+              <span style="font-size: 10px; background: rgba(230,57,70,0.15); color: #E63946; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Post-Upload Drop</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #E2E8F0; margin-bottom: 4px;">⚡ Fresh Manna Just Released! 🎵</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+              "New sermon alert: 'Divine Direction' by Pastor Martins Omonua is now streaming."
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; padding: 6px 10px; font-size: 11px;" onclick="loadPresetCampaign('custom')">✏️ Edit in Composer</button>
+              <button class="btn" style="flex: 1; padding: 6px 10px; font-size: 11px; background: #E63946;" onclick="sendPresetDirect('custom')">🚀 1-Click Send</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Campaign Composer & Live Mobile Lock-Screen Preview Grid -->
+      <div id="campaignComposerCard" class="card" style="margin-bottom: 24px;">
+        <div class="card-title">
+          <span>📝 Interactive Push Notification Composer</span>
+          <span style="font-size: 12px; color: var(--text-muted);">Real-time Devotee Smartphone Preview</span>
+        </div>
+        
+        <div class="composer-grid" style="display: grid; gap: 24px; align-items: start;">
+          <!-- Composer Form -->
+          <div>
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label>Campaign Preset Template</label>
+              <select id="composerPreset" onchange="onPresetSelectChange(this.value)">
+                <option value="custom">Custom Ministry Announcement (Freeform)</option>
+                <option value="dawn_blessing">🌅 Dawn Devotion (Morning First Fruit)</option>
+                <option value="midday_peace">⏳ Midday Grace Pause (2-Minute Peace)</option>
+                <option value="midnight_vigil">🌙 Midnight Altar & Sleep Vigil</option>
+                <option value="inactivity_reconnect">✨ Inactivity Reconnect (We Miss You)</option>
+                <option value="weekend_prep">📖 Weekend Sabbath Preparation</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label>Notification Title *</label>
+              <input type="text" id="composerTitle" placeholder="e.g. 🕊️ A moment of stillness awaits you..." oninput="updatePushPreview()" />
+              <!-- Quick Emoji Bar -->
+              <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                <span style="font-size: 11px; color: var(--text-muted); align-self: center;">Quick Emojis:</span>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('🕊️')">🕊️</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('🌅')">🌅</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('⏳')">⏳</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('🌙')">🌙</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('✨')">✨</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('📖')">📖</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('👑')">👑</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('🔥')">🔥</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('⚡')">⚡</button>
+                <button type="button" class="btn btn-secondary" style="padding: 2px 6px; font-size: 12px;" onclick="insertEmoji('🎵')">🎵</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label>Notification Message Body *</label>
+              <textarea id="composerBody" rows="3" placeholder="Enter inspiring spiritual message..." oninput="updatePushPreview()"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
+              <label>Target Audience / Spiritual Category</label>
+              <select id="composerTarget">
+                <option value="all">🌍 All App Devotees (Global Broadcast)</option>
+                <option value="morningDevotion">🌅 Morning Devotion Devotees</option>
+                <option value="deepWorship">🔥 Deep Worship & Chants Seekers</option>
+                <option value="deliverance">🔴 Deliverance & Warfare Warriors</option>
+                <option value="covenantPartners">👑 Covenant Partners Only</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button id="dispatchCampaignBtn" class="btn" style="padding: 12px 24px; font-size: 14px; font-weight: 800; background: linear-gradient(135deg, #E63946, #D90429); box-shadow: 0 4px 16px rgba(230,57,70,0.4);" onclick="dispatchCustomCampaign()">
+                🚀 BROADCAST TO ALL DEVOTEES NOW
+              </button>
+              <span id="campaignStatusMsg" style="font-size: 13px; font-weight: 600; color: var(--green);"></span>
+            </div>
+          </div>
+
+          <!-- Smartphone Lock-Screen Mockup Preview -->
+          <div style="background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 24px; padding: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.6);">
+            <div style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 14px;">📱 Lock-Screen Notification Preview</div>
+            
+            <!-- Phone Lockscreen Card -->
+            <div style="background: rgba(255,255,255,0.08); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; padding: 14px 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 22px; height: 22px; border-radius: 6px; background: #E63946; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff;">✝</div>
+                  <span style="font-size: 12px; font-weight: 700; color: #fff; letter-spacing: 0.4px;">LCM AUDIOS</span>
+                </div>
+                <span style="font-size: 11px; color: rgba(255,255,255,0.5);">now</span>
+              </div>
+              <div id="previewPushTitle" style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-bottom: 4px;">
+                🕊️ A moment of stillness awaits you...
+              </div>
+              <div id="previewPushBody" style="font-size: 12.5px; color: rgba(255,255,255,0.85); line-height: 1.35;">
+                Take 3 minutes today to rest in God's presence. Renew your strength with a short worship session.
+              </div>
+            </div>
+
+            <!-- Hint below phone -->
+            <div style="text-align: center; margin-top: 14px; font-size: 11.5px; color: var(--text-muted);">
+              ⚡ Pushes appear instantly on devotees' lock-screen & status bar.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Broadcast History Log -->
+      <div class="card">
+        <div class="card-title">
+          <span>📜 Recent Push Broadcast Dispatch History</span>
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearBroadcastHistory()">Clear Log</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Campaign Type</th>
+                <th>Title & Message</th>
+                <th>Audience Topic</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="broadcast-history-body">
+              <tr>
+                <td style="font-family: monospace; font-size: 11.5px; color: var(--text-muted);">Today, 06:00 PM</td>
+                <td><span style="background: rgba(230,57,70,0.15); color: #E63946; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">Prophetic Release</span></td>
+                <td>
+                  <strong style="color: #fff;">New Faith Release 🎵</strong>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">"Divine Direction" by Pastor Martins Omonua is now streaming.</div>
+                </td>
+                <td><code style="color: #06B6D4;">all_devotees</code></td>
+                <td><span style="background: rgba(16,185,129,0.15); color: #10B981; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">✓ Delivered via FCM</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
@@ -922,6 +1939,132 @@
     </div>
   </div>
 
+  <!-- Devotee Management & VIP Override Modal -->
+  <div class="modal-overlay" id="devoteeModal">
+    <div class="modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div id="modalDevoteeAvatar" style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #E63946, #D90429); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; box-shadow: 0 4px 15px rgba(230,57,70,0.3); flex-shrink: 0;">
+            S
+          </div>
+          <div>
+            <h3 id="modalDevoteeName" style="font-size: 18px; font-weight: 800; color: #fff; margin: 0 0 4px 0;">Devotee Name</h3>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
+              <span id="modalDevoteeEmail">devotee@example.com</span>
+              <span>•</span>
+              <span id="modalDevoteeFCMBadge" style="background: rgba(16,185,129,0.15); color: #10B981; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 600;">📱 FCM Active</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 14px;" onclick="closeDevoteeModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="modalDevoteeId" />
+
+      <!-- Live Telemetry KPI Strip -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+        <div style="background: var(--surface-light); border: 1px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center;">
+          <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Listening Time</div>
+          <div id="modalDevoteeHours" style="font-size: 16px; font-weight: 800; color: #fff; margin-top: 4px;">0h 0m</div>
+        </div>
+        <div style="background: var(--surface-light); border: 1px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center;">
+          <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Streams Played</div>
+          <div id="modalDevoteeStreams" style="font-size: 16px; font-weight: 800; color: #10B981; margin-top: 4px;">0</div>
+        </div>
+        <div style="background: var(--surface-light); border: 1px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center;">
+          <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Offline Cached</div>
+          <div id="modalDevoteeDownloads" style="font-size: 16px; font-weight: 800; color: #8B5CF6; margin-top: 4px;">0</div>
+        </div>
+        <div style="background: var(--surface-light); border: 1px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center;">
+          <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Sermon Notes</div>
+          <div id="modalDevoteeNotes" style="font-size: 16px; font-weight: 800; color: #F59E0B; margin-top: 4px;">0</div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: Covenant Access & Subscription Override -->
+      <div style="background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(20,13,30,0.6)); border: 1px solid rgba(212,175,55,0.3); border-radius: 16px; padding: 18px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">👑</span>
+            <strong style="font-size: 14px; color: #FFDF79;">Covenant Tier & VIP Access Override</strong>
+          </div>
+          <span id="modalCurrentTierBadge" style="font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: rgba(255,255,255,0.1); color: #fff;">Free Tier</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+          <div class="form-group">
+            <label style="font-size: 12px; color: #E2E8F0;">Select Access Tier</label>
+            <select id="modalDevoteeTier" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px;">
+              <option value="free">🕊️ Free Gospel Tier</option>
+              <option value="monthly">🌱 Monthly Seed Partner (₦2,500/mo)</option>
+              <option value="annual">👑 Annual Covenant Partner (₦24,000/yr)</option>
+              <option value="lifetime">⚡ Lifetime VIP & Honorary Patron</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label style="font-size: 12px; color: #E2E8F0;">Subscription Status</label>
+            <select id="modalDevoteeSubStatus" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px;">
+              <option value="active">Active Access</option>
+              <option value="expired">Expired / Due</option>
+              <option value="grace_period">Grace Period</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label style="font-size: 12px; color: #E2E8F0;">Expiration Date (Leave blank for Lifetime / Unlimited)</label>
+          <input type="date" id="modalDevoteeExpiresAt" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px;" />
+        </div>
+
+        <button class="btn" id="btnSaveSubscription" onclick="saveDevoteeSubscription()" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #D4AF37, #B8972E); color: #140D1E; font-weight: 800; padding: 12px;">
+          💾 Apply Covenant Access Override
+        </button>
+      </div>
+
+      <!-- SECTION 2: Direct 1-to-1 Pastoral Push Notification -->
+      <div style="background: var(--surface-light); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-size: 18px;">✉️</span>
+          <strong style="font-size: 14px; color: #fff;">Direct Pastoral Push Notification (1-to-1)</strong>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">
+          Send a personalized prophetic message, prayer encouragement, or pastoral counsel directly to this devotee's device.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-size: 12px;">Notification Title</label>
+          <input type="text" id="directPushTitle" placeholder="e.g. A Pastoral Prayer for Your Breakthrough" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-size: 12px;">Notification Message</label>
+          <textarea id="directPushMessage" rows="3" placeholder="Write personal pastoral message here..." style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 10px; font-size: 13px; resize: vertical;"></textarea>
+        </div>
+
+        <button class="btn btn-secondary" id="btnSendDirectPush" onclick="sendDirectDevoteePush()" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700;">
+          📡 Send Direct Pastoral Push
+        </button>
+      </div>
+
+      <!-- SECTION 3: Account Security & Suspension Controls -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Joined: <span id="modalDevoteeCreatedAt" style="color: #fff; font-weight: 600;">-</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="modalToggleStatusBtn" class="btn btn-danger" style="padding: 8px 14px; font-size: 12px;" onclick="handleModalStatusToggle()">
+            ⚠️ Suspend Devotee
+          </button>
+          <button class="btn btn-secondary" onclick="closeDevoteeModal()" style="padding: 8px 14px; font-size: 12px;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = window.location.origin.includes('localhost')
       ? 'http://localhost:5000/api/v1'
@@ -932,18 +2075,182 @@
     let catalogTracksCache = [];
     let cachedMinistersList = [];
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    // ─── ADMIN AUTHENTICATION & SESSION MANAGEMENT ──────────────────────────
+    function getAdminToken() {
+      return localStorage.getItem('lcm_admin_token') || '';
+    }
 
-      const tabs = ['analytics', 'ministers', 'categories', 'catalog', 'ingest', 'partners'];
-      const idx = tabs.indexOf(tabId);
-      if (idx !== -1) {
-        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-        document.getElementById(`tab-${tabId}`).classList.add('active');
+    function getAuthHeaders() {
+      const token = getAdminToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return headers;
+    }
+
+    function togglePasswordVisibility() {
+      const pwd = document.getElementById('loginAdminPassword');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+      } else {
+        pwd.type = 'password';
+      }
+    }
+
+    async function handleAdminLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginAdminEmail').value.trim();
+      const password = document.getElementById('loginAdminPassword').value;
+      const errBox = document.getElementById('loginErrorBox');
+      const loginBtn = document.getElementById('adminLoginBtn');
+
+      errBox.style.display = 'none';
+      errBox.innerText = '';
+      loginBtn.disabled = true;
+      loginBtn.innerText = '⏳ AUTHENTICATING...';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('lcm_admin_token', data.token);
+          const adminEmail = data.admin?.email || email;
+          localStorage.setItem('lcm_admin_email', adminEmail);
+          
+          if (document.getElementById('headerAdminEmail')) document.getElementById('headerAdminEmail').innerText = adminEmail.split('@')[0] || 'Admin';
+          if (document.getElementById('popoverAdminEmail')) document.getElementById('popoverAdminEmail').innerText = adminEmail;
+          if (document.getElementById('drawerAdminEmail')) document.getElementById('drawerAdminEmail').innerText = adminEmail;
+          document.getElementById('adminLoginOverlay').style.display = 'none';
+          
+          // Initialize dashboard data
+          loadAnalytics();
+        } else {
+          errBox.innerText = `⚠️ ${data.error || 'Invalid admin credentials. Access denied.'}`;
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.innerText = `⚠️ Connection Error: Unable to reach authentication server.`;
+        errBox.style.display = 'block';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerText = '🔓 SIGN IN TO ADMIN PORTAL';
+      }
+    }
+
+    async function checkAdminAuth() {
+      const token = getAdminToken();
+      const overlay = document.getElementById('adminLoginOverlay');
+      const email = localStorage.getItem('lcm_admin_email') || 'admin@lifechangerstouch.org';
+      if (document.getElementById('headerAdminEmail')) document.getElementById('headerAdminEmail').innerText = email.split('@')[0] || 'Admin';
+      if (document.getElementById('popoverAdminEmail')) document.getElementById('popoverAdminEmail').innerText = email;
+      if (document.getElementById('drawerAdminEmail')) document.getElementById('drawerAdminEmail').innerText = email;
+
+      if (!token) {
+        overlay.style.display = 'flex';
+        return;
       }
 
+      try {
+        const res = await fetch(`${API_BASE}/auth/admin/verify`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          overlay.style.display = 'none';
+          loadAnalytics();
+        } else {
+          // Token expired or invalid
+          localStorage.removeItem('lcm_admin_token');
+          overlay.style.display = 'flex';
+        }
+      } catch {
+        // Fallback resilient mode
+        overlay.style.display = 'none';
+        loadAnalytics();
+      }
+    }
+
+    function toggleAdminProfileMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('adminPopoverMenu');
+      const pill = document.querySelector('.admin-profile-pill');
+      if (menu) {
+        menu.classList.toggle('show');
+        if (pill) pill.classList.toggle('active', menu.classList.contains('show'));
+      }
+    }
+
+    function closeAdminProfileMenu() {
+      const menu = document.getElementById('adminPopoverMenu');
+      const pill = document.querySelector('.admin-profile-pill');
+      if (menu) menu.classList.remove('show');
+      if (pill) pill.classList.remove('active');
+    }
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('adminProfileDropdown');
+      if (dropdown && !dropdown.contains(e.target)) {
+        closeAdminProfileMenu();
+      }
+    });
+
+    function adminLogout() {
+      if (confirm('Are you sure you want to sign out of the Admin Portal?')) {
+        localStorage.removeItem('lcm_admin_token');
+        localStorage.removeItem('lcm_admin_email');
+        document.getElementById('loginAdminPassword').value = '';
+        document.getElementById('loginErrorBox').style.display = 'none';
+        document.getElementById('adminLoginOverlay').style.display = 'flex';
+        closeAdminProfileMenu();
+        closeMobileDrawer();
+      }
+    }
+
+    function toggleMobileDrawer() {
+      const drawer = document.getElementById('mobileDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      if (drawer && overlay) {
+        drawer.classList.toggle('open');
+        overlay.classList.toggle('open');
+      }
+    }
+
+    function closeMobileDrawer() {
+      const drawer = document.getElementById('mobileDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      if (drawer) drawer.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+
+    function switchTab(tabId) {
+      // Synchronize desktop tabs, mobile subnav tabs, and drawer nav items
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.drawer-nav-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelectorAll(`.tab-btn[data-tab="${tabId}"]`).forEach(btn => btn.classList.add('active'));
+      document.querySelectorAll(`.drawer-nav-item[data-tab="${tabId}"]`).forEach(btn => btn.classList.add('active'));
+
+      const targetContent = document.getElementById(`tab-${tabId}`);
+      if (targetContent) targetContent.classList.add('active');
+
+      // Smooth scroll active mobile subnav pill into viewport
+      const activeSubnavBtn = document.querySelector(`.mobile-subnav .tab-btn[data-tab="${tabId}"]`);
+      if (activeSubnavBtn) {
+        activeSubnavBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+
+      // Close mobile drawer if it was opened
+      closeMobileDrawer();
+
       if (tabId === 'analytics') loadAnalytics();
+      if (tabId === 'devotees') loadDevotees();
       if (tabId === 'ministers') loadMinisters();
       if (tabId === 'categories') loadCategories();
       if (tabId === 'catalog') loadCatalog();
@@ -952,6 +2259,356 @@
         populateMinistersDropdown();
       }
       if (tabId === 'partners') loadPartnerLedger();
+      if (tabId === 'marketing') onPresetSelectChange(document.getElementById('composerPreset').value || 'custom');
+    }
+
+    let cachedDevoteesList = [];
+    let currentDevoteeFilter = 'all';
+
+    // ─── DEVOTEES & USER MANAGEMENT HUB ─────────────────────────────────────
+    async function loadDevotees() {
+      try {
+        const tbody = document.getElementById('devotees-table-body');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">🔄 Refreshing devotees directory...</td></tr>';
+        }
+
+        const res = await fetch(`${API_BASE}/admin/users`, {
+          headers: getAuthHeaders()
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch devotees list');
+        const data = await res.json();
+        cachedDevoteesList = data.users || [];
+
+        // Update KPI counters
+        updateDevoteeKPIs(cachedDevoteesList);
+
+        // Update Filter Chip Counts
+        updateDevoteeChipCounts(cachedDevoteesList);
+
+        // Render table
+        filterDevoteesList();
+      } catch (err) {
+        console.error('Error loading devotees:', err);
+        const tbody = document.getElementById('devotees-table-body');
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--primary); padding: 24px;">⚠️ Error loading devotees: ${err.message}</td></tr>`;
+        }
+      }
+    }
+
+    function updateDevoteeKPIs(users) {
+      const total = users.length;
+      const vips = users.filter(u => ['monthly', 'annual', 'lifetime'].includes(u.subscriptionTier)).length;
+      const streams = users.reduce((acc, u) => acc + (u.streamCount || 0), 0);
+      const downloads = users.reduce((acc, u) => acc + (u.downloadCount || 0), 0);
+
+      if (document.getElementById('devotee-stat-total')) document.getElementById('devotee-stat-total').innerText = total;
+      if (document.getElementById('devotee-stat-vips')) document.getElementById('devotee-stat-vips').innerText = vips;
+      if (document.getElementById('devotee-stat-streams')) document.getElementById('devotee-stat-streams').innerText = streams.toLocaleString();
+      if (document.getElementById('devotee-stat-downloads')) document.getElementById('devotee-stat-downloads').innerText = downloads.toLocaleString();
+    }
+
+    function updateDevoteeChipCounts(users) {
+      const allCount = users.length;
+      const vipCount = users.filter(u => ['monthly', 'annual', 'lifetime'].includes(u.subscriptionTier)).length;
+      const monthlyCount = users.filter(u => u.subscriptionTier === 'monthly').length;
+      const freeCount = users.filter(u => u.subscriptionTier === 'free').length;
+      const suspendedCount = users.filter(u => u.status === 'suspended').length;
+
+      if (document.getElementById('count-chip-all')) document.getElementById('count-chip-all').innerText = allCount;
+      if (document.getElementById('count-chip-vip')) document.getElementById('count-chip-vip').innerText = vipCount;
+      if (document.getElementById('count-chip-monthly')) document.getElementById('count-chip-monthly').innerText = monthlyCount;
+      if (document.getElementById('count-chip-free')) document.getElementById('count-chip-free').innerText = freeCount;
+      if (document.getElementById('count-chip-suspended')) document.getElementById('count-chip-suspended').innerText = suspendedCount;
+    }
+
+    function setDevoteeFilter(tier, btnEl) {
+      currentDevoteeFilter = tier;
+      document.querySelectorAll('#devoteeFilterChips .devotee-chip').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      filterDevoteesList();
+    }
+
+    function filterDevoteesList() {
+      const query = (document.getElementById('devoteeSearchInput')?.value || '').toLowerCase().trim();
+      let list = [...cachedDevoteesList];
+
+      // Apply chip filter
+      if (currentDevoteeFilter === 'vip') {
+        list = list.filter(u => ['monthly', 'annual', 'lifetime'].includes(u.subscriptionTier));
+      } else if (currentDevoteeFilter === 'monthly') {
+        list = list.filter(u => u.subscriptionTier === 'monthly');
+      } else if (currentDevoteeFilter === 'free') {
+        list = list.filter(u => u.subscriptionTier === 'free');
+      } else if (currentDevoteeFilter === 'suspended') {
+        list = list.filter(u => u.status === 'suspended');
+      }
+
+      // Apply search query
+      if (query) {
+        list = list.filter(u => 
+          (u.fullName || u.name || '').toLowerCase().includes(query) ||
+          (u.email || '').toLowerCase().includes(query) ||
+          (u.id || '').toLowerCase().includes(query)
+        );
+      }
+
+      renderDevoteesTable(list);
+    }
+
+    function renderDevoteesTable(users) {
+      const tbody = document.getElementById('devotees-table-body');
+      if (!tbody) return;
+
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching devotees found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map(user => {
+        const displayName = user.fullName || user.name || (user.email ? user.email.split('@')[0] : 'Devotee');
+        const initials = displayName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'D';
+        
+        let tierBadge = '<span style="background: rgba(255,255,255,0.08); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">🕊️ Free Tier</span>';
+        if (user.subscriptionTier === 'lifetime') {
+          tierBadge = '<span style="background: linear-gradient(135deg, rgba(212,175,55,0.3), rgba(255,223,121,0.2)); color: #FFDF79; border: 1px solid #D4AF37; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;">⚡ Lifetime VIP</span>';
+        } else if (user.subscriptionTier === 'annual') {
+          tierBadge = '<span style="background: rgba(16,185,129,0.18); color: #10B981; border: 1px solid rgba(16,185,129,0.4); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">👑 Annual VIP</span>';
+        } else if (user.subscriptionTier === 'monthly') {
+          tierBadge = '<span style="background: rgba(59,130,246,0.18); color: #60A5FA; border: 1px solid rgba(59,130,246,0.4); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">🌱 Monthly Seed</span>';
+        }
+
+        const isSuspended = user.status === 'suspended';
+        const statusBadge = isSuspended
+          ? '<span style="background: rgba(230,57,70,0.2); color: #FF758C; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">⚠️ Suspended</span>'
+          : '<span style="background: rgba(16,185,129,0.15); color: #10B981; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">● Active</span>';
+
+        const listeningHours = Math.floor((user.totalListeningMinutes || 0) / 60);
+        const listeningMins = (user.totalListeningMinutes || 0) % 60;
+        const timeFormatted = `${listeningHours}h ${listeningMins}m`;
+
+        const lastActiveDate = user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never';
+
+        return `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, rgba(230,57,70,0.3), rgba(217,4,41,0.5)); border: 1px solid rgba(230,57,70,0.4); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0;">
+                  ${initials}
+                </div>
+                <div>
+                  <div style="font-weight: 700; color: #fff; font-size: 13.5px;">${displayName}</div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">${user.email}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              ${tierBadge}
+              ${user.subscriptionExpiresAt ? `<div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">Exp: ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}</div>` : ''}
+            </td>
+            <td>
+              <strong style="color: #fff; font-size: 13px;">${timeFormatted}</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">${user.streamCount || 0} streams played</div>
+            </td>
+            <td>
+              <strong style="color: #8B5CF6; font-size: 13px;">${user.downloadCount || 0} offline</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">${user.notesCount || 0} sermon notes</div>
+            </td>
+            <td>
+              ${statusBadge}
+            </td>
+            <td style="font-size: 12px; color: var(--text-muted); font-family: monospace;">
+              ${lastActiveDate}
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 6px;">
+                <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 11.5px; font-weight: 600;" onclick="openDevoteeModal('${user.id}')" title="Manage Devotee & Subscriptions">
+                  ⚙️ Manage
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function openDevoteeModal(userId) {
+      const user = cachedDevoteesList.find(u => u.id === userId);
+      if (!user) return;
+
+      const displayName = user.fullName || user.name || (user.email ? user.email.split('@')[0] : 'Devotee');
+      document.getElementById('modalDevoteeId').value = user.id;
+      document.getElementById('modalDevoteeName').innerText = displayName;
+      document.getElementById('modalDevoteeEmail').innerText = user.email || '';
+      
+      const initials = displayName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'D';
+      document.getElementById('modalDevoteeAvatar').innerText = initials;
+
+      // FCM Badge
+      const fcmBadge = document.getElementById('modalDevoteeFCMBadge');
+      if (user.fcmToken) {
+        fcmBadge.style.display = 'inline-block';
+        fcmBadge.innerText = '📱 FCM Active';
+        fcmBadge.style.color = '#10B981';
+        fcmBadge.style.background = 'rgba(16,185,129,0.15)';
+      } else {
+        fcmBadge.style.display = 'inline-block';
+        fcmBadge.innerText = '📱 In-App Simulated';
+        fcmBadge.style.color = '#F59E0B';
+        fcmBadge.style.background = 'rgba(245,158,11,0.15)';
+      }
+
+      // Telemetry
+      const listeningHours = Math.floor((user.totalListeningMinutes || 0) / 60);
+      const listeningMins = (user.totalListeningMinutes || 0) % 60;
+      document.getElementById('modalDevoteeHours').innerText = `${listeningHours}h ${listeningMins}m`;
+      document.getElementById('modalDevoteeStreams').innerText = user.streamCount || 0;
+      document.getElementById('modalDevoteeDownloads').innerText = user.downloadCount || 0;
+      document.getElementById('modalDevoteeNotes').innerText = user.notesCount || 0;
+
+      // Tier & Subscription
+      document.getElementById('modalDevoteeTier').value = user.subscriptionTier || 'free';
+      document.getElementById('modalDevoteeSubStatus').value = user.subscriptionStatus || 'active';
+      document.getElementById('modalCurrentTierBadge').innerText = (user.subscriptionTier || 'free').toUpperCase();
+      
+      if (user.subscriptionExpiresAt) {
+        const expDate = new Date(user.subscriptionExpiresAt).toISOString().split('T')[0];
+        document.getElementById('modalDevoteeExpiresAt').value = expDate;
+      } else {
+        document.getElementById('modalDevoteeExpiresAt').value = '';
+      }
+
+      // Account Created & Status
+      document.getElementById('modalDevoteeCreatedAt').innerText = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Active Cohort';
+      
+      const statusBtn = document.getElementById('modalToggleStatusBtn');
+      if (user.status === 'suspended') {
+        statusBtn.innerText = '✅ Activate Devotee';
+        statusBtn.className = 'btn';
+        statusBtn.style.background = 'var(--green)';
+      } else {
+        statusBtn.innerText = '⚠️ Suspend Devotee';
+        statusBtn.className = 'btn btn-danger';
+        statusBtn.style.background = '';
+      }
+
+      // Clear push inputs
+      document.getElementById('directPushTitle').value = '';
+      document.getElementById('directPushMessage').value = '';
+
+      document.getElementById('devoteeModal').style.display = 'flex';
+    }
+
+    function closeDevoteeModal() {
+      document.getElementById('devoteeModal').style.display = 'none';
+    }
+
+    async function saveDevoteeSubscription() {
+      const userId = document.getElementById('modalDevoteeId').value;
+      const tier = document.getElementById('modalDevoteeTier').value;
+      const status = document.getElementById('modalDevoteeSubStatus').value;
+      const expiresAtInput = document.getElementById('modalDevoteeExpiresAt').value;
+      const btn = document.getElementById('btnSaveSubscription');
+
+      try {
+        btn.disabled = true;
+        btn.innerText = '⏳ APPLYING OVERRIDE...';
+
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/subscription`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            tier,
+            status,
+            expiresAt: expiresAtInput ? new Date(expiresAtInput).toISOString() : null
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Devotee subscription tier updated to [${tier.toUpperCase()}] successfully!`);
+          await loadDevotees();
+          closeDevoteeModal();
+        } else {
+          alert(`Error updating subscription: ${data.error || 'Request failed'}`);
+        }
+      } catch (err) {
+        alert(`Network Error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '💾 Apply Covenant Access Override';
+      }
+    }
+
+    async function handleModalStatusToggle() {
+      const userId = document.getElementById('modalDevoteeId').value;
+      const user = cachedDevoteesList.find(u => u.id === userId);
+      if (!user) return;
+
+      const newStatus = user.status === 'suspended' ? 'active' : 'suspended';
+      const promptText = newStatus === 'suspended'
+        ? `⚠️ Are you sure you want to SUSPEND ${user.name || user.email}? They will not be able to log in or stream audio.`
+        : `✅ Reactivate account for ${user.name || user.email}?`;
+
+      if (!confirm(promptText)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/status`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ status: newStatus })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Devotee account status is now [${newStatus.toUpperCase()}].`);
+          await loadDevotees();
+          closeDevoteeModal();
+        } else {
+          alert(`Error: ${data.error || 'Failed to toggle status'}`);
+        }
+      } catch (err) {
+        alert(`Network Error: ${err.message}`);
+      }
+    }
+
+    async function sendDirectDevoteePush() {
+      const userId = document.getElementById('modalDevoteeId').value;
+      const title = document.getElementById('directPushTitle').value.trim();
+      const message = document.getElementById('directPushMessage').value.trim();
+      const btn = document.getElementById('btnSendDirectPush');
+
+      if (!title || !message) {
+        alert('Please enter both a Title and Message for the direct push notification.');
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.innerText = '📡 TRANSMITTING PASTORAL PUSH...';
+
+        const res = await fetch(`${API_BASE}/admin/users/${userId}/push`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ title, message })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(`🎉 Pastoral Push Notification dispatched directly to devotee's device!\n\nStatus: ${data.fcmSent ? 'Delivered via FCM Cloud' : 'Simulated In-App'}`);
+          document.getElementById('directPushTitle').value = '';
+          document.getElementById('directPushMessage').value = '';
+        } else {
+          alert(`Error: ${data.error || 'Failed to dispatch push'}`);
+        }
+      } catch (err) {
+        alert(`Network Error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '📡 Send Direct Pastoral Push';
+      }
     }
 
     async function loadMinisters() {
@@ -1432,15 +3089,17 @@
 
           const lockBtnLabel = isLocked ? '🔓 Make Free' : '👑 Lock';
           const nextLockVal = !isLocked;
+          const safeAudio = (track.audioUrl || '').replace(/^http:\/\/audios\.lifechangerstouch\.org/i, 'https://audios.lifechangerstouch.org');
+          const safeArt = (track.albumArtUrl || '').replace(/^http:\/\/audios\.lifechangerstouch\.org/i, 'https://audios.lifechangerstouch.org');
 
           tr.innerHTML = `
-            <td><img src="${track.albumArtUrl}" width="40" height="40" style="border-radius: 8px; object-fit: cover;" /></td>
+            <td><img src="${safeArt}" width="40" height="40" style="border-radius: 8px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80'" /></td>
             <td><strong>${track.title}</strong><br><small style="color: var(--text-muted);">${track.artist}</small></td>
             <td>${accessBadge}</td>
             <td><span class="badge badge-purple">${track.intentCategory}</span></td>
             <td>${track.subgenre || 'Spiritual'}</td>
             <td>${min}:${sec}</td>
-            <td><audio src="${track.audioUrl}" controls style="width: 170px; height: 30px;"></audio></td>
+            <td><audio src="${safeAudio}" controls style="width: 170px; height: 30px;"></audio></td>
             <td>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" title="Toggle Free / Partner Exclusive" onclick="quickToggleAccess('${track.id}', ${nextLockVal})">${lockBtnLabel}</button>
@@ -1862,8 +3521,15 @@
             progressBar.style.background = 'linear-gradient(90deg, #10B981, #34D399)';
           }
           if (progressPercentage) progressPercentage.innerText = '100%';
-          alert('🚀 Sermon published successfully and saved to database!');
-          switchTab('catalog');
+          
+          showToast('🎉 Sermon published successfully! Page is refreshed & ready for next upload.', 'success');
+          
+          // Reset the Ingest form completely ready for another upload
+          resetIngestForm();
+          
+          // Refresh background catalog & stats quietly
+          if (typeof loadCatalog === 'function') loadCatalog();
+          if (typeof loadStats === 'function') loadStats();
         } else {
           const errData = await res.json();
           alert(`Error saving track: ${errData.error || 'Unknown error'}`);
@@ -1880,10 +3546,313 @@
       }
     }
 
-    // Initial load
-    loadAnalytics();
+    function resetIngestForm() {
+      // 1. Reset text inputs
+      const titleInput = document.getElementById('title');
+      if (titleInput) titleInput.value = '';
+
+      const artistInput = document.getElementById('artist');
+      if (artistInput) artistInput.value = 'Pastor Martins Omonua';
+
+      const subgenreInput = document.getElementById('subgenre');
+      if (subgenreInput) subgenreInput.value = 'Deep Worship';
+
+      const durationInput = document.getElementById('duration');
+      if (durationInput) durationInput.value = '300';
+
+      const mediaTypeSelect = document.getElementById('mediaType');
+      if (mediaTypeSelect) mediaTypeSelect.value = 'sermon';
+
+      const isPremiumSelect = document.getElementById('isPremium');
+      if (isPremiumSelect) isPremiumSelect.value = 'false';
+
+      // 2. Clear file inputs & dropzone labels
+      const audioInput = document.getElementById('audioFileInput');
+      if (audioInput) audioInput.value = '';
+      const audioFileName = document.getElementById('audioFileName');
+      if (audioFileName) audioFileName.innerText = 'Click to select audio file';
+
+      const artworkInput = document.getElementById('artworkFileInput');
+      if (artworkInput) artworkInput.value = '';
+      const artworkFileName = document.getElementById('artworkFileName');
+      if (artworkFileName) artworkFileName.innerText = 'Click to select cover image';
+
+      // 3. Reset audio preview player & stamping controls
+      const audioPlayer = document.getElementById('audioPreview');
+      if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer.src = '';
+        audioPlayer.style.display = 'none';
+      }
+      isStampingMode = false;
+      const toggleBtn = document.getElementById('toggleStampingBtn');
+      if (toggleBtn) {
+        toggleBtn.innerText = '⚡ Start Live Stamping Mode';
+        toggleBtn.style.background = 'var(--primary)';
+      }
+
+      // 4. Reset lyrics container to 1 clean initial row
+      const lyricsContainer = document.getElementById('lyrics-container');
+      if (lyricsContainer) {
+        lyricsContainer.innerHTML = '';
+        addLyricRow(0, '');
+      }
+
+      // 5. Reset upload progress bar after brief visual confirmation
+      setTimeout(() => {
+        const progressContainer = document.getElementById('uploadProgressContainer');
+        const progressBar = document.getElementById('uploadProgressBar');
+        const progressPercentage = document.getElementById('uploadPercentage');
+        const statusText = document.getElementById('uploadStatusText');
+        const bytesText = document.getElementById('uploadBytesText');
+        const etaText = document.getElementById('uploadEtaText');
+
+        if (progressContainer) progressContainer.style.display = 'none';
+        if (progressBar) {
+          progressBar.style.width = '0%';
+          progressBar.style.background = 'linear-gradient(90deg, #e63946, #ff758c)';
+        }
+        if (progressPercentage) progressPercentage.innerText = '0%';
+        if (statusText) statusText.innerText = 'Preparing upload...';
+        if (bytesText) bytesText.innerText = '0 MB / 0 MB';
+        if (etaText) etaText.innerText = 'Streaming to PostgreSQL Cloud';
+      }, 2500);
+
+      // 6. Smoothly scroll to top of Ingest tab ready for next upload
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(msg, type = 'success') {
+      let toastContainer = document.getElementById('toastContainer');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.style.cssText = 'position: fixed; top: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
+        document.body.appendChild(toastContainer);
+      }
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        background: ${type === 'success' ? 'linear-gradient(135deg, #064e3b, #047857)' : 'linear-gradient(135deg, #7f1d1d, #b91c1c)'};
+        color: #fff;
+        border: 1px solid ${type === 'success' ? '#10B981' : '#EF4444'};
+        padding: 16px 24px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        pointer-events: auto;
+      `;
+      toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span> <span>${msg}</span>`;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-12px)';
+        toast.style.transition = 'all 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+      }, 4500);
+    }
+
+    // ─── PUSH MARKETING & RETENTION HUB ─────────────────────────────────────
+    const CAMPAIGN_PRESETS = {
+      dawn_blessing: {
+        title: '🌅 First Fruit of the Morning',
+        body: 'Command your morning! Start your day soaked in prophetic prayer and divine direction.'
+      },
+      midday_peace: {
+        title: '⏳ Take a 2-Minute Peace Pause',
+        body: 'Pause the busy day. Let sacred worship restore your focus and divine peace right now.'
+      },
+      midnight_vigil: {
+        title: '🌙 Peace for Your Sleep & Night Vigil',
+        body: 'Cast your cares upon Him. Fall asleep to anointed soaking worship and night prayer.'
+      },
+      inactivity_reconnect: {
+        title: '✨ We\'re Holding You in Prayer Today',
+        body: 'Life gets busy, but your spiritual peace matters. Tap to play today\'s Word of breakthrough.'
+      },
+      weekend_prep: {
+        title: '📖 Prepare Your Heart for the Sabbath',
+        body: 'Tune your spirit ahead of Sunday service with our anointed praise & worship collection.'
+      },
+      custom: {
+        title: '⚡ Fresh Manna Just Released! 🎵',
+        body: 'New sermon alert: Anointed messages are now streaming on LCM Audios.'
+      }
+    };
+
+    function onPresetSelectChange(val) {
+      if (CAMPAIGN_PRESETS[val]) {
+        document.getElementById('composerTitle').value = CAMPAIGN_PRESETS[val].title;
+        document.getElementById('composerBody').value = CAMPAIGN_PRESETS[val].body;
+      }
+      updatePushPreview();
+    }
+
+    function loadPresetCampaign(type) {
+      document.getElementById('composerPreset').value = type;
+      onPresetSelectChange(type);
+      scrollToComposer();
+    }
+
+    function scrollToComposer() {
+      const card = document.getElementById('campaignComposerCard');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        card.style.boxShadow = '0 0 25px rgba(230,57,70,0.5)';
+        setTimeout(() => { card.style.boxShadow = ''; }, 2000);
+      }
+    }
+
+    function insertEmoji(emoji) {
+      const titleInput = document.getElementById('composerTitle');
+      titleInput.value = `${emoji} ${titleInput.value}`.trim();
+      updatePushPreview();
+    }
+
+    function updatePushPreview() {
+      const title = document.getElementById('composerTitle').value.trim() || '🕊️ A moment of stillness awaits you...';
+      const body = document.getElementById('composerBody').value.trim() || 'Take 3 minutes today to rest in God\'s presence. Renew your strength with a short worship session.';
+
+      document.getElementById('previewPushTitle').innerText = title;
+      document.getElementById('previewPushBody').innerText = body;
+    }
+
+    async function sendPresetDirect(campaignType) {
+      const preset = CAMPAIGN_PRESETS[campaignType];
+      if (!preset) return;
+      if (!confirm(`🚀 Broadcast "${preset.title}" directly to all devotees on the 'all_devotees' topic?`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/marketing/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignType })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`✅ Campaign Dispatched!\n\nTitle: ${data.campaign?.title}\nStatus: ${data.fcmSent ? 'Delivered to FCM Cloud' : 'Standby / Local Simulation'}`);
+          addBroadcastHistoryRow(campaignType, data.campaign?.title, data.campaign?.body, data.fcmSent);
+        } else {
+          alert(`Error: ${data.error || 'Failed to dispatch campaign'}`);
+        }
+      } catch (err) {
+        alert(`Network Error: ${err.message}`);
+      }
+    }
+
+    async function dispatchCustomCampaign() {
+      const btn = document.getElementById('dispatchCampaignBtn');
+      const statusMsg = document.getElementById('campaignStatusMsg');
+      const campaignType = document.getElementById('composerPreset').value;
+      const customTitle = document.getElementById('composerTitle').value.trim();
+      const customBody = document.getElementById('composerBody').value.trim();
+      const intentCategory = document.getElementById('composerTarget').value;
+
+      if (!customTitle || !customBody) {
+        alert('Please provide both a Title and Message Body for your notification.');
+        return;
+      }
+
+      if (!confirm(`🚀 Send broadcast "${customTitle}" to ${intentCategory === 'all' ? 'ALL devotees' : intentCategory}?`)) return;
+
+      try {
+        btn.disabled = true;
+        btn.innerText = '📡 BROADCASTING VIA FCM...';
+        statusMsg.innerText = '';
+
+        const res = await fetch(`${API_BASE}/admin/marketing/broadcast`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignType,
+            customTitle,
+            customBody,
+            intentCategory
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          statusMsg.innerText = '✅ Broadcast Sent Successfully!';
+          statusMsg.style.color = 'var(--green)';
+          addBroadcastHistoryRow(campaignType, customTitle, customBody, data.fcmSent);
+          alert(`🎉 Broadcast successfully dispatched!\n\nDelivered to: 'all_devotees'\nTitle: ${customTitle}`);
+        } else {
+          statusMsg.innerText = `❌ Error: ${data.error}`;
+          statusMsg.style.color = 'var(--primary)';
+        }
+      } catch (err) {
+        statusMsg.innerText = `❌ ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 BROADCAST TO ALL DEVOTEES NOW';
+      }
+    }
+
+    async function testDirectFCM() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/notifications/test`, { method: 'POST' });
+        const data = await res.json();
+        alert(`🔔 System Ping Result:\n\n${data.message}`);
+      } catch (err) {
+        alert(`Test ping failed: ${err.message}`);
+      }
+    }
+
+    function addBroadcastHistoryRow(type, title, body, isFCM) {
+      const tbody = document.getElementById('broadcast-history-body');
+      if (!tbody) return;
+      const row = document.createElement('tr');
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      row.innerHTML = `
+        <td style="font-family: monospace; font-size: 11.5px; color: var(--text-muted);">${nowTime}</td>
+        <td><span style="background: rgba(230,57,70,0.15); color: #E63946; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">${type}</span></td>
+        <td>
+          <strong style="color: #fff;">${title}</strong>
+          <div style="font-size: 11.5px; color: var(--text-muted);">${body}</div>
+        </td>
+        <td><code style="color: #06B6D4;">all_devotees</code></td>
+        <td><span style="background: ${isFCM ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)'}; color: ${isFCM ? '#10B981' : '#F59E0B'}; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">${isFCM ? '✓ Delivered via FCM' : '⚡ Local Standby'}</span></td>
+      `;
+      tbody.prepend(row);
+    }
+
+    function clearBroadcastHistory() {
+      const tbody = document.getElementById('broadcast-history-body');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 14px;">History log cleared.</td></tr>';
+    }
+
+    // Initial load with session verification
+    checkAdminAuth();
     addLyricRow(0, '[Instrumental Prelude]');
     addLyricRow(15, 'Glorious God, powerful in battle');
+
+    // Live Heartbeat Auto-Refresh (Real-Time Telemetry & Devotees Sync every 5s)
+    let currentAdminActiveTab = 'analytics';
+    const baseSwitchTab = switchTab;
+    switchTab = function(tabId) {
+      currentAdminActiveTab = tabId;
+      baseSwitchTab(tabId);
+    };
+
+    setInterval(() => {
+      if (document.hidden) return;
+      const overlay = document.getElementById('adminLoginOverlay');
+      if (overlay && overlay.style.display === 'flex') return;
+
+      if (currentAdminActiveTab === 'analytics') {
+        loadAnalytics();
+      } else if (currentAdminActiveTab === 'devotees') {
+        const modal = document.getElementById('devoteeModal');
+        if (!modal || modal.style.display !== 'flex') {
+          loadDevotees();
+        }
+      }
+    }, 5000);
   </script>
 </body>
 </html>

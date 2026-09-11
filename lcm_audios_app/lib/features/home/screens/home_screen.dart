@@ -7,6 +7,7 @@ import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/theme_service.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
+import '../../explore/screens/sermon_series_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTap;
@@ -842,6 +843,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
+
+                      // ─── Featured Sermon Series (Chunking for Hick's Law) ─────────
+                      if (playerService.selectedCategoryKey == 'all' && playerService.allSeries.isNotEmpty) ...[
+                        _buildSeriesSection(context, playerService),
+                        const SizedBox(height: 14),
+                      ],
 
                       // Featured Media Streams Header
                       Padding(
@@ -1712,6 +1719,180 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSeriesSection(BuildContext context, AudioPlayerService playerService) {
+    final seriesList = playerService.allSeries;
+    if (seriesList.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.auto_stories_rounded, color: AppColors.primary, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Featured Sermon Series',
+                    style: TextStyle(
+                      color: AppColors.text(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              if (widget.onExploreTap != null)
+                GestureDetector(
+                  onTap: widget.onExploreTap,
+                  child: const Text(
+                    'See All',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 165,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: seriesList.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final series = seriesList[index];
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SermonSeriesDetailScreen(series: series),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 220,
+                  decoration: BoxDecoration(
+                    color: AppColors.card(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border(context)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadow(context),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Banner / Artwork
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            child: CachedNetworkImage(
+                              imageUrl: series.bannerArtUrl,
+                              height: 95,
+                              width: double.infinity,
+                              memCacheWidth: 440,
+                              memCacheHeight: 190,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Container(
+                                height: 95,
+                                color: AppColors.cardAlt(context),
+                                child: const Icon(Icons.album_rounded, color: AppColors.primary, size: 28),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white24, width: 0.5),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.layers_rounded, color: Color(0xFFFFDF79), size: 11),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${series.partsCount} PARTS',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFDF79),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Series Title & Preacher
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              series.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.text(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              series.ministerName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.subtext(context),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -67,7 +67,7 @@ async function main() {
     {
       id: 'track_3',
       title: 'Warfare & Spiritual Breakthrough',
-      artist: 'Apostle Joshua Selman',
+      artist: 'Pastor Martins Omonua',
       albumArtUrl:
         'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80',
       audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',

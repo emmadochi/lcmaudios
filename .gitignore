@@ -32,3 +32,6 @@ backend/.env
 # Encrypted DRM offline audio files
 *.lcmdrm
 *.enc
+
+# Firebase Service Account
+backend/serviceAccountKey.json

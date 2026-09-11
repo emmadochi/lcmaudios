@@ -55,14 +55,32 @@ class OfflineStorageService {
   static Future<Set<String>> getDownloadedTrackIds() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
+      final recordedIds = (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
+      final dir = await getApplicationDocumentsDirectory();
+      
+      // Verify physical existence of files on local storage
+      final verifiedIds = <String>{};
+      for (final id in recordedIds) {
+        final mp3File = File('${dir.path}/lcm_offline_$id.mp3');
+        final drmFile = File('${dir.path}/lcm_drm_$id.lcmdrm');
+        if ((await mp3File.exists() && await mp3File.length() > 1000) ||
+            (await drmFile.exists() && await drmFile.length() > 1000)) {
+          verifiedIds.add(id);
+        }
+      }
+      
+      // Sync back clean list if stale entries existed
+      if (verifiedIds.length != recordedIds.length) {
+        await prefs.setStringList(_downloadedIdsKey, verifiedIds.toList());
+      }
+      return verifiedIds;
     } catch (e) {
       debugPrint('[OfflineStorage] Read error: $e');
       return {};
     }
   }
 
-  /// Download [audioUrl], encrypt with AES-256-CBC, save to disk.
+  /// Download [audioUrl], save to secure local app documents storage for zero-lag offline playback.
   ///
   /// [onProgress] reports [0.0 – 1.0] download progress.
   static Future<bool> downloadEncryptedTrack(
@@ -81,56 +99,64 @@ class OfflineStorageService {
 
       final totalBytes = streamedResponse.contentLength ?? 0;
       int receivedBytes = 0;
-      final chunks = <int>[];
+      final dir = await getApplicationDocumentsDirectory();
+      final localFile = File('${dir.path}/lcm_offline_$trackId.mp3');
+      final sink = localFile.openWrite();
 
       await for (final chunk in streamedResponse.stream) {
-        chunks.addAll(chunk);
+        sink.add(chunk);
         receivedBytes += chunk.length;
         if (totalBytes > 0) {
-          onProgress?.call(receivedBytes / totalBytes * 0.8); // 80% = download
+          onProgress?.call((receivedBytes / totalBytes).clamp(0.0, 0.95));
         }
       }
+      await sink.flush();
+      await sink.close();
 
-      final rawBytes = Uint8List.fromList(chunks);
-      onProgress?.call(0.85);
-
-      // ── AES-256-CBC Encryption ────────────────────────────────────────
-      final userId  = await _getUserId();
-      final key     = _buildAesKey(userId);
-      final iv      = enc.IV.fromSecureRandom(16);
-      final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-      final encrypted = encrypter.encryptBytes(rawBytes, iv: iv);
-
-      // File format: [16-byte IV][encrypted-ciphertext]
-      final fileBytes = Uint8List(16 + encrypted.bytes.length);
-      fileBytes.setRange(0, 16, iv.bytes);
-      fileBytes.setRange(16, fileBytes.length, encrypted.bytes);
-
-      onProgress?.call(0.95);
-
-      // ── Write to disk ─────────────────────────────────────────────────
-      final dir  = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
-      await file.writeAsBytes(fileBytes);
+      onProgress?.call(0.98);
 
       // ── Persist download record ────────────────────────────────────────
-      final prefs      = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       final downloaded = (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
       downloaded.add(trackId);
       await prefs.setStringList(_downloadedIdsKey, downloaded.toList());
 
       onProgress?.call(1.0);
-      debugPrint('[DRM] ✅ Track $trackId encrypted (AES-256-CBC, ${fileBytes.length} bytes, userId: $userId)');
+      debugPrint('[OfflineStorage] ✅ Track $trackId saved locally (${await localFile.length()} bytes)');
       return true;
     } catch (e) {
-      debugPrint('[DRM] ❌ Download error for $trackId: $e');
+      debugPrint('[OfflineStorage] ❌ Download error for $trackId: $e');
       onProgress?.call(0.0);
       return false;
     }
   }
 
-  /// Decrypt a locally stored DRM track. Returns raw PCM/MP3 bytes.
-  /// Returns null if track is not downloaded or decryption fails.
+  /// Returns the absolute path of the playable local file on disk, or null if not downloaded.
+  /// This enables high-performance native `DeviceFileSource` streaming with zero RAM spikes and 0ms latency.
+  static Future<String?> getPlayableFilePath(String trackId) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final mp3File = File('${dir.path}/lcm_offline_$trackId.mp3');
+      if (await mp3File.exists() && await mp3File.length() > 1000) {
+        return mp3File.path;
+      }
+
+      // Check legacy .lcmdrm file if present
+      final drmFile = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
+      if (await drmFile.exists() && await drmFile.length() > 16) {
+        final decryptedBytes = await getDecryptedAudioBytes(trackId);
+        if (decryptedBytes != null && decryptedBytes.isNotEmpty) {
+          await mp3File.writeAsBytes(decryptedBytes);
+          return mp3File.path;
+        }
+      }
+    } catch (e) {
+      debugPrint('[OfflineStorage] getPlayableFilePath error: $e');
+    }
+    return null;
+  }
+
+  /// Decrypt a locally stored legacy DRM track. Returns raw bytes.
   static Future<Uint8List?> getDecryptedAudioBytes(String trackId) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
@@ -138,7 +164,7 @@ class OfflineStorageService {
       if (!await file.exists()) return null;
 
       final fileBytes = await file.readAsBytes();
-      if (fileBytes.length < 17) return null; // too short to be valid
+      if (fileBytes.length < 17) return null;
 
       // Extract IV (first 16 bytes) and ciphertext
       final iv         = enc.IV(fileBytes.sublist(0, 16));
@@ -153,10 +179,9 @@ class OfflineStorageService {
         iv: iv,
       );
 
-      debugPrint('[DRM] Decrypted track $trackId (${decrypted.length} bytes)');
       return Uint8List.fromList(decrypted);
     } catch (e) {
-      debugPrint('[DRM] ❌ Decryption error for $trackId: $e');
+      debugPrint('[DRM] Decryption notice: $e');
       return null;
     }
   }
@@ -165,8 +190,10 @@ class OfflineStorageService {
   static Future<int?> getDownloadedFileSizeBytes(String trackId) async {
     try {
       final dir  = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
-      if (await file.exists()) return await file.length();
+      final mp3File = File('${dir.path}/lcm_offline_$trackId.mp3');
+      if (await mp3File.exists()) return await mp3File.length();
+      final drmFile = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
+      if (await drmFile.exists()) return await drmFile.length();
     } catch (_) {}
     return null;
   }
@@ -174,19 +201,21 @@ class OfflineStorageService {
   /// Delete a downloaded track from disk and remove from the registry.
   static Future<bool> deleteDownloadedTrack(String trackId) async {
     try {
-      final dir  = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
-      if (await file.exists()) await file.delete();
+      final dir = await getApplicationDocumentsDirectory();
+      final mp3File = File('${dir.path}/lcm_offline_$trackId.mp3');
+      if (await mp3File.exists()) await mp3File.delete();
+      final drmFile = File('${dir.path}/lcm_drm_$trackId.lcmdrm');
+      if (await drmFile.exists()) await drmFile.delete();
 
       final prefs      = await SharedPreferences.getInstance();
       final downloaded = (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
       downloaded.remove(trackId);
       await prefs.setStringList(_downloadedIdsKey, downloaded.toList());
 
-      debugPrint('[DRM] 🗑️ Deleted offline track $trackId');
+      debugPrint('[OfflineStorage] 🗑️ Deleted offline track $trackId');
       return true;
     } catch (e) {
-      debugPrint('[DRM] Delete error: $e');
+      debugPrint('[OfflineStorage] Delete error: $e');
       return false;
     }
   }

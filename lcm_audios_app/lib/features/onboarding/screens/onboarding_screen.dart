@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/theme_service.dart';
@@ -15,9 +14,14 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerProviderStateMixin {
-  int _currentStep = 0; // 0 = Welcome & Brand Intro, 1 = Theme Selection, 2 = Spiritual Intents
+  int _currentStep = 0; // 0 = Welcome, 1 = Atmosphere/Theme, 2 = Spiritual Intents
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  final Set<IntentCategory> _selectedIntents = {
+    IntentCategory.morningDevotion,
+    IntentCategory.deepWorship,
+  };
 
   @override
   void initState() {
@@ -38,18 +42,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     super.dispose();
   }
 
-  final Set<IntentCategory> _selectedIntents = {
-    IntentCategory.morningDevotion,
-    IntentCategory.deepWorship,
-  };
-
   void _finishOnboarding() async {
     final playerService = Provider.of<AudioPlayerService>(context, listen: false);
     playerService.setCategoryFilter('all');
     playerService.setIntentFilter(IntentCategory.all);
     await playerService.completeOnboarding();
     if (!mounted) return;
-    
+
     if (playerService.isAuthenticated) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainNavigationShell()),
@@ -64,110 +63,128 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final themeService = Provider.of<ThemeService>(context);
-    final isDark = AppColors.isDarkMode(context);
 
-    final bgGradientColor = isDark
-        ? AppColors.primaryGlow
-        : AppColors.primary.withValues(alpha: 0.08);
+    // Brand Crimson Colors
+    const crimsonColor = Color(0xFFE63946);
+    const crimsonDark = Color(0xFFD90429);
 
     return Scaffold(
-      backgroundColor: AppColors.bg(context),
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
+      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
           gradient: RadialGradient(
-            center: const Alignment(0, -0.5),
+            center: Alignment(0, -0.4),
             radius: 1.2,
             colors: [
-              bgGradientColor,
-              AppColors.bg(context),
+              Color(0xFFFFF5F5), // ultra-soft crimson warmth at the top center
+              Colors.white,
             ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Progress indicator bar (3 Steps)
+                // Top Progress Bar & Skip Button
                 Row(
                   children: [
+                    // 3-Segment Capsule Progress Indicator
                     Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                      child: Row(
+                        children: List.generate(3, (index) {
+                          final isActive = index <= _currentStep;
+                          return Expanded(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              height: 4,
+                              margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
+                              decoration: BoxDecoration(
+                                gradient: isActive
+                                    ? const LinearGradient(
+                                        colors: [crimsonColor, crimsonDark],
+                                      )
+                                    : null,
+                                color: isActive ? null : const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _currentStep >= 1
-                              ? AppColors.primary
-                              : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-                          borderRadius: BorderRadius.circular(2),
+                    const SizedBox(width: 16),
+                    // Skip action (Steps 0 & 1)
+                    if (_currentStep < 2)
+                      TextButton(
+                        onPressed: _finishOnboarding,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Skip',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _currentStep >= 2
-                              ? AppColors.primary
-                              : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
 
-                // Step 0: Welcome Intro, Step 1: Theme Selection, Step 2: Spiritual Intents
+                // Main Step Content with Smooth Fade Transitions
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
                     child: _currentStep == 0
-                        ? _buildWelcomeIntroStep(context, isDark)
+                        ? _buildWelcomeStep(context)
                         : _currentStep == 1
-                            ? _buildThemeSelectionStep(context, themeService, isDark)
-                            : _buildIntentSelectionStep(context, isDark),
+                            ? _buildAtmosphereStep(context, themeService)
+                            : _buildIntentsStep(context),
                   ),
                 ),
 
-                // Bottom Action Buttons
+                const SizedBox(height: 16),
+
+                // Bottom Action Buttons (Back + Crimson Continue CTA)
                 Row(
                   children: [
                     if (_currentStep > 0) ...[
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: isDark ? AppColors.glassBorder : AppColors.lightGlassBorder,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        ),
-                        onPressed: () {
+                      InkWell(
+                        onTap: () {
                           setState(() {
                             _currentStep--;
                           });
                         },
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: AppColors.text(context),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Color(0xFF0F172A),
+                            size: 20,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -177,11 +194,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         height: 52,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: crimsonColor.withValues(alpha: 0.35),
+                            elevation: 5,
+                            padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            elevation: 4,
                           ),
                           onPressed: () {
                             if (_currentStep < 2) {
@@ -192,25 +211,46 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                               _finishOnboarding();
                             }
                           },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _currentStep == 0
-                                    ? 'GET STARTED'
-                                    : _currentStep == 1
-                                        ? 'CONTINUE'
-                                        : 'ENTER SANCTUARY',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  letterSpacing: 1.2,
-                                ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFE63946),
+                                  Color(0xFFD90429),
+                                  Color(0xFFBE123C),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                            ],
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _currentStep == 0
+                                        ? 'GET STARTED'
+                                        : _currentStep == 1
+                                            ? 'CONTINUE'
+                                            : 'ENTER SANCTUARY',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.5,
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -226,262 +266,207 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   // ===========================================================================
-  // Step 0: Sacred Sanctuary Editorial (Option A + Brand Colors)
+  // Step 0: Welcome Step (Pristine White, Crimson Brand Focus, High-End Editorial)
   // ===========================================================================
-  Widget _buildWelcomeIntroStep(BuildContext context, bool isDark) {
-    final primaryColor = AppColors.primary;
-    const goldAccent = Color(0xFFD4AF37);
-    const goldGlow = Color(0xFFFFDF79);
+  Widget _buildWelcomeStep(BuildContext context) {
+    const crimsonColor = Color(0xFFE63946);
 
     return SingleChildScrollView(
-      key: const ValueKey('step_welcome_editorial'),
+      key: const ValueKey('step_welcome_white_red'),
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Top Mini Brand Crest Badge
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF161926) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: goldAccent.withValues(alpha: 0.35),
-                  width: 1,
+          // Top Mini Crimson Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF1F2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: crimsonColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: crimsonColor.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: goldAccent.withValues(alpha: 0.12),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.auto_awesome_rounded, size: 13, color: crimsonColor),
+                SizedBox(width: 6),
+                Text(
+                  'SACRED AUDIO SANCTUARY',
+                  style: TextStyle(
+                    color: crimsonColor,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    isDark ? 'assets/images/logo2White.png' : 'assets/images/logoIcon.png',
-                    width: 16,
-                    height: 16,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'LCM AUDIOS SANCTUARY',
-                    style: TextStyle(
-                      color: isDark ? goldGlow : const Color(0xFFB45309),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // Hero Radiant Visual: Pulsing Dove of Glory with Acoustic Frequencies
-          Center(
-            child: AnimatedBuilder(
-              animation: _pulseAnimation,
-              builder: (context, child) {
-                final scale = _pulseAnimation.value;
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer Soft Ambient Aura Rings (Crimson & Gold)
-                    Container(
-                      width: 170 * scale,
-                      height: 170 * scale,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            goldAccent.withValues(alpha: isDark ? 0.22 : 0.12),
-                            primaryColor.withValues(alpha: isDark ? 0.18 : 0.08),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Acoustic Waveform Frequency Horizontal Flare
-                    Container(
-                      width: 260,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            goldAccent.withValues(alpha: isDark ? 0.25 : 0.15),
-                            primaryColor.withValues(alpha: isDark ? 0.35 : 0.2),
-                            goldAccent.withValues(alpha: isDark ? 0.25 : 0.15),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: List.generate(19, (index) {
-                          final heights = [6, 12, 18, 28, 14, 36, 44, 26, 48, 38, 48, 26, 44, 36, 14, 28, 18, 12, 6];
-                          return Container(
-                            width: 2.2,
-                            height: heights[index % heights.length] * (scale * 0.9),
-                            decoration: BoxDecoration(
-                              color: index % 2 == 0 ? goldAccent : primaryColor,
-                              borderRadius: BorderRadius.circular(2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: goldAccent.withValues(alpha: 0.4),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-
-                    // Core Illuminated Sacred Orb with Official LCM Brand Logo
-                    Container(
-                      width: 110,
-                      height: 110,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isDark
-                              ? [
-                                  const Color(0xFF2A1420),
-                                  const Color(0xFF160D1A),
-                                  const Color(0xFF0F0B14),
-                                ]
-                              : [
-                                  Colors.white,
-                                  const Color(0xFFFFF9EE),
-                                  const Color(0xFFFDF2F4),
-                                ],
-                        ),
-                        border: Border.all(
-                          color: goldAccent.withValues(alpha: 0.7),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: goldAccent.withValues(alpha: isDark ? 0.4 : 0.2),
-                            blurRadius: 28,
-                            spreadRadius: 2,
-                          ),
-                          BoxShadow(
-                            color: primaryColor.withValues(alpha: isDark ? 0.35 : 0.15),
-                            blurRadius: 18,
-                            offset: const Offset(0, 4),
-                          ),
+          // Central Illuminated Orb with Crimson Waveform
+          AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              final scale = _pulseAnimation.value;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer Soft Ambient Aura Ring
+                  Container(
+                    width: 170 * scale,
+                    height: 170 * scale,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          crimsonColor.withValues(alpha: 0.14),
+                          const Color(0xFFFB7185).withValues(alpha: 0.06),
+                          Colors.transparent,
                         ],
                       ),
-                      child: Center(
-                        child: Image.asset(
-                          isDark ? 'assets/images/logo2White.png' : 'assets/images/logoIcon.png',
-                          fit: BoxFit.contain,
+                    ),
+                  ),
+
+                  // Crimson Audio Soundwave Flare
+                  Container(
+                    width: 250,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: List.generate(15, (index) {
+                        final heights = [8, 16, 26, 38, 20, 42, 30, 44, 30, 42, 20, 38, 26, 16, 8];
+                        return Container(
+                          width: 2.5,
+                          height: heights[index % heights.length] * scale,
+                          decoration: BoxDecoration(
+                            color: crimsonColor.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+
+                  // Core Emblem Disc
+                  Container(
+                    width: 108,
+                    height: 108,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(
+                        color: crimsonColor.withValues(alpha: 0.7),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: crimsonColor.withValues(alpha: 0.2),
+                          blurRadius: 24,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/logoIcon.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.headphones_rounded,
+                          color: crimsonColor,
+                          size: 36,
                         ),
                       ),
                     ),
-                  ],
-                );
-              },
-            ),
+                  ),
+                ],
+              );
+            },
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
-          // Editorial Title & Soul Sanctuary Tagline
-          Text(
+          // Editorial Title & Headline
+          const Text(
             'LCM AUDIOS',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.text(context),
-              fontSize: 27,
+              color: Color(0xFF0F172A),
+              fontSize: 28,
               fontWeight: FontWeight.w900,
-              letterSpacing: 3.2,
+              letterSpacing: 2.8,
             ),
           ),
           const SizedBox(height: 6),
 
-          Text(
-            'A Sacred Sanctuary for the Soul',
+          const Text(
+            'Faith in Motion • Sacred Sound for the Soul',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isDark ? goldGlow : const Color(0xFFB45309),
+              color: crimsonColor,
               fontSize: 14.5,
               fontWeight: FontWeight.w600,
               fontStyle: FontStyle.italic,
-              letterSpacing: 0.5,
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              'Immerse in life-transforming sermons, prophetic worship altars, and synchronized scriptures curated for your spiritual ascension.',
+              'Immerse in life-transforming sermons, prophetic worship, and midnight prayer altars curated for your spiritual elevation.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.subtext(context),
-                fontSize: 13,
-                height: 1.45,
+                color: Color(0xFF475569),
+                fontSize: 13.5,
+                height: 1.5,
               ),
             ),
           ),
 
-          const SizedBox(height: 22),
+          const SizedBox(height: 28),
 
-          // Interactive Horizontal Preview Carousel of Sanctuary Streams
-          SizedBox(
-            height: 94,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _buildSermonStreamCard(
-                  context,
-                  title: 'HOPE IN CHAOS',
-                  speaker: 'Pastor Martins',
-                  category: 'Sunday Services',
-                  accentColor: primaryColor,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 12),
-                _buildSermonStreamCard(
-                  context,
-                  title: 'GUIDING LIGHT',
-                  speaker: 'Apostle Joshua',
-                  category: 'Deep Worship',
-                  accentColor: goldAccent,
-                  isDark: isDark,
-                  isHighlighted: true,
-                ),
-                const SizedBox(width: 12),
-                _buildSermonStreamCard(
-                  context,
-                  title: 'DIVINE GLORY',
-                  speaker: 'Nathaniel Bassey',
-                  category: 'Morning Devotion',
-                  accentColor: const Color(0xFF8B5CF6),
-                  isDark: isDark,
-                ),
-              ],
-            ),
+          // 3 Minimalist Luxury Feature Chips on Clean White
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildFeatureHighlightPill(
+                icon: Icons.offline_bolt_rounded,
+                label: 'Encrypted Offline Vault',
+              ),
+              _buildFeatureHighlightPill(
+                icon: Icons.high_quality_rounded,
+                label: 'Studio Master Audio',
+              ),
+              _buildFeatureHighlightPill(
+                icon: Icons.menu_book_rounded,
+                label: 'Sermon Timestamp Notes',
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
@@ -490,86 +475,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildSermonStreamCard(
-    BuildContext context, {
-    required String title,
-    required String speaker,
-    required String category,
-    required Color accentColor,
-    required bool isDark,
-    bool isHighlighted = false,
+  Widget _buildFeatureHighlightPill({
+    required IconData icon,
+    required String label,
   }) {
+    const crimsonColor = Color(0xFFE63946);
+
     return Container(
-      width: 138,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161926) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isHighlighted ? accentColor : AppColors.border(context),
-          width: isHighlighted ? 1.6 : 1,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: isHighlighted ? accentColor.withValues(alpha: 0.22) : AppColors.shadow(context),
-            blurRadius: isHighlighted ? 12 : 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    category.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.graphic_eq_rounded, size: 14, color: accentColor),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.text(context),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                speaker,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.muted(context),
-                  fontSize: 9.5,
-                ),
-              ),
-            ],
+          Icon(icon, size: 14, color: crimsonColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF334155),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -577,108 +514,121 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   // ===========================================================================
-  // Step 0: Choose Theme Mode (Light / Dark / System)
+  // Step 1: Choose Your Atmosphere (Balanced Visual Theme Cards on White)
   // ===========================================================================
-  Widget _buildThemeSelectionStep(BuildContext context, ThemeService themeService, bool isDark) {
+  Widget _buildAtmosphereStep(BuildContext context, ThemeService themeService) {
+    const crimsonColor = Color(0xFFE63946);
+
     return Column(
-      key: const ValueKey('step_theme'),
+      key: const ValueKey('step_theme_white'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Choose Your Atmosphere',
           style: TextStyle(
-            color: AppColors.text(context),
-            fontSize: 26,
+            color: Color(0xFF0F172A),
+            fontSize: 24,
             fontWeight: FontWeight.bold,
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Select the visual theme that aligns with your sanctuary environment. You can change this anytime.',
+        const SizedBox(height: 6),
+        const Text(
+          'Personalize the lighting environment for your sanctuary experience.',
           style: TextStyle(
-            color: AppColors.subtext(context),
-            fontSize: 14,
-            height: 1.4,
+            color: Color(0xFF64748B),
+            fontSize: 13.5,
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 20),
 
+        // Visual Side-By-Side / Stacked Atmosphere Cards
         Expanded(
-          child: ListView(
+          child: Column(
             children: [
-              // Dark Mode Card
-              _buildThemeCard(
-                context: context,
-                title: 'Midnight Vigil',
-                subtitle: 'Deep obsidian & warm crimson glow for evening prayer, contemplation & deep worship.',
-                icon: Icons.nightlight_round,
-                accentColor: const Color(0xFF8B5CF6),
-                previewColor: const Color(0xFF0D0F17),
-                previewTextColor: Colors.white,
-                isSelected: themeService.themeMode == ThemeMode.dark,
-                onTap: () => themeService.setThemeMode(ThemeMode.dark),
+              // Midnight Vigil Theme Card (Dark Mode Preview)
+              Expanded(
+                child: _buildVisualThemeCard(
+                  context: context,
+                  title: 'Midnight Vigil',
+                  subtitle: 'Deep obsidian & warm crimson glow for evening prayer, contemplation & worship.',
+                  icon: Icons.nightlight_round,
+                  accentColor: const Color(0xFFFFDF79),
+                  bgColors: const [Color(0xFF0F172A), Color(0xFF1E293B)],
+                  textColor: Colors.white,
+                  isSelected: themeService.themeMode == ThemeMode.dark,
+                  onTap: () => themeService.setThemeMode(ThemeMode.dark),
+                ),
               ),
               const SizedBox(height: 14),
 
-              // Light Mode Card
-              _buildThemeCard(
-                context: context,
-                title: 'Daylight Devotion',
-                subtitle: 'Clean alabaster & crisp editorial style for morning devotion, study & bright focus.',
-                icon: Icons.wb_sunny_rounded,
-                accentColor: const Color(0xFFF59E0B),
-                previewColor: const Color(0xFFF6F8FC),
-                previewTextColor: const Color(0xFF0F172A),
-                isSelected: themeService.themeMode == ThemeMode.light,
-                onTap: () => themeService.setThemeMode(ThemeMode.light),
+              // Daylight Devotion Theme Card (Light Mode Preview)
+              Expanded(
+                child: _buildVisualThemeCard(
+                  context: context,
+                  title: 'Daylight Devotion',
+                  subtitle: 'Crisp alabaster & bright radiant tones for morning study & devotional focus.',
+                  icon: Icons.wb_sunny_rounded,
+                  accentColor: crimsonColor,
+                  bgColors: const [Color(0xFFFFF5F5), Colors.white],
+                  textColor: const Color(0xFF0F172A),
+                  isSelected: themeService.themeMode == ThemeMode.light,
+                  onTap: () => themeService.setThemeMode(ThemeMode.light),
+                ),
               ),
               const SizedBox(height: 14),
 
-              // System Auto Option
+              // Match Device Auto-Toggle
               InkWell(
                 onTap: () => themeService.setThemeMode(ThemeMode.system),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.card(context),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: themeService.themeMode == ThemeMode.system
-                          ? AppColors.primary
-                          : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-                      width: themeService.themeMode == ThemeMode.system ? 1.8 : 1,
+                          ? crimsonColor
+                          : const Color(0xFFE2E8F0),
+                      width: themeService.themeMode == ThemeMode.system ? 1.5 : 1,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
+                          color: crimsonColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.brightness_auto_rounded, color: AppColors.primary, size: 20),
+                        child: const Icon(Icons.brightness_auto_rounded, color: crimsonColor, size: 18),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          children: const [
                             Text(
                               'Match Device System',
                               style: TextStyle(
-                                color: AppColors.text(context),
-                                fontSize: 14.5,
+                                color: Color(0xFF0F172A),
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 2),
                             Text(
-                              'Automatically transition based on your OS settings',
+                              'Automatically follow your device system settings',
                               style: TextStyle(
-                                color: AppColors.muted(context),
-                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                                fontSize: 11.5,
                               ),
                             ),
                           ],
@@ -686,11 +636,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                       ),
                       Icon(
                         themeService.themeMode == ThemeMode.system
-                            ? Icons.radio_button_checked_rounded
+                            ? Icons.check_circle_rounded
                             : Icons.radio_button_unchecked_rounded,
                         color: themeService.themeMode == ThemeMode.system
-                            ? AppColors.primary
-                            : AppColors.muted(context),
+                            ? crimsonColor
+                            : const Color(0xFFCBD5E1),
                         size: 20,
                       ),
                     ],
@@ -704,108 +654,93 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildThemeCard({
+  Widget _buildVisualThemeCard({
     required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
     required Color accentColor,
-    required Color previewColor,
-    required Color previewTextColor,
+    required List<Color> bgColors,
+    required Color textColor,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final isDark = AppColors.isDarkMode(context);
+    const crimsonColor = Color(0xFFE63946);
 
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.card(context),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: bgColors,
+          ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-            width: isSelected ? 2.2 : 1,
+            color: isSelected ? crimsonColor : const Color(0xFFE2E8F0),
+            width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 18,
+                    color: crimsonColor.withValues(alpha: 0.2),
+                    blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: AppColors.shadow(context),
-                    blurRadius: 10,
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Mini Preview Thumbnail Box
             Container(
-              width: 58,
-              height: 72,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: previewColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary.withValues(alpha: 0.6) : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-                ),
+                color: accentColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: accentColor, size: 24),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: previewTextColor.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ],
-              ),
+              child: Icon(icon, color: accentColor, size: 28),
             ),
             const SizedBox(width: 16),
-
-            // Description
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         title,
                         style: TextStyle(
-                          color: AppColors.text(context),
+                          color: textColor,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const Spacer(),
                       Icon(
                         isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        color: isSelected ? AppColors.primary : AppColors.muted(context),
+                        color: isSelected ? crimsonColor : const Color(0xFFCBD5E1),
                         size: 22,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: AppColors.subtext(context),
-                      fontSize: 12.5,
+                      color: textColor.withValues(alpha: 0.75),
+                      fontSize: 12,
                       height: 1.35,
                     ),
                   ),
@@ -819,38 +754,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 
   // ===========================================================================
-  // Step 1: Spiritual Intents
+  // Step 2: Personalize Spiritual Intents (Clean White Cards, Crimson Active State)
   // ===========================================================================
-  Widget _buildIntentSelectionStep(BuildContext context, bool isDark) {
+  Widget _buildIntentsStep(BuildContext context) {
+    const crimsonColor = Color(0xFFE63946);
+
     return Column(
-      key: const ValueKey('step_intents'),
+      key: const ValueKey('step_intents_white'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Personalize Your Spiritual Journey',
           style: TextStyle(
-            color: AppColors.text(context),
-            fontSize: 26,
+            color: Color(0xFF0F172A),
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            letterSpacing: -0.3,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Select the spiritual intents that match your daily devotion routine.',
+        const SizedBox(height: 6),
+        const Text(
+          'Select your daily prayer & worship streams for a customized home altar.',
           style: TextStyle(
-            color: AppColors.subtext(context),
-            fontSize: 14,
+            color: Color(0xFF64748B),
+            fontSize: 13.5,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
 
         Expanded(
           child: GridView.builder(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.1,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
+              childAspectRatio: 1.18,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
             itemCount: SpiritualIntent.categories.length - 1, // Exclude 'All'
             itemBuilder: (ctx, i) {
@@ -869,30 +807,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? (isDark ? AppColors.surfaceLight : AppColors.lightSurfaceLight)
-                        : AppColors.card(context),
-                    borderRadius: BorderRadius.circular(20),
+                    color: isSelected ? const Color(0xFFFFF1F2) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: isSelected
-                          ? intent.accentColor
-                          : (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder),
-                      width: isSelected ? 2 : 1,
+                      color: isSelected ? crimsonColor : const Color(0xFFE2E8F0),
+                      width: isSelected ? 1.8 : 1,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: intent.accentColor.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
+                              color: crimsonColor.withValues(alpha: 0.18),
+                              blurRadius: 12,
+                              offset: const Offset(0, 3),
                             ),
                           ]
                         : [
                             BoxShadow(
-                              color: AppColors.shadow(context),
-                              blurRadius: 8,
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
                           ],
@@ -905,17 +839,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: intent.accentColor.withValues(alpha: 0.2),
+                              color: isSelected
+                                  ? crimsonColor.withValues(alpha: 0.15)
+                                  : const Color(0xFFF1F5F9),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(intent.icon, color: intent.accentColor, size: 24),
+                            child: Icon(
+                              intent.icon,
+                              color: isSelected ? crimsonColor : const Color(0xFF475569),
+                              size: 18,
+                            ),
                           ),
                           Icon(
                             isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                            color: isSelected ? intent.accentColor : AppColors.muted(context),
-                            size: 22,
+                            color: isSelected ? crimsonColor : const Color(0xFFCBD5E1),
+                            size: 18,
                           ),
                         ],
                       ),
@@ -924,20 +864,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         children: [
                           Text(
                             intent.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: AppColors.text(context),
-                              fontSize: 15,
+                              color: isSelected ? crimsonColor : const Color(0xFF0F172A),
+                              fontSize: 13.5,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             intent.description,
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.muted(context),
-                              fontSize: 11,
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontSize: 10.5,
                             ),
                           ),
                         ],
@@ -953,3 +895,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     );
   }
 }
+

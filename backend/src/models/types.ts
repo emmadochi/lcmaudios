@@ -59,12 +59,26 @@ export interface Track {
   createdAt: string;
 }
 
+export type SubscriptionTier = 'free' | 'monthly' | 'annual' | 'lifetime';
+export type UserAccountStatus = 'active' | 'suspended' | 'pending';
+
 export interface User {
   id: string;
   email: string;
   passwordHash: string;
   fullName: string;
   intentPreferences: IntentCategory[];
+  avatarUrl?: string;
+  subscriptionTier?: SubscriptionTier;
+  subscriptionStatus?: 'active' | 'expired' | 'canceled' | 'trial';
+  subscriptionExpiresAt?: string | null;
+  streamCount?: number;
+  downloadCount?: number;
+  totalListeningMinutes?: number;
+  notesCount?: number;
+  status?: UserAccountStatus;
+  lastActiveAt?: string;
+  fcmToken?: string;
   createdAt: string;
 }
 
