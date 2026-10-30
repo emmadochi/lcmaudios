@@ -14,12 +14,26 @@ export interface TranscodeResult {
 }
 
 export class HlsTranscoder {
+  private static activeJobs: number = 0;
+  private static readonly MAX_CONCURRENT_JOBS: number = 2;
+  private static queue: Array<() => void> = [];
+
+  private static processNextJob(): void {
+    if (HlsTranscoder.activeJobs >= HlsTranscoder.MAX_CONCURRENT_JOBS || HlsTranscoder.queue.length === 0) {
+      return;
+    }
+    const nextTask = HlsTranscoder.queue.shift();
+    if (nextTask) {
+      HlsTranscoder.activeJobs++;
+      nextTask();
+    }
+  }
+
   /**
    * Transcode an audio file (.mp3 / .wav / .aac) into an HLS VOD playlist
    * (.m3u8) with 10-second AAC-128k segments (.ts).
    *
-   * The npm package @ffmpeg-installer/ffmpeg bundles a pre-built FFmpeg binary
-   * so no system-level install is required in dev or on Railway/Render.
+   * Utilizes an internal concurrency queue to avoid CPU starvation.
    */
   public static async transcodeToHls(
     inputFilePath: string,
@@ -35,7 +49,7 @@ export class HlsTranscoder {
       };
     }
 
-    // Prepare output directory  uploads/hls/<trackId>/
+    // Prepare output directory uploads/hls/<trackId>/
     const hlsBaseDir = path.resolve(__dirname, '../../uploads/hls', trackId);
     if (!fs.existsSync(hlsBaseDir)) {
       fs.mkdirSync(hlsBaseDir, { recursive: true });
@@ -45,41 +59,57 @@ export class HlsTranscoder {
     const segmentPattern = path.join(hlsBaseDir, 'segment_%03d.ts');
 
     return new Promise<TranscodeResult>((resolve) => {
-      console.log(`[HLS] Transcoding started → trackId: ${trackId}`);
-      console.log(`[HLS] FFmpeg binary: ${ffmpegInstaller.path}`);
+      const executeJob = () => {
+        console.log(`[HLS] Transcoding started (Active: ${HlsTranscoder.activeJobs}) → trackId: ${trackId}`);
+        console.log(`[HLS] FFmpeg binary: ${ffmpegInstaller.path}`);
 
-      ffmpeg(inputFilePath)
-        .audioCodec('aac')
-        .audioBitrate('128k')
-        .outputOptions([
-          '-hls_time 10',
-          '-hls_playlist_type vod',
-          `-hls_segment_filename ${segmentPattern}`,
-        ])
-        .output(playlistPath)
-        .on('start', (cmd: string) => console.log(`[HLS] Command: ${cmd}`))
-        .on('end', () => {
-          const files = fs.readdirSync(hlsBaseDir);
-          const segments = files.filter((f) => f.endsWith('.ts'));
-          const hlsUrl = `${hostUrl}/uploads/hls/${trackId}/playlist.m3u8`;
-          console.log(`[HLS] ✅ Done — ${segments.length} segments for ${trackId}`);
-          resolve({
-            success: true,
-            hlsUrl,
-            segmentCount: segments.length,
-            message: `HLS transcoding completed with ${segments.length} segments.`,
-          });
-        })
-        .on('error', (err: Error) => {
-          console.error(`[HLS] ❌ Transcoding error for ${trackId}:`, err.message);
-          resolve({
-            success: false,
-            hlsUrl: '',
-            segmentCount: 0,
-            message: `Transcoding failed: ${err.message}`,
-          });
-        })
-        .run();
+        ffmpeg(inputFilePath)
+          .audioCodec('aac')
+          .audioBitrate('128k')
+          .outputOptions([
+            '-hls_time 10',
+            '-hls_playlist_type vod',
+            `-hls_segment_filename ${segmentPattern}`,
+          ])
+          .output(playlistPath)
+          .on('start', (cmd: string) => console.log(`[HLS] Command: ${cmd}`))
+          .on('end', () => {
+            HlsTranscoder.activeJobs--;
+            HlsTranscoder.processNextJob();
+
+            const files = fs.readdirSync(hlsBaseDir);
+            const segments = files.filter((f) => f.endsWith('.ts'));
+            const hlsUrl = `${hostUrl}/uploads/hls/${trackId}/playlist.m3u8`;
+            console.log(`[HLS] ✅ Done — ${segments.length} segments for ${trackId}`);
+            resolve({
+              success: true,
+              hlsUrl,
+              segmentCount: segments.length,
+              message: `HLS transcoding completed with ${segments.length} segments.`,
+            });
+          })
+          .on('error', (err: Error) => {
+            HlsTranscoder.activeJobs--;
+            HlsTranscoder.processNextJob();
+
+            console.error(`[HLS] ❌ Transcoding error for ${trackId}:`, err.message);
+            resolve({
+              success: false,
+              hlsUrl: '',
+              segmentCount: 0,
+              message: `Transcoding failed: ${err.message}`,
+            });
+          })
+          .run();
+      };
+
+      if (HlsTranscoder.activeJobs < HlsTranscoder.MAX_CONCURRENT_JOBS) {
+        HlsTranscoder.activeJobs++;
+        executeJob();
+      } else {
+        console.log(`[HLS] Queued transcode for ${trackId} (Queue size: ${HlsTranscoder.queue.length + 1})`);
+        HlsTranscoder.queue.push(executeJob);
+      }
     });
   }
 

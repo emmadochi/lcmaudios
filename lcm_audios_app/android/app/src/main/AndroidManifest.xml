@@ -16,8 +16,7 @@
     <application
         android:label="LCM Audios"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:icon="@mipmap/ic_launcher">
 
         <!-- Default FCM notification channel -->
         <meta-data

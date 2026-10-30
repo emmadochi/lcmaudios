@@ -83,7 +83,8 @@ void main() {
     expect(find.byType(BottomNavigationBar), findsOneWidget);
 
     // Switch tab to Explore (triggers tab sync)
-    await tester.tap(find.text('Explore'));
+    final navBarFinder = find.byType(BottomNavigationBar);
+    await tester.tap(find.descendant(of: navBarFinder, matching: find.text('Explore')));
     await tester.pumpAndSettle();
 
     // Simulate App Lifecycle Resume (e.g. user unlocks phone or switches back)

@@ -46,7 +46,7 @@ class MockDataService {
     AudioTrack(
       id: 'track_1',
       title: 'Atmosphere of Grace & Glory',
-      artist: 'Nathaniel Bassey & LCM Worship',
+      artist: 'LCM Worship Sanctuary',
       albumArtUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
       audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
       duration: const Duration(minutes: 5, seconds: 42),

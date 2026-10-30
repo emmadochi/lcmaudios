@@ -1,0 +1,8 @@
+# Example key.properties for Android release signing
+# Copy this file to `key.properties` in the android/ directory and fill in your private release keystore credentials.
+# NEVER commit the real key.properties or .jks file to source control!
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=lcm_audios_key
+storeFile=../upload-keystore.jks

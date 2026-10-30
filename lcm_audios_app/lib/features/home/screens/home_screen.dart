@@ -6,6 +6,7 @@ import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/theme_service.dart';
+import '../../../services/lcm_bridge.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 import '../../explore/screens/sermon_series_detail_screen.dart';
 
@@ -27,6 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // Auto-check for OTA updates via LCMWorld Central Cloud Engine
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        LcmBridge.checkForUpdates(context);
+      }
+    });
   }
 
   void _onScroll() {
@@ -1734,26 +1742,31 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.auto_stories_rounded, color: AppColors.primary, size: 16),
                     ),
-                    child: const Icon(Icons.auto_stories_rounded, color: AppColors.primary, size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Featured Sermon Series',
-                    style: TextStyle(
-                      color: AppColors.text(context),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Featured Sermon Series',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (widget.onExploreTap != null)
                 GestureDetector(

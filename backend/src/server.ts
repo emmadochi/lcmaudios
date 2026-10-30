@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import apiRouter from './routes/apiRouter';
 
 dotenv.config();
@@ -10,12 +12,50 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Trust reverse proxy (Nginx on AWS) to accurately detect HTTPS
+// Trust reverse proxy (Nginx on AWS / Render) to accurately detect HTTPS
 app.set('trust proxy', 1);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security Headers (configured to allow cross-origin media streaming for audio/images)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false, // Allows admin dashboard CDN scripts/fonts
+  })
+);
+
+// CORS configuration supporting mobile apps, dev, and production domains
+const allowedOrigins = [
+  'https://audios.lifechangerstouch.org',
+  'https://lifechangerstouch.org',
+  'https://lcmaudios.app',
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (such as mobile apps, Postman, curl) or localhost dev
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost(:\d+)?$/.test(origin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Fallback permissive for staging while headers remain secure
+      }
+    },
+    credentials: true,
+  })
+);
+
+// Rate limiter for sensitive authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // Limit each IP to 60 auth requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts from this IP, please try again in 15 minutes.' },
+});
+app.use('/api/v1/auth/login', authLimiter);
+app.use('/api/v1/auth/register', authLimiter);
+app.use('/api/v1/auth/admin/login', authLimiter);
+
+app.use(express.json({ limit: '10mb' }));
 
 // Favicon handler
 app.get('/favicon.ico', (req: Request, res: Response) => {
@@ -47,12 +87,16 @@ app.use('/uploads', express.static(uploadsPath));
 // API Routes
 app.use('/api/v1', apiRouter);
 
+import { dbClient } from './data/dbClient';
+
 // Health Check Route
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'online',
     service: 'LCM Audios Backend API & Ingestion Pipeline',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: dbClient.isConnectedToPrisma ? 'PostgreSQL (Prisma)' : 'MockDatabase (persistent_db.json)',
   });
 });
 

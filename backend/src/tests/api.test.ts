@@ -80,6 +80,42 @@ async function runFullCrudVerification() {
       }
     });
 
+    // ─── 2.5 ADMIN AUTHENTICATION & RBAC ENFORCEMENT ───────────────────────
+    console.log('\n🛡️ 2.5 ADMIN AUTHENTICATION & RBAC SECURITY');
+    let adminToken = '';
+
+    await assertTest('Reject unauthenticated access to protected admin route (GET /admin/users)', async () => {
+      const res = await fetch(`${BASE_URL}/admin/users`);
+      if (res.status !== 401 && res.status !== 403) {
+        throw new Error(`Expected 401/403 but got ${res.status}`);
+      }
+    });
+
+    await assertTest('Reject non-admin user token on admin route (GET /admin/users)', async () => {
+      const res = await fetch(`${BASE_URL}/admin/users`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      if (res.status !== 403) {
+        throw new Error(`Expected 403 Forbidden for non-admin user token but got ${res.status}`);
+      }
+    });
+
+    await assertTest('Admin authentication & token generation (POST /auth/admin/login)', async () => {
+      const res = await fetch(`${BASE_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'admin@lifechangerstouch.org',
+          password: 'LCM@Admin2026!',
+        }),
+      });
+      const data = (await res.json()) as any;
+      if (res.status !== 200 || !data.token) {
+        throw new Error(data.error || 'Admin login failed');
+      }
+      adminToken = data.token;
+    });
+
     // ─── 3. MINISTERS & PREACHERS CRUD ─────────────────────────────────────
     console.log('\n🎙️ 3. MINISTERS & PREACHERS CRUD OPERATIONS');
     let testMinisterId = '';
@@ -87,7 +123,10 @@ async function runFullCrudVerification() {
     await assertTest('CREATE Minister (POST /admin/ministers)', async () => {
       const res = await fetch(`${BASE_URL}/admin/ministers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: 'Pastor Emmanuel Adeleke',
           role: 'Guest Apostolic Minister',
@@ -121,7 +160,10 @@ async function runFullCrudVerification() {
     await assertTest('UPDATE Minister details (PUT /admin/ministers/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/ministers/${testMinisterId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           name: 'Rev. Emmanuel Adeleke (Senior Pastor)',
           role: 'Dean of Prayer & Apostolic Impartation',
@@ -137,6 +179,7 @@ async function runFullCrudVerification() {
     await assertTest('DELETE Minister (DELETE /admin/ministers/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/ministers/${testMinisterId}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (res.status !== 200) throw new Error('Delete minister failed');
 
@@ -153,7 +196,10 @@ async function runFullCrudVerification() {
     await assertTest('CREATE Intent Category (POST /admin/categories)', async () => {
       const res = await fetch(`${BASE_URL}/admin/categories`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           title: 'Prophetic Night Vigil',
           categoryKey: uniqueCatKey,
@@ -178,7 +224,10 @@ async function runFullCrudVerification() {
     await assertTest('UPDATE Intent Category (PUT /admin/categories/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/categories/${testCategoryId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           title: 'Prophetic & Apostolic Fire',
           accentColor: '#EF4444',
@@ -194,6 +243,7 @@ async function runFullCrudVerification() {
     await assertTest('DELETE Intent Category (DELETE /admin/categories/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/categories/${testCategoryId}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (res.status !== 200) throw new Error('Delete category failed');
 
@@ -210,7 +260,10 @@ async function runFullCrudVerification() {
     await assertTest('CREATE Premium Track with string value isPremium="true" (POST /admin/tracks)', async () => {
       const res = await fetch(`${BASE_URL}/admin/tracks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           title: 'Fresh Anointing & Grace Release',
           artist: 'Pastor Martins Omonua',
@@ -254,7 +307,10 @@ async function runFullCrudVerification() {
     await assertTest('QUICK TOGGLE Access Tier to Free: PUT /admin/tracks/:id with only { isPremium: false }', async () => {
       const res = await fetch(`${BASE_URL}/admin/tracks/${testTrackId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({ isPremium: false }),
       });
       const data = (await res.json()) as any;
@@ -269,7 +325,10 @@ async function runFullCrudVerification() {
     await assertTest('QUICK TOGGLE Access Tier to Locked: PUT /admin/tracks/:id with only { isPremium: true }', async () => {
       const res = await fetch(`${BASE_URL}/admin/tracks/${testTrackId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({ isPremium: true }),
       });
       const data = (await res.json()) as any;
@@ -289,7 +348,10 @@ async function runFullCrudVerification() {
     await assertTest('UPDATE Full Track Metadata (PUT /admin/tracks/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/tracks/${testTrackId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
         body: JSON.stringify({
           title: 'Fresh Anointing & Divine Grace (Extended Version)',
           isPremium: false,
@@ -306,6 +368,7 @@ async function runFullCrudVerification() {
     await assertTest('DELETE Track (DELETE /admin/tracks/:id)', async () => {
       const res = await fetch(`${BASE_URL}/admin/tracks/${testTrackId}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (res.status !== 200) throw new Error('Delete track failed');
 
@@ -344,14 +407,18 @@ async function runFullCrudVerification() {
     // ─── 7. ANALYTICS & PAYSTACK PARTNER LEDGER ─────────────────────────────
     console.log('\n📊 7. ANALYTICS & COVENANT PARTNER LEDGER');
     await assertTest('READ Admin Analytics Summary (GET /admin/analytics)', async () => {
-      const res = await fetch(`${BASE_URL}/admin/analytics`);
+      const res = await fetch(`${BASE_URL}/admin/analytics`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
       const data = (await res.json()) as any;
       if (res.status !== 200 || !data.analytics) throw new Error('Analytics failed');
       if (typeof data.analytics.totalStreams !== 'number') throw new Error('Invalid totalStreams');
     });
 
     await assertTest('READ Covenant Partner Ledger (GET /admin/partners/ledger)', async () => {
-      const res = await fetch(`${BASE_URL}/admin/partners/ledger`);
+      const res = await fetch(`${BASE_URL}/admin/partners/ledger`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
       const data = (await res.json()) as any;
       if (res.status !== 200 || !data.success || !data.data) throw new Error('Ledger fetch failed');
     });

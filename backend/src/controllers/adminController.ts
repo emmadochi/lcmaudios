@@ -4,6 +4,7 @@ import { HlsTranscoder } from '../services/hlsTranscoder';
 import { S3StorageService } from '../services/s3StorageService';
 import { broadcastSermonNotification, broadcastMarketingCampaign } from '../services/fcmService';
 import { Track, LyricLine, IntentCategory, MediaType, CategoryItem } from '../models/types';
+import { PodcastSyncService } from '../services/podcastSyncService';
 import path from 'path';
 
 export const uploadMedia = async (req: Request, res: Response): Promise<void> => {
@@ -483,3 +484,36 @@ export const sendDirectUserPush = async (req: Request, res: Response): Promise<v
     res.status(500).json({ error: 'Failed to send direct notification to devotee.' });
   }
 };
+
+export const syncPodcastAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const feedUrl = req.body?.feedUrl || 'https://media.rss.com/the-peace-word-sparks/feed.xml';
+    console.log('[Admin] Podcast sync requested for feed:', feedUrl);
+
+    const syncResult = await PodcastSyncService.syncFromRss(feedUrl);
+
+    // If new episodes were added, send a notification for the newest episode
+    if (syncResult.newEpisodesAdded > 0 && syncResult.episodes.length > 0) {
+      const latest = syncResult.episodes[syncResult.episodes.length - 1];
+      broadcastMarketingCampaign({
+        campaignType: 'custom',
+        customTitle: `🎙️ New Podcast Sermon: ${latest.title}`,
+        customBody: `A new message by ${syncResult.channelAuthor} is now live on LCM Audios. Tap to listen!`,
+        intentCategory: 'all',
+      }).catch((err) => console.warn('[FCM] Podcast broadcast notice:', err));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Podcast sync complete! Ingested ${syncResult.newEpisodesAdded} new episodes (${syncResult.alreadyExisting} were already in catalog).`,
+      data: syncResult,
+    });
+  } catch (error: any) {
+    console.error('[Admin] Podcast sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to sync podcast from RSS feed.',
+    });
+  }
+};
+

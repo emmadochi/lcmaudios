@@ -35,3 +35,11 @@ backend/.env
 
 # Firebase Service Account
 backend/serviceAccountKey.json
+
+# Android Signing & Keystores
+key.properties
+**/android/key.properties
+*.jks
+*.keystore
+*.aab
+

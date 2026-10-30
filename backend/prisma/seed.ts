@@ -28,7 +28,7 @@ async function main() {
     {
       id: 'track_1',
       title: 'Atmosphere of Grace & Glory',
-      artist: 'Nathaniel Bassey & LCM Worship',
+      artist: 'LCM Worship Sanctuary',
       albumArtUrl:
         'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
       audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
@@ -49,7 +49,7 @@ async function main() {
     {
       id: 'track_2',
       title: 'Morning Mercies & Devotional Declaration',
-      artist: 'Pastor Enoch Adeboye',
+      artist: 'Pastor Martins Omonua',
       albumArtUrl:
         'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
       audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',

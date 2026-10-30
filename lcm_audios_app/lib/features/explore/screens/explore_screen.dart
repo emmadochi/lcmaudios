@@ -31,33 +31,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     'With Notes',
   ];
 
-  final List<Map<String, String>> _ministers = [
-    {
-      'name': 'Pastor Martins Omonua',
-      'role': 'Lead Pastor, LCM',
-      'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      'name': 'Pastor Martins Omonua',
-      'role': 'Apostolic Teaching & Impartation',
-      'avatar': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      'name': 'Pastor Enoch Adeboye',
-      'role': 'RCCG General Overseer',
-      'avatar': 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      'name': 'Nathaniel Bassey',
-      'role': 'Gospel Psalmist',
-      'avatar': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      'name': 'LCM Worship Sanctuary',
-      'role': 'Resident Choir & Orchestra',
-      'avatar': 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
-    },
-  ];
+
 
   @override
   void dispose() {
@@ -461,116 +435,109 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   // ─── CASE B: Default Discovery Mode (2,000+ Audios Architecture) ───
                   else ...[
                     // 1. Featured Ministers Spotlight Bar
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ministers & Preachers',
-                              style: TextStyle(
-                                color: AppColors.text(context),
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                    if (playerService.ministers.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ministers & Preachers',
+                                style: TextStyle(
+                                  color: AppColors.text(context),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Tap any minister to filter their complete sermon catalog',
-                              style: TextStyle(color: AppColors.muted(context), fontSize: 12),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 110,
-                              child: Builder(
-                                builder: (context) {
-                                  final displayMinisters = playerService.ministers.isNotEmpty
-                                      ? playerService.ministers
-                                      : _ministers;
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tap any minister to filter their complete sermon catalog',
+                                style: TextStyle(color: AppColors.muted(context), fontSize: 12),
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 110,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: playerService.ministers.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                  itemBuilder: (context, idx) {
+                                    final m = playerService.ministers[idx];
+                                    final name = m['name']?.toString() ?? 'Minister';
+                                    final avatar = (m['avatarUrl'] ?? m['avatar'])?.toString() ??
+                                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
 
-                                  return ListView.separated(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: displayMinisters.length,
-                                    separatorBuilder: (_, __) => const SizedBox(width: 14),
-                                    itemBuilder: (context, idx) {
-                                      final m = displayMinisters[idx];
-                                      final name = m['name']?.toString() ?? 'Minister';
-                                      final avatar = (m['avatarUrl'] ?? m['avatar'])?.toString() ??
-                                          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
-
-                                      return GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => MinisterProfileScreen(minister: m),
-                                            ),
-                                          );
-                                        },
-                                        child: Column(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(2.5),
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                gradient: const LinearGradient(
-                                                  colors: [AppColors.primary, Color(0xFF991B1B)],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: AppColors.primary.withValues(alpha: 0.25),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 3),
-                                                  ),
-                                                ],
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => MinisterProfileScreen(minister: m),
+                                          ),
+                                        );
+                                      },
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(2.5),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: const LinearGradient(
+                                                colors: [AppColors.primary, Color(0xFF991B1B)],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
                                               ),
-                                              child: ClipOval(
-                                                child: CachedNetworkImage(
-                                                  imageUrl: avatar,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppColors.primary.withValues(alpha: 0.25),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ],
+                                            ),
+                                            child: ClipOval(
+                                              child: CachedNetworkImage(
+                                                imageUrl: avatar,
+                                                width: 56,
+                                                height: 56,
+                                                memCacheWidth: 120,
+                                                memCacheHeight: 120,
+                                                fit: BoxFit.cover,
+                                                errorWidget: (_, __, ___) => Container(
                                                   width: 56,
                                                   height: 56,
-                                                  memCacheWidth: 120,
-                                                  memCacheHeight: 120,
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (_, __, ___) => Container(
-                                                    width: 56,
-                                                    height: 56,
-                                                    color: AppColors.cardAlt(context),
-                                                    child: Icon(Icons.person, color: AppColors.muted(context)),
-                                                  ),
+                                                  color: AppColors.cardAlt(context),
+                                                  child: Icon(Icons.person, color: AppColors.muted(context)),
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(height: 6),
-                                            SizedBox(
-                                              width: 78,
-                                              child: Text(
-                                                name.split(' ').take(2).join(' '),
-                                                textAlign: TextAlign.center,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: AppColors.text(context),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          SizedBox(
+                                            width: 78,
+                                            child: Text(
+                                              name.split(' ').take(2).join(' '),
+                                              textAlign: TextAlign.center,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: AppColors.text(context),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
                     // 2. 🔥 Trending & Direct-Play Audios Shelf
                     SliverToBoxAdapter(

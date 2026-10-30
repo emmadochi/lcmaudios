@@ -1,0 +1,61 @@
+name: Release / Build Android App Bundle (AAB)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-aab:
+    name: Build Signed Android App Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        working-directory: lcm_audios_app
+        run: flutter pub get
+
+      - name: Decode Release Keystore (if configured in GitHub Secrets)
+        working-directory: lcm_audios_app/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
+            echo "storePassword=$KEYSTORE_PASSWORD" > key.properties
+            echo "keyPassword=$KEY_PASSWORD" >> key.properties
+            echo "keyAlias=$KEY_ALIAS" >> key.properties
+            echo "storeFile=upload-keystore.jks" >> key.properties
+            echo "Configured release key.properties from GitHub Secrets."
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret provided. Proceeding with fallback build."
+          fi
+
+      - name: Build Android App Bundle (.aab)
+        working-directory: lcm_audios_app
+        run: flutter build appbundle --release
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcm-audios-release-aab
+          path: lcm_audios_app/build/app/outputs/bundle/release/*.aab
+          retention-days: 14

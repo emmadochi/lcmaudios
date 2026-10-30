@@ -26,26 +26,28 @@ import {
   updateAdminUserSubscription,
   updateAdminUserStatus,
   sendDirectUserPush,
+  syncPodcastAdmin,
 } from '../controllers/adminController';
 import { uploadMediaMiddleware } from '../middleware/upload';
+import { verifyToken, requireAdmin } from '../middleware/authMiddleware';
 
 const apiRouter = Router();
 
-// Devotee & User Management Routes (Admin)
-apiRouter.get('/admin/users', getAdminUsers);
-apiRouter.get('/admin/users/:id', getAdminUserById);
-apiRouter.patch('/admin/users/:id/subscription', updateAdminUserSubscription);
-apiRouter.patch('/admin/users/:id/status', updateAdminUserStatus);
-apiRouter.post('/admin/users/:id/push', sendDirectUserPush);
+// Devotee & User Management Routes (Admin Protected)
+apiRouter.get('/admin/users', requireAdmin, getAdminUsers);
+apiRouter.get('/admin/users/:id', requireAdmin, getAdminUserById);
+apiRouter.patch('/admin/users/:id/subscription', requireAdmin, updateAdminUserSubscription);
+apiRouter.patch('/admin/users/:id/status', requireAdmin, updateAdminUserStatus);
+apiRouter.post('/admin/users/:id/push', requireAdmin, sendDirectUserPush);
 
 // Admin Authentication & Session Verification Routes
 apiRouter.post('/auth/admin/login', adminLogin);
 apiRouter.get('/auth/admin/verify', verifyAdminSession);
 
-// Push Notifications & Growth Marketing Routes
-apiRouter.post('/admin/notifications/test', testNotificationAdmin);
-apiRouter.get('/admin/notifications/test', testNotificationAdmin);
-apiRouter.post('/admin/marketing/broadcast', sendMarketingCampaignAdmin);
+// Push Notifications & Growth Marketing Routes (Admin Protected)
+apiRouter.post('/admin/notifications/test', requireAdmin, testNotificationAdmin);
+apiRouter.get('/admin/notifications/test', requireAdmin, testNotificationAdmin);
+apiRouter.post('/admin/marketing/broadcast', requireAdmin, sendMarketingCampaignAdmin);
 
 // Auth Routes (User Mobile App)
 apiRouter.post('/auth/register', register);
@@ -53,15 +55,15 @@ apiRouter.post('/auth/login', login);
 apiRouter.post('/auth/google', googleAuth);
 apiRouter.post('/auth/forgot-password', forgotPassword);
 apiRouter.post('/auth/reset-password', resetPassword);
-apiRouter.get('/auth/me', getMe);
-apiRouter.patch('/auth/profile', updateProfile);
-apiRouter.post('/auth/profile', updateProfile);
+apiRouter.get('/auth/me', verifyToken, getMe);
+apiRouter.patch('/auth/profile', verifyToken, updateProfile);
+apiRouter.post('/auth/profile', verifyToken, updateProfile);
 
 // Paystack Covenant Partner Payments
 apiRouter.post('/payments/initialize', initializePayment);
 apiRouter.get('/payments/verify/:reference', verifyPayment);
 apiRouter.post('/payments/webhook', handleWebhook);
-apiRouter.get('/admin/partners/ledger', getPartnerLedgerAdmin);
+apiRouter.get('/admin/partners/ledger', requireAdmin, getPartnerLedgerAdmin);
 
 // Tracks & Intent Discovery Routes
 apiRouter.get('/tracks', getTracks);
@@ -69,6 +71,7 @@ apiRouter.get('/tracks/:id', getTrackById);
 apiRouter.get('/tracks/:id/lyrics', getLyrics);
 apiRouter.post(
   '/tracks/upload',
+  requireAdmin,
   uploadMediaMiddleware.fields([
     { name: 'audioFile', maxCount: 1 },
     { name: 'artworkFile', maxCount: 1 },
@@ -83,30 +86,32 @@ apiRouter.post('/telemetry', logTelemetry);
 apiRouter.get('/notes', getNotes);
 apiRouter.post('/notes', createNote);
 
-// Admin Media Upload & Tracks Management Routes
+// Admin Media Upload & Tracks Management Routes (Admin Protected)
 apiRouter.post(
   '/admin/upload',
+  requireAdmin,
   uploadMediaMiddleware.fields([
     { name: 'audioFile', maxCount: 1 },
     { name: 'artworkFile', maxCount: 1 },
   ]),
   uploadMedia
 );
-apiRouter.post('/admin/tracks', createTrackAdmin);
-apiRouter.put('/admin/tracks/:id', updateTrackAdmin);
-apiRouter.delete('/admin/tracks/:id', deleteTrackAdmin);
+apiRouter.post('/admin/tracks', requireAdmin, createTrackAdmin);
+apiRouter.put('/admin/tracks/:id', requireAdmin, updateTrackAdmin);
+apiRouter.delete('/admin/tracks/:id', requireAdmin, deleteTrackAdmin);
+apiRouter.post('/admin/podcast/sync', requireAdmin, syncPodcastAdmin);
 
-// Admin Analytics Dashboard Routes
-apiRouter.get('/admin/analytics', getAnalyticsAdmin);
+// Admin Analytics Dashboard Routes (Admin Protected)
+apiRouter.get('/admin/analytics', requireAdmin, getAnalyticsAdmin);
 
-// Intent Categories Routes (Public & Admin)
+// Intent Categories Routes (Public & Admin Protected)
 apiRouter.get('/categories', getCategoriesAdmin);
-apiRouter.get('/admin/categories', getCategoriesAdmin);
-apiRouter.post('/admin/categories', createCategoryAdmin);
-apiRouter.put('/admin/categories/:id', updateCategoryAdmin);
-apiRouter.delete('/admin/categories/:id', deleteCategoryAdmin);
+apiRouter.get('/admin/categories', requireAdmin, getCategoriesAdmin);
+apiRouter.post('/admin/categories', requireAdmin, createCategoryAdmin);
+apiRouter.put('/admin/categories/:id', requireAdmin, updateCategoryAdmin);
+apiRouter.delete('/admin/categories/:id', requireAdmin, deleteCategoryAdmin);
 
-// Ministers & Preachers Routes (Public & Admin)
+// Ministers & Preachers Routes (Public & Admin Protected)
 import {
   getMinisters,
   getMinisterById,
@@ -117,9 +122,9 @@ import {
 
 apiRouter.get('/ministers', getMinisters);
 apiRouter.get('/ministers/:id', getMinisterById);
-apiRouter.get('/admin/ministers', getMinisters);
-apiRouter.post('/admin/ministers', createMinisterAdmin);
-apiRouter.put('/admin/ministers/:id', updateMinisterAdmin);
-apiRouter.delete('/admin/ministers/:id', deleteMinisterAdmin);
+apiRouter.get('/admin/ministers', requireAdmin, getMinisters);
+apiRouter.post('/admin/ministers', requireAdmin, createMinisterAdmin);
+apiRouter.put('/admin/ministers/:id', requireAdmin, updateMinisterAdmin);
+apiRouter.delete('/admin/ministers/:id', requireAdmin, deleteMinisterAdmin);
 
 export default apiRouter;

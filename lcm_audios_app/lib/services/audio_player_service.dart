@@ -27,7 +27,28 @@ class AudioPlayerService extends ChangeNotifier {
   LcmAudioHandler? _audioHandler;
   LcmAudioHandler? get audioHandler => _audioHandler;
 
-  List<AudioTrack> _allTracks = [];
+  static const String _favoriteTrackIdsKey = 'lcm_user_favorite_track_ids';
+  static const String _userNotesKey        = 'lcm_user_sermon_notes_map';
+
+  Set<String> _favoriteTrackIds = {};
+  Map<String, List<SermonNote>> _localNotes = {};
+
+  AudioTrack _enrichTrack(AudioTrack track, Set<String> downloadedIds) {
+    final isDown = downloadedIds.contains(track.id);
+    final isFav = _favoriteTrackIds.contains(track.id);
+    final localNotesForTrack = _localNotes[track.id];
+    final mergedNotes = localNotesForTrack != null && localNotesForTrack.isNotEmpty
+        ? localNotesForTrack
+        : track.notes;
+
+    return track.copyWith(
+      isDownloaded: isDown,
+      isFavorite: isFav,
+      notes: mergedNotes,
+    );
+  }
+
+  List<AudioTrack> _allTracks = List.from(MockDataService.sampleTracks);
   AudioTrack? _currentTrack;
   bool _isPlaying = false;
   bool _isBuffering = false;
@@ -641,7 +662,7 @@ class AudioPlayerService extends ChangeNotifier {
       if (result.tracks.isNotEmpty) {
         final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
         final newTracks = result.tracks.map((t) {
-          return t.copyWith(isDownloaded: downloadedIds.contains(t.id));
+          return _enrichTrack(t, downloadedIds);
         }).toList();
 
         final existingIds = _allTracks.map((t) => t.id).toSet();
@@ -974,13 +995,27 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   // ─── Favorites ────────────────────────────────────────────────────────────
-  void toggleFavorite(String trackId) {
+  Future<void> toggleFavorite(String trackId) async {
+    if (_favoriteTrackIds.contains(trackId)) {
+      _favoriteTrackIds.remove(trackId);
+    } else {
+      _favoriteTrackIds.add(trackId);
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_favoriteTrackIdsKey, _favoriteTrackIds.toList());
+    } catch (e) {
+      debugPrint('[Favorites] Error saving favorites: $e');
+    }
+
+    final isFav = _favoriteTrackIds.contains(trackId);
     final idx = _allTracks.indexWhere((t) => t.id == trackId);
     if (idx != -1) {
-      _allTracks[idx] = _allTracks[idx].copyWith(isFavorite: !_allTracks[idx].isFavorite);
+      _allTracks[idx] = _allTracks[idx].copyWith(isFavorite: isFav);
       if (_currentTrack?.id == trackId) _currentTrack = _allTracks[idx];
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   // ─── Downloads ────────────────────────────────────────────────────────────
@@ -1014,6 +1049,7 @@ class AudioPlayerService extends ChangeNotifier {
       final success = await OfflineStorageService.downloadEncryptedTrack(
         trackId,
         track.audioUrl,
+        trackMetadata: track,
         onProgress: (p) {
           _downloadProgress[trackId] = p;
           notifyListeners();
@@ -1060,6 +1096,7 @@ class AudioPlayerService extends ChangeNotifier {
       final success = await OfflineStorageService.downloadEncryptedTrack(
         track.id,
         track.audioUrl,
+        trackMetadata: track,
         onProgress: (p) {
           _downloadProgress[track.id] = p;
           notifyListeners();
@@ -1143,17 +1180,36 @@ class AudioPlayerService extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
+    // 1. Update local persistent cache
+    final existingList = _localNotes[trackId] != null
+        ? List<SermonNote>.from(_localNotes[trackId]!)
+        : <SermonNote>[];
+    existingList.add(newNote);
+    _localNotes[trackId] = existingList;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encodedMap = _localNotes.map((k, v) => MapEntry(k, v.map((n) => n.toJson()).toList()));
+      await prefs.setString(_userNotesKey, json.encode(encodedMap));
+      debugPrint('[Notes] 💾 Note persisted locally for track $trackId');
+    } catch (e) {
+      debugPrint('[Notes] Error saving note to disk: $e');
+    }
+
+    // 2. Update memory state
     final updatedNotes = List<SermonNote>.from(_allTracks[idx].notes)..add(newNote);
     _allTracks[idx] = _allTracks[idx].copyWith(notes: updatedNotes);
     if (_currentTrack?.id == trackId) _currentTrack = _allTracks[idx];
     notifyListeners();
 
-    // Persist to backend
-    await ApiService.saveSermonNote(
-      trackId: trackId,
-      timestampSeconds: timestamp,
-      noteText: noteText,
-    );
+    // 3. Persist to backend if online
+    if (_isOnline) {
+      ApiService.saveSermonNote(
+        trackId: trackId,
+        timestampSeconds: timestamp,
+        noteText: noteText,
+      );
+    }
   }
 
   // ─── Custom User Playlists ────────────────────────────────────────────────
@@ -1278,13 +1334,39 @@ class AudioPlayerService extends ChangeNotifier {
     final savedPosSec  = prefs.getInt('last_played_position_sec') ?? 0;
     _lastPlayedPosition = Duration(seconds: savedPosSec);
 
-    // 1. Instantly hydrate catalog state from local disk cache in < 50ms
+    // 0. Clean up any leftover legacy mock tracks (track_1, track_2) from disk
+    await OfflineStorageService.purgeLegacyMockDownloads();
+
+    // 1. Load user persistent favorites from disk
+    final favList = prefs.getStringList(_favoriteTrackIdsKey) ?? [];
+    _favoriteTrackIds = favList.toSet();
+
+    // 2. Load user persistent sermon notes from disk
+    final notesRaw = prefs.getString(_userNotesKey);
+    if (notesRaw != null) {
+      try {
+        final Map<String, dynamic> decoded = json.decode(notesRaw) as Map<String, dynamic>;
+        _localNotes = decoded.map((k, v) {
+          final list = (v as List).map((n) => SermonNote.fromJson(Map<String, dynamic>.from(n as Map))).toList();
+          return MapEntry(k, list);
+        });
+      } catch (e) {
+        debugPrint('[Notes] Error loading local notes: $e');
+      }
+    }
+
+    // 3. Load verified offline downloaded tracks with full metadata
+    final offlineTracks = await OfflineStorageService.getDownloadedTracksMetadata();
+    final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
+
+    // 4. Instantly hydrate catalog state from local disk cache in < 50ms
+    List<AudioTrack> hydratedTracks = [];
     try {
       final cachedTracksRaw = prefs.getString('lcm_catalog_cache_tracks');
       if (cachedTracksRaw != null) {
         final List decoded = json.decode(cachedTracksRaw);
         if (decoded.isNotEmpty) {
-          _allTracks = decoded.map((m) => AudioTrack.fromJson(m)).toList();
+          hydratedTracks = decoded.map((m) => AudioTrack.fromJson(m)).toList();
         }
       }
 
@@ -1298,6 +1380,27 @@ class AudioPlayerService extends ChangeNotifier {
     } catch (e) {
       debugPrint('[CatalogCache] Hydration notice: $e');
     }
+
+    // Merge offline tracks into hydrated catalog so downloaded tracks ALWAYS exist
+    final existingIds = hydratedTracks.map((t) => t.id).toSet();
+    for (final offTrack in offlineTracks) {
+      if (!existingIds.contains(offTrack.id)) {
+        hydratedTracks.add(offTrack);
+        existingIds.add(offTrack.id);
+      }
+    }
+
+    // If hydrated catalog is still empty, populate directly from offline tracks or sample tracks
+    if (hydratedTracks.isEmpty) {
+      if (offlineTracks.isNotEmpty) {
+        hydratedTracks = List.from(offlineTracks);
+      } else {
+        hydratedTracks = List.from(MockDataService.sampleTracks);
+      }
+    }
+
+    // Enrich all tracks with favorites, user notes, and downloaded status
+    _allTracks = hydratedTracks.map((t) => _enrichTrack(t, downloadedIds)).toList();
 
     // Mark auth session & initial catalog initialized immediately (<15ms)
     _isAuthInitialized = true;
@@ -1327,13 +1430,6 @@ class AudioPlayerService extends ChangeNotifier {
 
     // Load custom user playlists
     await _loadCustomPlaylists();
-
-    // Sync downloaded state from local storage for initial tracks
-    final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
-    for (int i = 0; i < _allTracks.length; i++) {
-      final isDown = downloadedIds.contains(_allTracks[i].id);
-      _allTracks[i] = _allTracks[i].copyWith(isDownloaded: isDown);
-    }
 
     // Auto-enable offline mode if starting without internet connection and downloaded tracks exist
     if (!_isOnline && hasDownloadedTracks) {
@@ -1408,13 +1504,21 @@ class AudioPlayerService extends ChangeNotifier {
         await prefs.setStringList('lcm_known_track_ids', apiTracks.map((t) => t.id).toList());
 
         final downloadedIds = await OfflineStorageService.getDownloadedTrackIds();
-        for (int i = 0; i < apiTracks.length; i++) {
-          if (downloadedIds.contains(apiTracks[i].id)) {
-            apiTracks[i] = apiTracks[i].copyWith(isDownloaded: true);
+        final offlineTracks = await OfflineStorageService.getDownloadedTracksMetadata();
+
+        // Enrich all incoming API tracks with persistent favorites, user notes, and downloaded state
+        final List<AudioTrack> mergedTracks = apiTracks.map((t) => _enrichTrack(t, downloadedIds)).toList();
+
+        // Guarantee all user downloaded tracks remain accessible even if not in the top-50 page or archived from backend
+        final apiTrackIds = mergedTracks.map((t) => t.id).toSet();
+        for (final offTrack in offlineTracks) {
+          if (!apiTrackIds.contains(offTrack.id)) {
+            mergedTracks.add(_enrichTrack(offTrack, downloadedIds));
+            apiTrackIds.add(offTrack.id);
           }
         }
 
-        _allTracks = apiTracks;
+        _allTracks = mergedTracks;
 
         // Keep currentTrack reference up-to-date with latest metadata
         if (_currentTrack != null) {

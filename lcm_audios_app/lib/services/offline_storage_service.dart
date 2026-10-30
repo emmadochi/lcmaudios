@@ -1,57 +1,86 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
 
+import '../core/models/audio_track.dart';
+
 /// AES-256-CBC DRM + offline telemetry metering service.
 ///
 /// Encryption scheme:
 ///   - Algorithm : AES-256-CBC
-///   - Key       : 32-byte PBKDF2-derived key seeded from userId + app salt
+///   - Key       : Cryptographic 32-byte SHA-256 key seeded from userId + app salt
 ///   - IV        : Random 16-byte IV prepended to every encrypted file
 ///   - File ext  : .lcmdrm
 class OfflineStorageService {
-  // ─── SharedPreferences keys ───────────────────────────────────────────────
-  static const String _downloadedIdsKey   = 'lcm_downloaded_track_ids';
-  static const String _queuedTelemetryKey = 'lcm_queued_telemetry';
-  static const String _drmUserIdKey       = 'lcm_drm_user_id';
+  // ─── SharedPreferences & Secure Keys ──────────────────────────────────────
+  static const String _downloadedIdsKey        = 'lcm_downloaded_track_ids';
+  static const String _downloadedMetadataKey   = 'lcm_downloaded_tracks_metadata';
+  static const String _legacyPurgedKey         = 'lcm_legacy_mock_downloads_purged_v1';
+  static const String _queuedTelemetryKey      = 'lcm_queued_telemetry';
+  static const String _drmUserIdKey            = 'lcm_drm_user_id';
+  static const String _offlineLeaseTimestampKey = 'lcm_offline_lease_timestamp';
+  static const int _maxOfflineDays             = 30;
+
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   // ─── AES-256 key material ─────────────────────────────────────────────────
-  /// App-level salt (not secret by itself — security comes from the userId).
+  /// App-level salt (not secret by itself — security comes from user-specific key derivation).
   static const String _appSalt = 'LCMAudios::DRM::Faith::2026';
 
-  /// Build a deterministic 32-byte AES key from [userId] + [_appSalt].
-  /// We use a simple SHA-256-style mix; for production replace with PBKDF2
-  /// via the `pointycastle` package if desired.
+  /// Build a cryptographically hardened 32-byte AES key from [userId] + [_appSalt] using SHA-256.
   static enc.Key _buildAesKey(String userId) {
-    final raw = utf8.encode('$userId::$_appSalt');
-    // Pad / truncate to exactly 32 bytes
-    final key = Uint8List(32);
-    for (int i = 0; i < 32; i++) {
-      key[i] = raw[i % raw.length];
-    }
-    return enc.Key(key);
+    final bytes = utf8.encode('$userId::$_appSalt');
+    final digest = sha256.convert(bytes);
+    return enc.Key(Uint8List.fromList(digest.bytes));
   }
 
   // ─── User / DRM identity ─────────────────────────────────────────────────
   static Future<String> _getUserId() async {
+    try {
+      final secureId = await _secureStorage.read(key: _drmUserIdKey);
+      if (secureId != null && secureId.isNotEmpty) return secureId;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_drmUserIdKey) ?? 'guest_user';
   }
 
   /// Call this after login to bind DRM keys to the authenticated user.
   static Future<void> setDrmUserId(String userId) async {
+    try {
+      await _secureStorage.write(key: _drmUserIdKey, value: userId);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_drmUserIdKey, userId);
+    await updateOfflineLeaseTimestamp();
     debugPrint('[DRM] Bound DRM identity to userId: $userId');
   }
 
-  // ─── Download state ───────────────────────────────────────────────────────
+  /// Record current time as last verified online lease
+  static Future<void> updateOfflineLeaseTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_offlineLeaseTimestampKey, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  /// Validate if offline DRM license lease is still active (within 30 days)
+  static Future<bool> isOfflineLeaseValid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastTimestamp = prefs.getInt(_offlineLeaseTimestampKey);
+    if (lastTimestamp == null) return true;
+    final daysElapsed = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(lastTimestamp)).inDays;
+    return daysElapsed <= _maxOfflineDays;
+  }
+
+  // ─── Download state & Metadata Persistence ───────────────────────────────
   static Future<Set<String>> getDownloadedTrackIds() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -80,12 +109,126 @@ class OfflineStorageService {
     }
   }
 
+  /// Save full track metadata locally so offline sanctuary can render it effortlessly
+  static Future<void> saveDownloadedTrackMetadata(AudioTrack track) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_downloadedMetadataKey);
+      Map<String, dynamic> map = {};
+      if (raw != null) {
+        try {
+          map = Map<String, dynamic>.from(json.decode(raw) as Map);
+        } catch (_) {}
+      }
+      map[track.id] = track.copyWith(isDownloaded: true).toJson();
+      await prefs.setString(_downloadedMetadataKey, json.encode(map));
+      debugPrint('[OfflineStorage] 💾 Saved offline metadata for "${track.title}" (${track.id})');
+    } catch (e) {
+      debugPrint('[OfflineStorage] Error saving metadata for ${track.id}: $e');
+    }
+  }
+
+  /// Remove track metadata locally
+  static Future<void> removeDownloadedTrackMetadata(String trackId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_downloadedMetadataKey);
+      if (raw != null) {
+        final map = Map<String, dynamic>.from(json.decode(raw) as Map);
+        map.remove(trackId);
+        await prefs.setString(_downloadedMetadataKey, json.encode(map));
+      }
+    } catch (e) {
+      debugPrint('[OfflineStorage] Error removing metadata for $trackId: $e');
+    }
+  }
+
+  /// Returns all verified downloaded tracks with full metadata for offline display
+  static Future<List<AudioTrack>> getDownloadedTracksMetadata() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final verifiedIds = await getDownloadedTrackIds();
+      final raw = prefs.getString(_downloadedMetadataKey);
+      if (raw == null) return [];
+
+      final map = Map<String, dynamic>.from(json.decode(raw) as Map);
+      final List<AudioTrack> tracks = [];
+      bool needsClean = false;
+
+      for (final entry in map.entries) {
+        if (verifiedIds.contains(entry.key)) {
+          try {
+            final t = AudioTrack.fromJson(Map<String, dynamic>.from(entry.value as Map))
+                .copyWith(isDownloaded: true);
+            tracks.add(t);
+          } catch (e) {
+            debugPrint('[OfflineStorage] Track parse error for ${entry.key}: $e');
+          }
+        } else {
+          // File was deleted on disk or invalid
+          needsClean = true;
+        }
+      }
+
+      if (needsClean) {
+        map.removeWhere((k, v) => !verifiedIds.contains(k));
+        await prefs.setString(_downloadedMetadataKey, json.encode(map));
+      }
+
+      return tracks;
+    } catch (e) {
+      debugPrint('[OfflineStorage] Error getting downloaded tracks metadata: $e');
+      return [];
+    }
+  }
+
+  /// One-time purge of legacy mock demo tracks (track_1, track_2) from physical storage and registry
+  static Future<void> purgeLegacyMockDownloads() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isPurged = prefs.getBool(_legacyPurgedKey) ?? false;
+      if (isPurged) return;
+
+      final dir = await getApplicationDocumentsDirectory();
+      for (final mockId in ['track_1', 'track_2', 'track_3', 'track_4', 'track_5']) {
+        final mp3 = File('${dir.path}/lcm_offline_$mockId.mp3');
+        if (await mp3.exists()) {
+          await mp3.delete();
+          debugPrint('[OfflineStorage] 🧹 Purged legacy mock mp3: $mockId');
+        }
+        final drm = File('${dir.path}/lcm_drm_$mockId.lcmdrm');
+        if (await drm.exists()) {
+          await drm.delete();
+          debugPrint('[OfflineStorage] 🧹 Purged legacy mock drm: $mockId');
+        }
+      }
+
+      // Also clean up from recorded downloaded IDs
+      final recordedIds = (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
+      recordedIds.removeAll(['track_1', 'track_2', 'track_3', 'track_4', 'track_5']);
+      await prefs.setStringList(_downloadedIdsKey, recordedIds.toList());
+
+      // Clean metadata
+      await removeDownloadedTrackMetadata('track_1');
+      await removeDownloadedTrackMetadata('track_2');
+      await removeDownloadedTrackMetadata('track_3');
+      await removeDownloadedTrackMetadata('track_4');
+      await removeDownloadedTrackMetadata('track_5');
+
+      await prefs.setBool(_legacyPurgedKey, true);
+      debugPrint('[OfflineStorage] ✅ Legacy mock downloads purged successfully.');
+    } catch (e) {
+      debugPrint('[OfflineStorage] Purge error: $e');
+    }
+  }
+
   /// Download [audioUrl], save to secure local app documents storage for zero-lag offline playback.
   ///
   /// [onProgress] reports [0.0 – 1.0] download progress.
   static Future<bool> downloadEncryptedTrack(
     String trackId,
     String audioUrl, {
+    AudioTrack? trackMetadata,
     void Function(double)? onProgress,
   }) async {
     try {
@@ -120,6 +263,11 @@ class OfflineStorageService {
       final downloaded = (prefs.getStringList(_downloadedIdsKey) ?? []).toSet();
       downloaded.add(trackId);
       await prefs.setStringList(_downloadedIdsKey, downloaded.toList());
+
+      // ── Persist track metadata for offline mode display ────────────────
+      if (trackMetadata != null) {
+        await saveDownloadedTrackMetadata(trackMetadata);
+      }
 
       onProgress?.call(1.0);
       debugPrint('[OfflineStorage] ✅ Track $trackId saved locally (${await localFile.length()} bytes)');
@@ -212,6 +360,8 @@ class OfflineStorageService {
       downloaded.remove(trackId);
       await prefs.setStringList(_downloadedIdsKey, downloaded.toList());
 
+      await removeDownloadedTrackMetadata(trackId);
+
       debugPrint('[OfflineStorage] 🗑️ Deleted offline track $trackId');
       return true;
     } catch (e) {
@@ -224,6 +374,7 @@ class OfflineStorageService {
   static Future<bool> toggleDownloadTrack(
     String trackId,
     String audioUrl, {
+    AudioTrack? trackMetadata,
     void Function(double)? onProgress,
   }) async {
     final downloaded = await getDownloadedTrackIds();
@@ -231,11 +382,16 @@ class OfflineStorageService {
       await deleteDownloadedTrack(trackId);
       return false;
     } else {
-      return await downloadEncryptedTrack(trackId, audioUrl, onProgress: onProgress);
+      return await downloadEncryptedTrack(
+        trackId,
+        audioUrl,
+        trackMetadata: trackMetadata,
+        onProgress: onProgress,
+      );
     }
   }
 
-  /// Calculate the total size in bytes of all encrypted `.lcmdrm` files stored locally.
+  /// Calculate the total size in bytes of all offline mp3 and lcmdrm files stored locally.
   static Future<int> getTotalCacheSizeBytes() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -244,7 +400,9 @@ class OfflineStorageService {
       int totalBytes = 0;
       final files = dir.listSync();
       for (final entity in files) {
-        if (entity is File && entity.path.endsWith('.lcmdrm')) {
+        if (entity is File &&
+            (entity.path.endsWith('.mp3') || entity.path.endsWith('.lcmdrm')) &&
+            (entity.path.contains('lcm_offline_') || entity.path.contains('lcm_drm_'))) {
           totalBytes += await entity.length();
         }
       }
@@ -255,14 +413,15 @@ class OfflineStorageService {
     }
   }
 
-  /// Purge all downloaded encrypted files from disk and reset the registry.
+  /// Purge all downloaded files from disk and reset registry & metadata.
   static Future<bool> clearAllCache() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       if (await dir.exists()) {
         final files = dir.listSync();
         for (final entity in files) {
-          if (entity is File && entity.path.endsWith('.lcmdrm')) {
+          if (entity is File &&
+              (entity.path.contains('lcm_offline_') || entity.path.contains('lcm_drm_'))) {
             await entity.delete();
           }
         }
@@ -270,7 +429,8 @@ class OfflineStorageService {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_downloadedIdsKey);
-      debugPrint('[DRM] 🧹 Purged all offline DRM files.');
+      await prefs.remove(_downloadedMetadataKey);
+      debugPrint('[DRM] 🧹 Purged all offline files and metadata.');
       return true;
     } catch (e) {
       debugPrint('[DRM] Clear cache error: $e');

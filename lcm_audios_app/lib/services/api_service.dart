@@ -457,84 +457,14 @@ class ApiService {
     return _getFallbackMinisters();
   }
 
+  // Fallback seed ministers when offline (empty to prevent resurrected unapproved mock data)
   static List<Map<String, dynamic>> _getFallbackMinisters() {
-    return [
-      {
-        'id': 'min_1',
-        'name': 'Pastor Martins Omonua',
-        'role': 'Lead Pastor, LCM',
-        'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-        'avatarUrl': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'id': 'min_2',
-        'name': 'Pastor Martins Omonua',
-        'role': 'Apostolic Teaching & Impartation',
-        'avatar': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
-        'avatarUrl': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'id': 'min_3',
-        'name': 'Pastor Enoch Adeboye',
-        'role': 'RCCG General Overseer',
-        'avatar': 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
-        'avatarUrl': 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'id': 'min_4',
-        'name': 'Nathaniel Bassey',
-        'role': 'Gospel Psalmist',
-        'avatar': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
-        'avatarUrl': 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
-      },
-      {
-        'id': 'min_5',
-        'name': 'LCM Worship Sanctuary',
-        'role': 'Resident Choir & Orchestra',
-        'avatar': 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
-        'avatarUrl': 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80',
-      },
-    ];
+    return const [];
   }
 
-  // Fallback seed tracks when offline
+  // Fallback seed tracks when offline (empty to prevent resurrected deleted mock data)
   static List<AudioTrack> _getFallbackTracks() {
-    return [
-      AudioTrack(
-        id: 'track_1',
-        title: 'Atmosphere of Grace & Glory',
-        artist: 'Nathaniel Bassey & LCM Worship',
-        albumArtUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        duration: const Duration(seconds: 342),
-        subgenre: 'Deep Worship',
-        intentCategory: IntentCategory.deepWorship,
-        mediaType: MediaType.song,
-        isFavorite: true,
-        lyrics: const [
-          LyricLine(timestampSeconds: 0, text: '[Instrumental Prelude]'),
-          LyricLine(timestampSeconds: 12, text: 'Let your glory fill this sacred place'),
-          LyricLine(timestampSeconds: 24, text: 'We bow in awe before your throne of grace'),
-          LyricLine(timestampSeconds: 38, text: 'Holy Holy, Almighty is the Lord'),
-          LyricLine(timestampSeconds: 52, text: 'Forever faithful is your holy word'),
-        ],
-      ),
-      AudioTrack(
-        id: 'track_2',
-        title: 'Morning Mercies & Devotional Declaration',
-        artist: 'Pastor Enoch Adeboye',
-        albumArtUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-        duration: const Duration(seconds: 1110),
-        subgenre: 'Spoken Sermon',
-        intentCategory: IntentCategory.morningDevotion,
-        mediaType: MediaType.sermon,
-        lyrics: const [
-          LyricLine(timestampSeconds: 0, text: 'Welcome to this morning devotional broadcast.'),
-          LyricLine(timestampSeconds: 15, text: 'Lamentations 3:22 tells us His mercies are new every morning.'),
-          LyricLine(timestampSeconds: 40, text: 'Speak to your day before the sun rises above the horizon.'),
-        ],
-      ),
-    ];
+    return const [];
   }
 }
+

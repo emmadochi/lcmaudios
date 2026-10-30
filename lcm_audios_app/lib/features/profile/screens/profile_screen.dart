@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/theme_service.dart';
+import '../../../services/lcm_bridge.dart';
 import '../../auth/screens/auth_screen.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
@@ -541,6 +542,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Divider(color: AppColors.border(context), height: 1),
                     ListTile(
+                      leading: const Icon(Icons.bug_report_outlined, color: AppColors.accentGold),
+                      title: Text('Beta Feedback & Bug Report', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Help our engineering team improve before official launch', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
+                      onTap: () => LcmBridge.showFeedbackDialog(context),
+                    ),
+                    Divider(color: AppColors.border(context), height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.system_update_rounded, color: AppColors.primary),
+                      title: Text('Check for Updates', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Verify newest APK build on LCMWorld Hub', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
+                      onTap: () => LcmBridge.checkForUpdates(context, showToastIfLatest: true),
+                    ),
+                    Divider(color: AppColors.border(context), height: 1),
+                    ListTile(
                       leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
                       title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent, fontSize: 13.5, fontWeight: FontWeight.bold)),
                       trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent, size: 13),
@@ -560,7 +577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'LCM Audios • Version 1.0.0 (Faith in Motion)',
+                          'LCM Audios • Version 1.0.1 (Faith in Motion)',
                           style: TextStyle(color: AppColors.muted(context), fontSize: 11),
                         ),
                       ],

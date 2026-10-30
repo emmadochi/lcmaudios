@@ -1272,9 +1272,14 @@
     <!-- TAB 3: Media Catalog -->
     <div id="tab-catalog" class="tab-content">
       <div class="card">
-        <div class="card-title">
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <span>Managed Audio Streams & Sermons</span>
-          <button class="btn" onclick="switchTab('ingest')">+ Ingest Media</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="openPodcastSyncModal()" style="display: inline-flex; align-items: center; gap: 6px; border-color: rgba(6, 182, 212, 0.5); color: #06B6D4;">
+              <span>🎙️</span> Sync Podcast (Spotify/RSS)
+            </button>
+            <button class="btn" onclick="switchTab('ingest')">+ Ingest Media</button>
+          </div>
         </div>
         <div class="table-container">
           <table>
@@ -2065,6 +2070,37 @@
     </div>
   </div>
 
+  <!-- Podcast Sync Modal -->
+  <div class="modal-overlay" id="podcastSyncModal">
+    <div class="modal-card" style="max-width: 560px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+          <span>🎙️</span> Sync Podcast Feed (Spotify / RSS.com)
+        </h3>
+        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 14px;" onclick="closePodcastSyncModal()">✕</button>
+      </div>
+
+      <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 12px; padding: 14px; margin-bottom: 18px; font-size: 13px; line-height: 1.5; color: #E2E8F0;">
+        ⚡ <strong>Seamless Podcast Ingestion:</strong> Ingests all sermon episodes, Triton CDN audio streaming URLs, artwork, and descriptions directly into the LCM Audios catalog under <strong>Pastor Martins Omonua</strong>. Existing messages are automatically skipped.
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label>Podcast RSS Feed URL *</label>
+        <input type="url" id="podcastFeedUrlInput" value="https://media.rss.com/the-peace-word-sparks/feed.xml" placeholder="https://media.rss.com/..." style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 11px 14px; border-radius: 10px; font-size: 13.5px;" />
+        <small style="color: var(--text-muted); font-size: 11.5px; margin-top: 4px; display: block;">Default: <em>The Peace Word Sparks</em> by Pastor Martins Omonua</small>
+      </div>
+
+      <div id="podcastSyncStatusBox" style="display: none; padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; line-height: 1.4;"></div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closePodcastSyncModal()">Cancel</button>
+        <button class="btn" id="btnExecutePodcastSync" onclick="runPodcastSyncFromAdmin()" style="background: #06B6D4; color: #0D0F17; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+          <span>⚡</span> Sync Feed Now
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = window.location.origin.includes('localhost')
       ? 'http://localhost:5000/api/v1'
@@ -2504,6 +2540,70 @@
     function closeDevoteeModal() {
       document.getElementById('devoteeModal').style.display = 'none';
     }
+
+    // ─── PODCAST CHANNEL RSS SYNC ENGINE ────────────────────────────────────
+    function openPodcastSyncModal() {
+      document.getElementById('podcastSyncModal').style.display = 'flex';
+      const statusBox = document.getElementById('podcastSyncStatusBox');
+      if (statusBox) statusBox.style.display = 'none';
+    }
+
+    function closePodcastSyncModal() {
+      document.getElementById('podcastSyncModal').style.display = 'none';
+    }
+
+    async function runPodcastSyncFromAdmin() {
+      const feedUrl = document.getElementById('podcastFeedUrlInput').value.trim();
+      const btn = document.getElementById('btnExecutePodcastSync');
+      const statusBox = document.getElementById('podcastSyncStatusBox');
+
+      if (!feedUrl) {
+        alert('Please enter a valid podcast RSS feed URL.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> Ingesting Episodes...';
+      statusBox.style.display = 'block';
+      statusBox.style.background = 'rgba(6, 182, 212, 0.12)';
+      statusBox.style.color = '#06B6D4';
+      statusBox.style.border = '1px solid rgba(6, 182, 212, 0.3)';
+      statusBox.innerHTML = '📡 Contacting Podcast CDN and parsing sermon audio streams...';
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/podcast/sync`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ feedUrl }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.style.background = 'rgba(16, 185, 129, 0.15)';
+          statusBox.style.color = '#10B981';
+          statusBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          statusBox.innerHTML = `✅ <strong>Sync Complete!</strong><br>${data.message}`;
+
+          if (typeof loadCatalog === 'function') loadCatalog();
+          if (typeof loadAnalytics === 'function') loadAnalytics();
+
+          setTimeout(() => {
+            closePodcastSyncModal();
+          }, 3000);
+        } else {
+          throw new Error(data.error || 'Failed to sync podcast episodes.');
+        }
+      } catch (err) {
+        statusBox.style.background = 'rgba(230, 57, 70, 0.15)';
+        statusBox.style.color = '#FF758C';
+        statusBox.style.border = '1px solid rgba(230, 57, 70, 0.3)';
+        statusBox.innerHTML = `❌ Error: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡</span> Sync Feed Now';
+      }
+    }
+
 
     async function saveDevoteeSubscription() {
       const userId = document.getElementById('modalDevoteeId').value;

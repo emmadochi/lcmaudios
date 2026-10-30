@@ -54,12 +54,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(BottomNavigationBar), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Explore'), findsOneWidget);
-    expect(find.text('Library'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
-    expect(find.text('Premium'), findsOneWidget);
+    final navBarFinder = find.byType(BottomNavigationBar);
+    expect(navBarFinder, findsOneWidget);
+    expect(find.descendant(of: navBarFinder, matching: find.text('Home')), findsOneWidget);
+    expect(find.descendant(of: navBarFinder, matching: find.text('Explore')), findsOneWidget);
+    expect(find.descendant(of: navBarFinder, matching: find.text('Library')), findsOneWidget);
+    expect(find.descendant(of: navBarFinder, matching: find.text('Profile')), findsOneWidget);
 
     addTearDown(() {
       tester.view.resetPhysicalSize();

@@ -22,6 +22,10 @@ class DbClient {
     return DbClient.instance;
   }
 
+  public get isConnectedToPrisma(): boolean {
+    return this.isPrismaConnected;
+  }
+
   private async initPrisma() {
     if (process.env.DATABASE_URL) {
       try {

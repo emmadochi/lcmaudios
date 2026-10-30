@@ -190,24 +190,7 @@ export class MockDatabase {
         sermonCount: 42,
         createdAt: new Date().toISOString(),
       },
-      {
-        id: 'min_3',
-        name: 'Pastor Enoch Adeboye',
-        role: 'General Overseer, RCCG',
-        avatarUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=400&q=80',
-        bio: 'Father in the faith leading global prayer and holiness revivals across nations.',
-        sermonCount: 30,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'min_4',
-        name: 'Nathaniel Bassey',
-        role: 'Gospel Psalmist & Trumpeter',
-        avatarUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
-        bio: 'Anointed worship minister ushering believers into the holy of holies through heartfelt worship.',
-        sermonCount: 20,
-        createdAt: new Date().toISOString(),
-      },
+
       {
         id: 'min_5',
         name: 'LCM Worship Sanctuary',
@@ -380,7 +363,7 @@ export class MockDatabase {
       {
         id: 'track_1',
         title: 'Atmosphere of Grace & Glory',
-        artist: 'Nathaniel Bassey & LCM Worship',
+        artist: 'LCM Worship Sanctuary',
         albumArtUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
         duration: 342,
@@ -405,7 +388,7 @@ export class MockDatabase {
       {
         id: 'track_2',
         title: 'Morning Mercies & Devotional Declaration',
-        artist: 'Pastor Enoch Adeboye',
+        artist: 'Pastor Martins Omonua',
         albumArtUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
         audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
         duration: 1110,
