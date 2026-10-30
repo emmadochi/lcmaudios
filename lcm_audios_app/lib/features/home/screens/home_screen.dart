@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
+import '../../../core/models/sermon_series.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/theme_service.dart';
 import '../../../services/lcm_bridge.dart';
@@ -1731,7 +1732,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSeriesSection(BuildContext context, AudioPlayerService playerService) {
-    final seriesList = playerService.allSeries;
+    final seriesList = List<SermonSeries>.from(
+      playerService.allSeries.where((s) => s.isActive),
+    )..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     if (seriesList.isEmpty) return const SizedBox.shrink();
 
     return Column(

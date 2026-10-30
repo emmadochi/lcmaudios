@@ -98,3 +98,19 @@ export interface TelemetryEvent {
   timestamp: string;
   createdAt: string;
 }
+
+export interface SermonSeries {
+  id: string;
+  title: string;
+  description: string;
+  ministerName: string;
+  ministerId: string;
+  bannerArtUrl: string;
+  totalParts: number;
+  trackIds: string[];
+  year: string;
+  intentCategory: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+}

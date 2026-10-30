@@ -542,11 +542,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Divider(color: AppColors.border(context), height: 1),
                     ListTile(
-                      leading: const Icon(Icons.bug_report_outlined, color: AppColors.accentGold),
+                      leading: const Icon(Icons.rate_review_outlined, color: AppColors.accentGold),
                       title: Text('Beta Feedback & Bug Report', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: Text('Help our engineering team improve before official launch', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
-                      onTap: () => LcmBridge.showFeedbackDialog(context),
+                      subtitle: Text('Share your experience & submit your review', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.open_in_new_rounded, color: AppColors.muted(context), size: 15),
+                      onTap: () => LcmBridge.openGoogleFeedbackForm(),
                     ),
                     Divider(color: AppColors.border(context), height: 1),
                     ListTile(

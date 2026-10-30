@@ -93,6 +93,7 @@ class AudioTrack {
   final String? scriptureBook;
   final int? scriptureChapter;
   final String? ministerId;
+  final int playCount;
 
   AudioTrack({
     required this.id,
@@ -117,6 +118,7 @@ class AudioTrack {
     this.scriptureBook,
     this.scriptureChapter,
     this.ministerId,
+    this.playCount = 0,
   });
 
   String get formattedDuration {
@@ -182,6 +184,7 @@ class AudioTrack {
       scriptureBook: json['scriptureBook'] as String? ?? json['scripture_book'] as String?,
       scriptureChapter: (json['scriptureChapter'] as num?)?.toInt() ?? (json['scripture_chapter'] as num?)?.toInt(),
       ministerId: json['ministerId'] as String? ?? json['minister_id'] as String?,
+      playCount: (json['playCount'] as num?)?.toInt() ?? (json['play_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -197,6 +200,7 @@ class AudioTrack {
     String? scriptureBook,
     int? scriptureChapter,
     String? ministerId,
+    int? playCount,
   }) {
     return AudioTrack(
       id: id,
@@ -221,6 +225,7 @@ class AudioTrack {
       scriptureBook: scriptureBook ?? this.scriptureBook,
       scriptureChapter: scriptureChapter ?? this.scriptureChapter,
       ministerId: ministerId ?? this.ministerId,
+      playCount: playCount ?? this.playCount,
     );
   }
 

@@ -63,7 +63,7 @@ class AudioPlayerService extends ChangeNotifier {
   String _selectedCategoryKey = 'all';
 
   // ─── Sermon Series Albums (Scale to 50,000 Audios) ────────────────────────
-  final List<SermonSeries> _allSeries = List.from(MockDataService.sampleSeries);
+  List<SermonSeries> _allSeries = List.from(MockDataService.sampleSeries);
   List<SermonSeries> get allSeries => _allSeries;
 
   // ─── Custom Playlists & Active Queue State ────────────────────────────────
@@ -1478,11 +1478,13 @@ class AudioPlayerService extends ChangeNotifier {
         ApiService.fetchCategories(),
         ApiService.fetchMinisters(),
         ApiService.fetchTracksPaginated(page: 1, limit: 50),
+        ApiService.fetchSeries(),
       ]);
 
       final fetchedCats = results[0] as List;
       final fetchedMinisters = results[1] as List<Map<String, dynamic>>;
       final paginated = results[2] as PaginatedTracksResult;
+      final fetchedSeries = results[3] as List<SermonSeries>;
       final apiTracks = paginated.tracks;
       _totalCatalogCount = paginated.total;
       _hasMoreTracks = paginated.hasMore;
@@ -1497,6 +1499,10 @@ class AudioPlayerService extends ChangeNotifier {
       if (fetchedMinisters.isNotEmpty) {
         _ministers = fetchedMinisters;
         prefs.setString('lcm_catalog_cache_ministers', json.encode(fetchedMinisters));
+      }
+
+      if (fetchedSeries.isNotEmpty) {
+        _allSeries = List.from(fetchedSeries);
       }
 
       if (apiTracks.isNotEmpty) {

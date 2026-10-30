@@ -73,13 +73,32 @@ class LcmBridge {
     }
   }
 
-  /// 2. Open Beta Feedback / Bug Report Dialog
+  static const String googleFeedbackFormUrl =
+      'https://docs.google.com/forms/d/e/1FAIpQLSdr8vi1ev9eexC1asmucTcdMU3Oks8hA4xEZ1vxtnIZS2EkaA/viewform';
+
+  /// Open Google Feedback Form via url_launcher
+  static Future<void> openGoogleFeedbackForm() async {
+    final Uri uri = Uri.parse(googleFeedbackFormUrl);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('[LCMBridge] Failed to open Google Form: $e');
+    }
+  }
+
+  /// 2. Open Beta Feedback / Bug Report Dialog (triggers Google Form directly)
   static void showFeedbackDialog(
     BuildContext context, {
     String packageName = designatedPackageName,
     String appName = appName,
     String currentVersion = currentAppVersion,
+    bool openGoogleFormDirectly = true,
   }) {
+    if (openGoogleFormDirectly) {
+      openGoogleFeedbackForm();
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

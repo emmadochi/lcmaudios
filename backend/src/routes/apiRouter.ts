@@ -27,11 +27,28 @@ import {
   updateAdminUserStatus,
   sendDirectUserPush,
   syncPodcastAdmin,
+  getSeriesPublic,
+  getSeriesAdmin,
+  createSeriesAdmin,
+  updateSeriesAdmin,
+  deleteSeriesAdmin,
+  reorderSeriesAdmin,
 } from '../controllers/adminController';
 import { uploadMediaMiddleware } from '../middleware/upload';
 import { verifyToken, requireAdmin } from '../middleware/authMiddleware';
 
 const apiRouter = Router();
+
+// Public Series Routes (App & Web)
+apiRouter.get('/series', getSeriesPublic);
+
+// Admin Series Management Routes
+apiRouter.get('/admin/series', requireAdmin, getSeriesAdmin);
+apiRouter.post('/admin/series', requireAdmin, createSeriesAdmin);
+apiRouter.put('/admin/series/:id', requireAdmin, updateSeriesAdmin);
+apiRouter.patch('/admin/series/:id', requireAdmin, updateSeriesAdmin);
+apiRouter.delete('/admin/series/:id', requireAdmin, deleteSeriesAdmin);
+apiRouter.post('/admin/series/reorder', requireAdmin, reorderSeriesAdmin);
 
 // Devotee & User Management Routes (Admin Protected)
 apiRouter.get('/admin/users', requireAdmin, getAdminUsers);

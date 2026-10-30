@@ -517,3 +517,113 @@ export const syncPodcastAdmin = async (req: Request, res: Response): Promise<voi
   }
 };
 
+// ─── SERMON SERIES CONTROLLERS ───────────────────────────────────────────────
+export const getSeriesPublic = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const all = req.query.all === 'true';
+    const series = await dbClient.getSeries();
+    const result = all ? series : series.filter(s => s.isActive);
+    res.status(200).json({ series: result });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch sermon series.' });
+  }
+};
+
+export const getSeriesAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const series = await dbClient.getSeries();
+    res.status(200).json({ series });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch sermon series.' });
+  }
+};
+
+export const createSeriesAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { title, description, ministerName, ministerId, bannerArtUrl, trackIds, year, intentCategory, displayOrder, isActive } = req.body;
+    if (!title || !title.trim()) {
+      res.status(400).json({ error: 'Series title is required.' });
+      return;
+    }
+
+    const created = await dbClient.createSeries({
+      title,
+      description,
+      ministerName,
+      ministerId,
+      bannerArtUrl,
+      trackIds,
+      year,
+      intentCategory,
+      displayOrder: displayOrder !== undefined ? Number(displayOrder) : undefined,
+      isActive: isActive !== false,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Sermon series created successfully.',
+      series: created,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to create sermon series.' });
+  }
+};
+
+export const updateSeriesAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updated = await dbClient.updateSeries(id, updates);
+    if (!updated) {
+      res.status(404).json({ error: 'Sermon series not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Sermon series updated successfully.',
+      series: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update sermon series.' });
+  }
+};
+
+export const deleteSeriesAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const deleted = await dbClient.deleteSeries(id);
+    if (!deleted) {
+      res.status(404).json({ error: 'Sermon series not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Sermon series deleted successfully.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to delete sermon series.' });
+  }
+};
+
+export const reorderSeriesAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orders } = req.body;
+    if (!Array.isArray(orders)) {
+      res.status(400).json({ error: 'Array of series orders is required.' });
+      return;
+    }
+
+    const updatedList = await dbClient.reorderSeries(orders);
+    res.status(200).json({
+      success: true,
+      message: 'Series display order updated successfully.',
+      series: updatedList,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to reorder sermon series.' });
+  }
+};
+

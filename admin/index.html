@@ -1025,6 +1025,7 @@
       <button class="tab-btn" data-tab="ministers" onclick="switchTab('ministers')"><span>🎙️</span> Ministers</button>
       <button class="tab-btn" data-tab="categories" onclick="switchTab('categories')"><span>🏷️</span> Categories</button>
       <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')"><span>🎵</span> Catalog</button>
+      <button class="tab-btn" data-tab="series" onclick="switchTab('series')"><span>📚</span> Series</button>
       <button class="tab-btn" data-tab="ingest" onclick="switchTab('ingest')"><span>🚀</span> Ingest</button>
       <button class="tab-btn" data-tab="partners" onclick="switchTab('partners')"><span>👑</span> Partners</button>
       <button class="tab-btn" data-tab="marketing" onclick="switchTab('marketing')"><span>📣</span> Marketing</button>
@@ -1085,6 +1086,7 @@
     <button class="tab-btn" data-tab="ministers" onclick="switchTab('ministers')">🎙️ Ministers</button>
     <button class="tab-btn" data-tab="categories" onclick="switchTab('categories')">🏷️ Categories</button>
     <button class="tab-btn" data-tab="catalog" onclick="switchTab('catalog')">🎵 Catalog</button>
+    <button class="tab-btn" data-tab="series" onclick="switchTab('series')">📚 Series</button>
     <button class="tab-btn" data-tab="ingest" onclick="switchTab('ingest')">🚀 Ingest</button>
     <button class="tab-btn" data-tab="partners" onclick="switchTab('partners')">👑 Partners</button>
     <button class="tab-btn" data-tab="marketing" onclick="switchTab('marketing')">📣 Marketing</button>
@@ -1136,6 +1138,10 @@
       <button class="drawer-nav-item" data-tab="catalog" onclick="switchTab('catalog')">
         <span style="font-size: 18px;">🎵</span>
         <span>Media Catalog & Tracks</span>
+      </button>
+      <button class="drawer-nav-item" data-tab="series" onclick="switchTab('series')">
+        <span style="font-size: 18px;">📚</span>
+        <span>Featured Sermon Series</span>
       </button>
       <button class="drawer-nav-item" data-tab="ingest" onclick="switchTab('ingest')">
         <span style="font-size: 18px;">🚀</span>
@@ -1364,6 +1370,51 @@
               </tr>
             </thead>
             <tbody id="catalog-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Featured Sermon Series Management -->
+    <div id="tab-series" class="tab-content">
+      <div class="card">
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <span>📚 Featured Sermon Series Management</span>
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 400; margin-top: 4px;">
+              Curate multi-part teachings, reorder how they appear in the app shelf, and link audio tracks.
+            </div>
+          </div>
+          <button class="btn" onclick="openCreateSeriesModal()">+ Create Sermon Series</button>
+        </div>
+
+        <!-- Priority Order Guidance Notice -->
+        <div style="background: rgba(230, 57, 70, 0.08); border: 1px solid rgba(230, 57, 70, 0.25); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 20px;">⚡</span>
+            <span style="font-size: 13px; color: #fff;">
+              <strong>App Display Priority:</strong> Series at the top of this list appear first on the mobile app's <em>"Featured Sermon Series"</em> shelf. Use the <strong>⬆️ Up</strong> and <strong>⬇️ Down</strong> arrows to reorder.
+            </span>
+          </div>
+          <button class="btn btn-secondary" onclick="loadSeriesAdmin()" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh List</button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 100px; text-align: center;">Priority</th>
+                <th>Banner / Artwork</th>
+                <th>Series Title & Minister</th>
+                <th>Theme / Category</th>
+                <th>Parts</th>
+                <th>Status</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="series-table-body">
               <!-- Populated via JS -->
             </tbody>
           </table>
@@ -2012,6 +2063,118 @@
     </div>
   </div>
 
+  <!-- Sermon Series Modal -->
+  <div class="modal-overlay" id="seriesModal" onclick="if(event.target === this) closeSeriesModal()">
+    <div class="modal-card" style="max-width: 720px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <h3 id="seriesModalTitle" style="font-size: 18px; font-weight: 800; color: #fff; margin: 0;">Create Sermon Series</h3>
+        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 14px;" onclick="closeSeriesModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="editSeriesId" />
+
+      <!-- Live Series Card Preview -->
+      <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.18); border-radius: 14px; padding: 14px; margin-bottom: 20px;">
+        <div style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">Mobile App Shelf Preview</div>
+        <div id="seriesPreviewCard" style="background: linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+            <img id="seriesPreviewImg" src="https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=300" style="width: 58px; height: 58px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;" />
+            <div style="min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span id="seriesPreviewPartsBadge" style="background: rgba(255,255,255,0.18); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">0 PARTS</span>
+                <span id="seriesPreviewCategory" style="font-size: 11px; color: rgba(255,255,255,0.7);">Spiritual Warfare</span>
+              </div>
+              <div id="seriesPreviewTitle" style="font-weight: 800; font-size: 15px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Series Title</div>
+              <div id="seriesPreviewMinister" style="font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px;">Pastor Martins Omonua</div>
+            </div>
+          </div>
+          <span style="font-size: 18px; color: rgba(255,255,255,0.8); flex-shrink: 0;">➔</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+        <div class="form-group">
+          <label>Series Title *</label>
+          <input type="text" id="seriesTitleInput" placeholder="e.g. The Mystery of Altars & Covenants" oninput="updateSeriesPreview()" required />
+        </div>
+        <div class="form-group">
+          <label>Minister / Speaker *</label>
+          <input type="text" id="seriesMinisterInput" placeholder="e.g. Pastor Martins Omonua" oninput="updateSeriesPreview()" required />
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 120px; gap: 14px; margin-bottom: 12px;">
+        <div class="form-group">
+          <label>Category / Theme</label>
+          <input type="text" id="seriesCategoryInput" placeholder="e.g. Spiritual Warfare, Kingdom Faith" oninput="updateSeriesPreview()" />
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <input type="text" id="seriesYearInput" placeholder="e.g. 2026" />
+        </div>
+        <div class="form-group">
+          <label>Display Priority</label>
+          <input type="number" id="seriesOrderInput" value="1" min="1" />
+        </div>
+      </div>
+
+      <!-- Accent Color Swatches -->
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Theme Card Accent Color</label>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; border-color: #1E1B4B;" onclick="selectSeriesColor('#1E1B4B')">🌌 Midnight Navy</button>
+          <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; border-color: #3B0764;" onclick="selectSeriesColor('#3B0764')">🔮 Royal Plum</button>
+          <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; border-color: #78350F;" onclick="selectSeriesColor('#78350F')">👑 Kingdom Gold</button>
+          <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; border-color: #064E3B;" onclick="selectSeriesColor('#064E3B')">🌿 Living Green</button>
+          <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; border-color: #881337;" onclick="selectSeriesColor('#881337')">🩸 Crimson Fire</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" id="seriesColorInput" value="#1E1B4B" style="height: 38px; width: 50px; padding: 2px; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);" oninput="updateSeriesPreview()" />
+          <input type="text" id="seriesColorHexInput" value="#1E1B4B" style="width: 110px; font-family: monospace; font-size: 12px;" oninput="document.getElementById('seriesColorInput').value=this.value; updateSeriesPreview();" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Banner Artwork URL</label>
+        <input type="url" id="seriesImageInput" placeholder="https://..." oninput="updateSeriesPreview()" />
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>Series Description</label>
+        <textarea id="seriesDescInput" rows="2" placeholder="Brief spiritual description of this multi-part revelation..."></textarea>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: #fff;">
+          <input type="checkbox" id="seriesActiveInput" checked style="width: 18px; height: 18px; accent-color: var(--primary);" />
+          Visible on Mobile App (Active Status)
+        </label>
+      </div>
+
+      <!-- Assign Tracks & Messages Section -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="margin: 0; font-weight: 700; color: #fff;">
+            🎵 Link Audio Messages & Sermons to Series
+          </label>
+          <span id="seriesSelectedCount" style="font-size: 12px; font-weight: 700; color: var(--primary); background: rgba(230,57,70,0.15); padding: 3px 8px; border-radius: 6px;">
+            0 Parts Selected
+          </span>
+        </div>
+        <input type="text" id="seriesTrackSearch" placeholder="🔍 Search sermons & audio messages by title or preacher..." oninput="filterSeriesTrackPicker(this.value)" style="margin-bottom: 10px; font-size: 13px;" />
+        
+        <div id="seriesTrackListContainer" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: rgba(0,0,0,0.25); padding: 8px;">
+          <!-- Track checklist items populated dynamically -->
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
+        <button type="button" class="btn btn-secondary" onclick="closeSeriesModal()">Cancel</button>
+        <button type="button" class="btn" id="saveSeriesBtn" onclick="saveSeries()">💾 Save Sermon Series</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Devotee Management & VIP Override Modal -->
   <div class="modal-overlay" id="devoteeModal">
     <div class="modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
@@ -2492,6 +2655,7 @@
       if (tabId === 'ministers') loadMinisters();
       if (tabId === 'categories') loadCategories();
       if (tabId === 'catalog') loadCatalog();
+      if (tabId === 'series') loadSeriesAdmin();
       if (tabId === 'ingest') {
         populateCategoryDropdown();
         populateMinistersDropdown();
@@ -3494,6 +3658,379 @@
         loadCatalog();
       } catch (e) {
         alert('Failed to delete track');
+      }
+    }
+
+    // ─── FEATURED SERMON SERIES MANAGEMENT ─────────────────────────────────────
+    let cachedSeriesList = [];
+    let cachedTracksForSeries = [];
+    let selectedTrackIdsForSeries = new Set();
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[m]));
+    }
+
+    async function loadSeriesAdmin() {
+      const tbody = document.getElementById('series-table-body');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">🔄 Loading Sermon Series...</td></tr>';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/series`, {
+          headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to fetch sermon series');
+        const data = await res.json();
+        cachedSeriesList = (data.series || []).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (cachedSeriesList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">No sermon series created yet. Click "+ Create Sermon Series" to start.</td></tr>';
+          return;
+        }
+
+        cachedSeriesList.forEach((series, index) => {
+          const tr = document.createElement('tr');
+          const isFirst = index === 0;
+          const isLast = index === cachedSeriesList.length - 1;
+          const statusBadge = series.isActive !== false
+            ? '<span class="badge" style="background: rgba(16, 185, 129, 0.18); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.45); font-weight: 600;">Active in App</span>'
+            : '<span class="badge" style="background: rgba(100, 116, 139, 0.2); color: #94A3B8; border: 1px solid rgba(100, 116, 139, 0.4); font-weight: 600;">Hidden</span>';
+
+          const defaultImg = 'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=300';
+          const artworkUrl = series.imageUrl || defaultImg;
+          const partsCount = (series.trackIds && Array.isArray(series.trackIds)) ? series.trackIds.length : 0;
+
+          tr.innerHTML = `
+            <td style="text-align: center;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <span style="font-weight: 800; font-size: 13px; color: var(--primary); min-width: 24px;">#${series.displayOrder || (index + 1)}</span>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; line-height: 1;" onclick="moveSeries('${series.id}', -1)" ${isFirst ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''} title="Move Up (Higher Priority)">▲</button>
+                  <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px; line-height: 1;" onclick="moveSeries('${series.id}', 1)" ${isLast ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : ''} title="Move Down (Lower Priority)">▼</button>
+                </div>
+              </div>
+            </td>
+            <td>
+              <img src="${artworkUrl}" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15);" onerror="this.src='${defaultImg}'" />
+            </td>
+            <td>
+              <div style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(series.title)}</div>
+              <div style="font-size: 12px; color: var(--text-muted);">${escapeHtml(series.minister || 'Pastor Martins Omonua')}</div>
+            </td>
+            <td>
+              <span style="font-size: 12.5px; color: #fff;">${escapeHtml(series.category || 'General')}</span>
+              ${series.year ? `<span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">(${escapeHtml(series.year)})</span>` : ''}
+            </td>
+            <td>
+              <span class="badge" style="background: rgba(59, 130, 246, 0.18); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.45); font-weight: 700;">
+                ${partsCount} ${partsCount === 1 ? 'Part' : 'Parts'}
+              </span>
+            </td>
+            <td>${statusBadge}</td>
+            <td style="text-align: right;">
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="editSeries('${series.id}')">✏️ Edit</button>
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteSeries('${series.id}', '${(series.title || '').replace(/'/g, "\\'")}')">🗑️ Delete</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Failed to load series', err);
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--primary); padding: 24px;">Failed to load series: ${err.message}</td></tr>`;
+        }
+      }
+    }
+
+    async function ensureTracksLoadedForSeries() {
+      if (cachedTracksForSeries.length > 0) return cachedTracksForSeries;
+      try {
+        const res = await fetch(`${API_BASE}/tracks`);
+        const data = await res.json();
+        cachedTracksForSeries = data.tracks || [];
+      } catch (e) {
+        console.error('Failed to fetch tracks for series picker', e);
+        cachedTracksForSeries = [];
+      }
+      return cachedTracksForSeries;
+    }
+
+    async function openCreateSeriesModal() {
+      document.getElementById('editSeriesId').value = '';
+      document.getElementById('seriesModalTitle').innerText = '✨ Create Sermon Series';
+      document.getElementById('seriesTitleInput').value = '';
+      document.getElementById('seriesMinisterInput').value = 'Pastor Martins Omonua';
+      document.getElementById('seriesCategoryInput').value = 'Spiritual Warfare';
+      document.getElementById('seriesYearInput').value = new Date().getFullYear().toString();
+      document.getElementById('seriesOrderInput').value = (cachedSeriesList.length + 1).toString();
+      document.getElementById('seriesColorInput').value = '#1E1B4B';
+      document.getElementById('seriesColorHexInput').value = '#1E1B4B';
+      document.getElementById('seriesImageInput').value = '';
+      document.getElementById('seriesDescInput').value = '';
+      document.getElementById('seriesActiveInput').checked = true;
+      document.getElementById('seriesTrackSearch').value = '';
+      document.getElementById('saveSeriesBtn').innerText = '💾 Create Sermon Series';
+
+      selectedTrackIdsForSeries = new Set();
+      await ensureTracksLoadedForSeries();
+      renderSeriesTrackPicker('');
+      updateSeriesPreview();
+
+      const modal = document.getElementById('seriesModal');
+      if (modal) modal.classList.add('active');
+    }
+
+    async function editSeries(id) {
+      const series = cachedSeriesList.find(s => s.id === id);
+      if (!series) return;
+
+      document.getElementById('editSeriesId').value = series.id;
+      document.getElementById('seriesModalTitle').innerText = '📚 Edit Sermon Series';
+      document.getElementById('seriesTitleInput').value = series.title || '';
+      document.getElementById('seriesMinisterInput').value = series.minister || 'Pastor Martins Omonua';
+      document.getElementById('seriesCategoryInput').value = series.category || '';
+      document.getElementById('seriesYearInput').value = series.year || '';
+      document.getElementById('seriesOrderInput').value = (series.displayOrder || 1).toString();
+
+      const validColor = (series.accentColor && series.accentColor.startsWith('#')) ? series.accentColor : '#1E1B4B';
+      document.getElementById('seriesColorInput').value = validColor;
+      document.getElementById('seriesColorHexInput').value = validColor;
+      document.getElementById('seriesImageInput').value = series.imageUrl || '';
+      document.getElementById('seriesDescInput').value = series.description || '';
+      document.getElementById('seriesActiveInput').checked = series.isActive !== false;
+      document.getElementById('seriesTrackSearch').value = '';
+      document.getElementById('saveSeriesBtn').innerText = '💾 Save Changes';
+
+      selectedTrackIdsForSeries = new Set(series.trackIds || []);
+      await ensureTracksLoadedForSeries();
+      renderSeriesTrackPicker('');
+      updateSeriesPreview();
+
+      const modal = document.getElementById('seriesModal');
+      if (modal) modal.classList.add('active');
+    }
+
+    function closeSeriesModal() {
+      const modal = document.getElementById('seriesModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    function selectSeriesColor(hex) {
+      document.getElementById('seriesColorInput').value = hex;
+      document.getElementById('seriesColorHexInput').value = hex;
+      updateSeriesPreview();
+    }
+
+    function updateSeriesPreview() {
+      const title = document.getElementById('seriesTitleInput').value || 'Series Title';
+      const minister = document.getElementById('seriesMinisterInput').value || 'Pastor Martins Omonua';
+      const category = document.getElementById('seriesCategoryInput').value || 'Spiritual Warfare';
+      const color = document.getElementById('seriesColorInput').value || '#1E1B4B';
+      const imageUrl = document.getElementById('seriesImageInput').value || 'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=300';
+      const parts = selectedTrackIdsForSeries.size;
+
+      const card = document.getElementById('seriesPreviewCard');
+      if (card) {
+        card.style.background = `linear-gradient(135deg, ${color} 0%, rgba(15, 23, 42, 0.95) 100%)`;
+        card.style.borderColor = color;
+        card.style.boxShadow = `0 4px 20px ${color}44`;
+      }
+
+      if (document.getElementById('seriesPreviewTitle')) document.getElementById('seriesPreviewTitle').innerText = title;
+      if (document.getElementById('seriesPreviewMinister')) document.getElementById('seriesPreviewMinister').innerText = minister;
+      if (document.getElementById('seriesPreviewCategory')) document.getElementById('seriesPreviewCategory').innerText = category;
+      if (document.getElementById('seriesPreviewPartsBadge')) document.getElementById('seriesPreviewPartsBadge').innerText = `${parts} ${parts === 1 ? 'PART' : 'PARTS'}`;
+      if (document.getElementById('seriesPreviewImg')) document.getElementById('seriesPreviewImg').src = imageUrl;
+      if (document.getElementById('seriesSelectedCount')) document.getElementById('seriesSelectedCount').innerText = `${parts} ${parts === 1 ? 'Part' : 'Parts'} Selected`;
+    }
+
+    function renderSeriesTrackPicker(filterQuery) {
+      const container = document.getElementById('seriesTrackListContainer');
+      if (!container) return;
+
+      const q = (filterQuery || '').toLowerCase().trim();
+      const filtered = cachedTracksForSeries.filter(t => {
+        if (!q) return true;
+        const titleMatch = (t.title || '').toLowerCase().includes(q);
+        const artistMatch = (t.artist || '').toLowerCase().includes(q);
+        const catMatch = (t.intentCategory || '').toLowerCase().includes(q);
+        return titleMatch || artistMatch || catMatch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 16px;">No audio tracks match your search.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const isChecked = selectedTrackIdsForSeries.has(t.id);
+        const artwork = t.artworkUrl || 'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=100';
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 8px; margin-bottom: 4px; background: ${isChecked ? 'rgba(230,57,70,0.12)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${isChecked ? 'rgba(230,57,70,0.35)' : 'rgba(255,255,255,0.06)'}; cursor: pointer; transition: all 0.15s ease;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <input type="checkbox" value="${t.id}" ${isChecked ? 'checked' : ''} onchange="toggleTrackInSeries('${t.id}', this.checked)" style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" />
+              <img src="${artwork}" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex-shrink: 0;" />
+              <div style="min-width: 0;">
+                <div style="font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(t.title)}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(t.artist || 'Pastor Martins Omonua')}</div>
+              </div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); padding-left: 8px; white-space: nowrap;">${t.intentCategory || ''}</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function toggleTrackInSeries(trackId, isChecked) {
+      if (isChecked) {
+        selectedTrackIdsForSeries.add(trackId);
+      } else {
+        selectedTrackIdsForSeries.delete(trackId);
+      }
+      updateSeriesPreview();
+    }
+
+    function filterSeriesTrackPicker(query) {
+      renderSeriesTrackPicker(query);
+    }
+
+    async function saveSeries() {
+      const id = document.getElementById('editSeriesId').value;
+      const title = document.getElementById('seriesTitleInput').value.trim();
+      const minister = document.getElementById('seriesMinisterInput').value.trim();
+      const category = document.getElementById('seriesCategoryInput').value.trim();
+      const year = document.getElementById('seriesYearInput').value.trim();
+      const displayOrder = parseInt(document.getElementById('seriesOrderInput').value, 10) || 1;
+      const accentColor = document.getElementById('seriesColorInput').value;
+      const imageUrl = document.getElementById('seriesImageInput').value.trim();
+      const description = document.getElementById('seriesDescInput').value.trim();
+      const isActive = document.getElementById('seriesActiveInput').checked;
+      const trackIds = Array.from(selectedTrackIdsForSeries);
+
+      if (!title || !minister) {
+        alert('Please provide at least a Series Title and Minister.');
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveSeriesBtn');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerText = '⏳ Saving...';
+      }
+
+      const payload = {
+        title,
+        minister,
+        category,
+        year,
+        displayOrder,
+        accentColor,
+        imageUrl: imageUrl || undefined,
+        description,
+        isActive,
+        trackIds
+      };
+
+      try {
+        const url = id ? `${API_BASE}/admin/series/${id}` : `${API_BASE}/admin/series`;
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerText = id ? '💾 Save Changes' : '💾 Create Sermon Series';
+        }
+
+        if (res.ok) {
+          closeSeriesModal();
+          await loadSeriesAdmin();
+        } else {
+          alert(`Error saving series: ${data.error || 'Server error'}`);
+        }
+      } catch (err) {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerText = id ? '💾 Save Changes' : '💾 Create Sermon Series';
+        }
+        alert('Network error while saving series: ' + err.message);
+      }
+    }
+
+    async function deleteSeries(id, title) {
+      if (!confirm(`Are you sure you want to delete the series "${title}"?\n\nThis will remove it from the mobile app's Featured Sermon Series shelf.`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/series/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+          await loadSeriesAdmin();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(`Failed to delete series: ${data.error || 'Server error'}`);
+        }
+      } catch (e) {
+        alert('Failed to delete series: ' + e.message);
+      }
+    }
+
+    async function moveSeries(id, direction) {
+      const index = cachedSeriesList.findIndex(s => s.id === id);
+      if (index === -1) return;
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= cachedSeriesList.length) return;
+
+      // Swap positions in array
+      const temp = cachedSeriesList[index];
+      cachedSeriesList[index] = cachedSeriesList[targetIndex];
+      cachedSeriesList[targetIndex] = temp;
+
+      // Send new ordered series IDs to backend
+      const orderedIds = cachedSeriesList.map(s => s.id);
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/series/reorder`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({ seriesIds: orderedIds })
+        });
+
+        if (res.ok) {
+          await loadSeriesAdmin();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(`Failed to save series order: ${err.error || 'Server error'}`);
+          await loadSeriesAdmin(); // Revert
+        }
+      } catch (e) {
+        alert('Failed to reorder series: ' + e.message);
+        await loadSeriesAdmin();
       }
     }
 

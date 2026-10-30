@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../core/models/audio_track.dart';
 import '../core/models/spiritual_intent.dart';
+import '../core/models/sermon_series.dart';
 
 class PaginatedTracksResult {
   final List<AudioTrack> tracks;
@@ -243,6 +244,27 @@ class ApiService {
       debugPrint('[ApiService] Categories fetch error: $e');
     }
     return SpiritualIntent.defaultCategories;
+  }
+
+  // Fetch featured sermon series dynamically from cloud
+  static Future<List<SermonSeries>> fetchSeries() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/series'),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List list = data['series'] ?? [];
+        if (list.isNotEmpty) {
+          final fetched = list.map((json) => SermonSeries.fromJson(json)).toList();
+          return fetched;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Series fetch error: $e');
+    }
+    return [];
   }
 
   // Fetch windowed page of audio tracks for progressive infinite scroll at 5,000+ scale

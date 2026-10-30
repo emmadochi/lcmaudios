@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
 import '../../../core/models/audio_track.dart';
+import '../../../core/models/sermon_series.dart';
 import '../../../services/audio_player_service.dart';
 import 'intent_playlist_screen.dart';
 import 'sermon_series_detail_screen.dart';
@@ -577,12 +578,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             const SizedBox(height: 10),
                             SizedBox(
                               height: 180,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: playerService.allTracks.take(8).length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                                itemBuilder: (context, idx) {
-                                  final track = playerService.allTracks[idx];
+                              child: Builder(
+                                builder: (context) {
+                                  // Sort by most listened to (playCount descending)
+                                  final trendingTracks = List<AudioTrack>.from(playerService.allTracks)
+                                    ..sort((a, b) {
+                                      final cmp = b.playCount.compareTo(a.playCount);
+                                      if (cmp != 0) return cmp;
+                                      // If equal play count, prefer core sermons/songs over podcast episodes
+                                      if (a.mediaType != MediaType.podcast && b.mediaType == MediaType.podcast) return -1;
+                                      if (a.mediaType == MediaType.podcast && b.mediaType != MediaType.podcast) return 1;
+                                      return 0;
+                                    });
+                                  final displayTrending = trendingTracks.take(12).toList();
+
+                                  return ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: displayTrending.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                    itemBuilder: (context, idx) {
+                                      final track = displayTrending[idx];
                                   final isCurrent = playerService.currentTrack?.id == track.id;
                                   final isPlaying = isCurrent && playerService.isPlaying;
 
@@ -685,8 +700,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     ),
                                   );
                                 },
-                              ),
-                            ),
+                              );
+                            },
+                          ),
+                        ),
                           ],
                         ),
                       ),
@@ -914,7 +931,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               height: 120,
                               child: Builder(
                                 builder: (context) {
-                                  final seriesList = playerService.allSeries;
+                                  final seriesList = List<SermonSeries>.from(
+                                    playerService.allSeries.where((s) => s.isActive),
+                                  )..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
                                   final colors = [
                                     const Color(0xFF6366F1),
                                     const Color(0xFFEC4899),

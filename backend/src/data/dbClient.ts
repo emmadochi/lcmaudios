@@ -1,5 +1,5 @@
 import { MockDatabase } from './mockDatabase';
-import { Track, User, SermonNote, CategoryItem, TelemetryEvent, IntentCategory, MediaType, Minister } from '../models/types';
+import { Track, User, SermonNote, CategoryItem, TelemetryEvent, IntentCategory, MediaType, Minister, SermonSeries } from '../models/types';
 
 export function sanitizeHttpsUrl(url?: string): string {
   if (!url) return '';
@@ -1127,6 +1127,148 @@ class DbClient {
       return true;
     }
     return false;
+  }
+
+  // --- SERMON SERIES OPERATIONS ---
+  public async getSeries(): Promise<SermonSeries[]> {
+    const mock = MockDatabase.getInstance();
+    if (!mock.series || mock.series.length === 0) {
+      mock.seedSeries();
+    }
+    return [...mock.series].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }
+
+  public async getSeriesById(id: string): Promise<SermonSeries | null> {
+    const mock = MockDatabase.getInstance();
+    const s = mock.series.find((item) => item.id === id);
+    return s || null;
+  }
+
+  public async createSeries(data: {
+    title: string;
+    description?: string;
+    ministerName?: string;
+    ministerId?: string;
+    bannerArtUrl?: string;
+    trackIds?: string[];
+    year?: string;
+    intentCategory?: string;
+    displayOrder?: number;
+    isActive?: boolean;
+  }): Promise<SermonSeries> {
+    const mock = MockDatabase.getInstance();
+    const id = `series_${Date.now()}`;
+    const nextOrder = data.displayOrder ?? (mock.series.length > 0 ? Math.max(...mock.series.map(s => s.displayOrder || 0)) + 1 : 1);
+    const trackIds = Array.isArray(data.trackIds) ? data.trackIds : [];
+
+    const newSeries: SermonSeries = {
+      id,
+      title: data.title.trim(),
+      description: data.description?.trim() || '',
+      ministerName: data.ministerName?.trim() || 'Pastor Martins Omonua',
+      ministerId: data.ministerId || 'min_1',
+      bannerArtUrl: sanitizeHttpsUrl(data.bannerArtUrl) || 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
+      totalParts: trackIds.length > 0 ? trackIds.length : 1,
+      trackIds,
+      year: data.year || new Date().getFullYear().toString(),
+      intentCategory: data.intentCategory || 'morningDevotion',
+      displayOrder: nextOrder,
+      isActive: data.isActive !== false,
+      createdAt: new Date().toISOString(),
+    };
+
+    mock.series.push(newSeries);
+
+    // Link assigned tracks
+    if (trackIds.length > 0) {
+      trackIds.forEach((trackId, index) => {
+        const track = mock.tracks.find(t => t.id === trackId);
+        if (track) {
+          (track as any).seriesId = id;
+          (track as any).seriesTitle = newSeries.title;
+          (track as any).seriesPart = index + 1;
+        }
+      });
+    }
+
+    mock.saveToFile();
+    return newSeries;
+  }
+
+  public async updateSeries(id: string, updates: Partial<SermonSeries>): Promise<SermonSeries | null> {
+    const mock = MockDatabase.getInstance();
+    const series = mock.series.find((s) => s.id === id);
+    if (!series) return null;
+
+    if (updates.title !== undefined) series.title = updates.title.trim();
+    if (updates.description !== undefined) series.description = updates.description.trim();
+    if (updates.ministerName !== undefined) series.ministerName = updates.ministerName.trim();
+    if (updates.ministerId !== undefined) series.ministerId = updates.ministerId;
+    if (updates.bannerArtUrl !== undefined) series.bannerArtUrl = sanitizeHttpsUrl(updates.bannerArtUrl);
+    if (updates.year !== undefined) series.year = updates.year;
+    if (updates.intentCategory !== undefined) series.intentCategory = updates.intentCategory;
+    if (updates.displayOrder !== undefined) series.displayOrder = updates.displayOrder;
+    if (updates.isActive !== undefined) series.isActive = updates.isActive;
+
+    if (Array.isArray(updates.trackIds)) {
+      series.trackIds = updates.trackIds;
+      series.totalParts = updates.trackIds.length > 0 ? updates.trackIds.length : 1;
+
+      // Update track references
+      mock.tracks.forEach((track) => {
+        if ((track as any).seriesId === id && !updates.trackIds!.includes(track.id)) {
+          (track as any).seriesId = undefined;
+          (track as any).seriesTitle = undefined;
+          (track as any).seriesPart = undefined;
+        }
+      });
+
+      updates.trackIds.forEach((trackId, index) => {
+        const track = mock.tracks.find(t => t.id === trackId);
+        if (track) {
+          (track as any).seriesId = id;
+          (track as any).seriesTitle = series.title;
+          (track as any).seriesPart = index + 1;
+        }
+      });
+    }
+
+    mock.saveToFile();
+    return series;
+  }
+
+  public async deleteSeries(id: string): Promise<boolean> {
+    const mock = MockDatabase.getInstance();
+    const idx = mock.series.findIndex((s) => s.id === id);
+    if (idx !== -1) {
+      mock.series.splice(idx, 1);
+
+      // Unlink any tracks referencing this series
+      mock.tracks.forEach((track) => {
+        if ((track as any).seriesId === id) {
+          (track as any).seriesId = undefined;
+          (track as any).seriesTitle = undefined;
+          (track as any).seriesPart = undefined;
+        }
+      });
+
+      mock.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
+  public async reorderSeries(orders: { id: string; displayOrder: number }[]): Promise<SermonSeries[]> {
+    const mock = MockDatabase.getInstance();
+    for (const item of orders) {
+      const s = mock.series.find(x => x.id === item.id);
+      if (s) {
+        s.displayOrder = item.displayOrder;
+      }
+    }
+    mock.series.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    mock.saveToFile();
+    return mock.series;
   }
 }
 

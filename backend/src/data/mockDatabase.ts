@@ -1,4 +1,4 @@
-import { Track, User, SermonNote, CategoryItem, TelemetryEvent, Minister } from '../models/types';
+import { Track, User, SermonNote, CategoryItem, TelemetryEvent, Minister, SermonSeries } from '../models/types';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
@@ -11,6 +11,7 @@ export class MockDatabase {
   public notes: SermonNote[] = [];
   public categories: CategoryItem[] = [];
   public ministers: Minister[] = [];
+  public series: SermonSeries[] = [];
   public telemetryEvents: TelemetryEvent[] = [];
   public adminConfig?: {
     email: string;
@@ -50,6 +51,7 @@ export class MockDatabase {
         notes: this.notes,
         categories: this.categories,
         ministers: this.ministers,
+        series: this.series,
         telemetryEvents: this.telemetryEvents,
         adminConfig: this.adminConfig,
       };
@@ -71,14 +73,18 @@ export class MockDatabase {
           this.notes = Array.isArray(data.notes) ? data.notes : [];
           this.categories = Array.isArray(data.categories) ? data.categories : [];
           this.ministers = Array.isArray(data.ministers) ? data.ministers : [];
+          this.series = Array.isArray(data.series) ? data.series : [];
           this.telemetryEvents = Array.isArray(data.telemetryEvents) ? data.telemetryEvents : [];
           this.adminConfig = data.adminConfig || undefined;
           
-          if (!data.ministers) {
+          if (!data.ministers || this.ministers.length === 0) {
             this.seedMinisters();
           }
-          if (!data.categories) {
+          if (!data.categories || this.categories.length === 0) {
             this.seedCategories();
+          }
+          if (!data.series || this.series.length === 0) {
+            this.seedSeries();
           }
 
           // Auto-discover and register any track intentCategories that might not be in the categories list
@@ -210,8 +216,59 @@ export class MockDatabase {
     ];
   }
 
+  public seedSeries() {
+    this.series = [
+      {
+        id: 'series_altars',
+        title: 'The Mystery of Altars & Covenants',
+        description: 'An in-depth apostolic exposition uncovering how spiritual altars operate, breaking generational cycles, and establishing the Altar of Grace.',
+        ministerName: 'Pastor Martins Omonua',
+        ministerId: 'min_1',
+        bannerArtUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=800&q=80',
+        totalParts: 4,
+        trackIds: ['track_3', 'track_6', 'track_7', 'track_8'],
+        year: '2024',
+        intentCategory: 'warfarePrayers',
+        displayOrder: 1,
+        isActive: true,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'series_dominion',
+        title: 'Walking in Kingdom Dominion',
+        description: 'Understanding believers\' authority over situations, sickness, and financial limitations through the revelation of the Word.',
+        ministerName: 'Pastor Martins Omonua',
+        ministerId: 'min_1',
+        bannerArtUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=800&q=80',
+        totalParts: 3,
+        trackIds: ['track_2', 'track_9', 'track_10'],
+        year: '2024',
+        intentCategory: 'morningDevotion',
+        displayOrder: 2,
+        isActive: true,
+        createdAt: '2026-01-02T00:00:00.000Z',
+      },
+      {
+        id: 'series_worship',
+        title: 'Atmospheres of Heaven',
+        description: 'Consecrated prophetic chants, soaking harp, and deep worship anthems for entering the Holy of Holies.',
+        ministerName: 'LCM Worship Sanctuary',
+        ministerId: 'min_5',
+        bannerArtUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
+        totalParts: 3,
+        trackIds: ['track_1', 'track_4', 'track_5'],
+        year: '2024',
+        intentCategory: 'deepWorship',
+        displayOrder: 3,
+        isActive: true,
+        createdAt: '2026-01-03T00:00:00.000Z',
+      },
+    ];
+  }
+
   private seedData() {
     this.seedMinisters();
+    this.seedSeries();
     const salt = bcrypt.genSaltSync(10);
     const demoPasswordHash = bcrypt.hashSync('password123', salt);
 
