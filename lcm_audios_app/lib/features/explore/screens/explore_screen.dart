@@ -24,6 +24,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   final List<String> _filterChips = [
     'All',
+    'Podcasts',
     'Sermons',
     'Worship',
     'Warfare',
@@ -64,11 +65,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       // 2. Chip Filter
       bool matchesChip = true;
       switch (_selectedFilter) {
+        case 'Podcasts':
+          matchesChip = track.mediaType == MediaType.podcast ||
+              track.subgenre.toLowerCase().contains('podcast') ||
+              track.title.toLowerCase().contains('podcast');
+          break;
         case 'Sermons':
-          matchesChip = track.subgenre.toLowerCase().contains('sermon') ||
-              track.subgenre.toLowerCase().contains('apostle') ||
-              track.subgenre.toLowerCase().contains('pastor') ||
-              track.intentCategory == IntentCategory.morningDevotion;
+          matchesChip = (track.mediaType == MediaType.sermon ||
+                  track.subgenre.toLowerCase().contains('sermon') ||
+                  track.subgenre.toLowerCase().contains('apostle') ||
+                  track.subgenre.toLowerCase().contains('pastor') ||
+                  track.intentCategory == IntentCategory.morningDevotion) &&
+              track.mediaType != MediaType.podcast;
           break;
         case 'Worship':
           matchesChip = track.intentCategory == IntentCategory.deepWorship ||
@@ -682,6 +690,203 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ],
                         ),
                       ),
+                    ),
+
+                    // 2.5 🎙️ The Peace Word Sparks & Podcast Shelf
+                    Builder(
+                      builder: (context) {
+                        final podcastTracks = playerService.allTracks
+                            .where((t) => t.mediaType == MediaType.podcast || t.subgenre.toLowerCase().contains('podcast'))
+                            .take(15)
+                            .toList();
+
+                        if (podcastTracks.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+                        return SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '🎙️ The Peace Word Sparks',
+                                              style: TextStyle(
+                                                color: AppColors.text(context),
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF06B6D4).withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.4)),
+                                              ),
+                                              child: const Text(
+                                                'PODCAST',
+                                                style: TextStyle(
+                                                  color: Color(0xFF06B6D4),
+                                                  fontSize: 9.5,
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.6,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Daily prophetic revelation and truth by Pastor Martins Omonua',
+                                          style: TextStyle(color: AppColors.muted(context), fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedFilter = 'Podcasts';
+                                        });
+                                      },
+                                      child: const Text(
+                                        'See all',
+                                        style: TextStyle(
+                                          color: Color(0xFF06B6D4),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                SizedBox(
+                                  height: 185,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: podcastTracks.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                                    itemBuilder: (context, idx) {
+                                      final track = podcastTracks[idx];
+                                      final isCurrent = playerService.currentTrack?.id == track.id;
+                                      final isPlaying = isCurrent && playerService.isPlaying;
+
+                                      return Container(
+                                        width: 145,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.card(context),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: isCurrent ? const Color(0xFF06B6D4) : AppColors.border(context),
+                                            width: isCurrent ? 1.5 : 1.0,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.shadow(context),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: InkWell(
+                                          onTap: () {
+                                            if (isCurrent) {
+                                              playerService.togglePlayPause();
+                                            } else {
+                                              playerService.playTrack(track);
+                                            }
+                                          },
+                                          borderRadius: BorderRadius.circular(16),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(10.0),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Stack(
+                                                  children: [
+                                                    ClipRRect(
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: track.albumArtUrl,
+                                                        height: 95,
+                                                        width: double.infinity,
+                                                        memCacheWidth: 280,
+                                                        memCacheHeight: 200,
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: (_, __, ___) => Container(
+                                                          height: 95,
+                                                          color: AppColors.cardAlt(context),
+                                                          child: const Icon(Icons.podcasts_rounded, color: Color(0xFF06B6D4)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Positioned(
+                                                      bottom: 6,
+                                                      right: 6,
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(6),
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(0xFF06B6D4),
+                                                          shape: BoxShape.circle,
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black.withValues(alpha: 0.5),
+                                                              blurRadius: 6,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Icon(
+                                                          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                                          color: Colors.black,
+                                                          size: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  track.title,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: isCurrent ? const Color(0xFF06B6D4) : AppColors.text(context),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12.5,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  track.artist,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: AppColors.subtext(context),
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                     // 3. 📚 Sermon Series & Albums (Handles Multi-Part Sermons)
