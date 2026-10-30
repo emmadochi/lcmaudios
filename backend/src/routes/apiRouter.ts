@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, googleAuth, forgotPassword, resetPassword, updateProfile, adminLogin, verifyAdminSession } from '../controllers/authController';
+import { register, login, getMe, googleAuth, forgotPassword, resetPassword, updateProfile, adminLogin, verifyAdminSession, changeAdminPassword } from '../controllers/authController';
 import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
 import { getNotes, createNote } from '../controllers/noteController';
 import { logTelemetry } from '../controllers/telemetryController';
@@ -43,6 +43,7 @@ apiRouter.post('/admin/users/:id/push', requireAdmin, sendDirectUserPush);
 // Admin Authentication & Session Verification Routes
 apiRouter.post('/auth/admin/login', adminLogin);
 apiRouter.get('/auth/admin/verify', verifyAdminSession);
+apiRouter.post('/auth/admin/change-password', requireAdmin, changeAdminPassword);
 
 // Push Notifications & Growth Marketing Routes (Admin Protected)
 apiRouter.post('/admin/notifications/test', requireAdmin, testNotificationAdmin);

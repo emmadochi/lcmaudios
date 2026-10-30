@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { dbClient } from '../data/dbClient';
+import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'lcm_audios_faith_secret_key_2026';
 
@@ -321,7 +322,33 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
     const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@lifechangerstouch.org').toLowerCase().trim();
     const configuredAdminPassword = process.env.ADMIN_PASSWORD || 'LCM@Admin2026!';
 
-    // Check against configured environment master admin credentials
+    // 1. Check custom saved admin credentials in persistent store
+    const adminCreds = await dbClient.getAdminCredentials(inputEmail);
+    if (adminCreds && adminCreds.passwordHash) {
+      const isMatch = await bcrypt.compare(password, adminCreds.passwordHash);
+      if (isMatch) {
+        const token = jwt.sign(
+          { id: 'admin_custom', email: inputEmail, role: 'admin' },
+          JWT_SECRET,
+          { expiresIn: '30d' }
+        );
+
+        res.status(200).json({
+          success: true,
+          message: 'Admin authentication successful.',
+          token,
+          admin: {
+            id: 'admin_custom',
+            email: inputEmail,
+            fullName: 'Apostolic Ministry Admin',
+            role: 'admin',
+          },
+        });
+        return;
+      }
+    }
+
+    // 2. Check against configured environment master admin credentials (allowed if no custom credentials set or if matches)
     const isMasterAdminMatch =
       inputEmail === configuredAdminEmail &&
       password === configuredAdminPassword;
@@ -331,7 +358,7 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
       (inputEmail === 'admin@lifechangerstouch.org' || inputEmail === 'admin@lcmaudios.com') &&
       (password === 'LCM@Admin2026!' || password === 'admin123456');
 
-    if (isMasterAdminMatch || isDefaultAdminMatch) {
+    if (!adminCreds && (isMasterAdminMatch || isDefaultAdminMatch)) {
       const token = jwt.sign(
         { id: 'admin_root', email: inputEmail, role: 'admin' },
         JWT_SECRET,
@@ -352,7 +379,7 @@ export const adminLogin = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Fallback: Check if user exists in DB and has matching credentials
+    // 3. Fallback: Check if user exists in DB and has matching credentials
     const dbUser = await dbClient.findUserByEmail(inputEmail);
     if (dbUser && dbUser.passwordHash) {
       const isDbMatch = await bcrypt.compare(password, dbUser.passwordHash);
@@ -405,6 +432,91 @@ export const verifyAdminSession = async (req: Request, res: Response): Promise<v
     });
   } catch (error) {
     res.status(401).json({ valid: false, error: 'Admin session expired or invalid.' });
+  }
+};
+
+export const changeAdminPassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const adminUser = req.user;
+    if (!adminUser || adminUser.role !== 'admin') {
+      res.status(403).json({ error: 'Unauthorized. Administrative privileges required.' });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current password and new password are required.' });
+      return;
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      res.status(400).json({ error: 'New password must be different from your current password.' });
+      return;
+    }
+
+    const adminEmail = (adminUser.email || 'admin@lifechangerstouch.org').toLowerCase().trim();
+    const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'admin@lifechangerstouch.org').toLowerCase().trim();
+    const configuredAdminPassword = process.env.ADMIN_PASSWORD || 'LCM@Admin2026!';
+
+    // Verify current password
+    let isValidCurrent = false;
+
+    // Check custom saved admin password
+    const adminCreds = await dbClient.getAdminCredentials(adminEmail);
+    if (adminCreds && adminCreds.passwordHash) {
+      isValidCurrent = await bcrypt.compare(currentPassword, adminCreds.passwordHash);
+    } else {
+      // Check default / configured credentials
+      const isMasterAdminMatch =
+        adminEmail === configuredAdminEmail && currentPassword === configuredAdminPassword;
+      const isDefaultAdminMatch =
+        (adminEmail === 'admin@lifechangerstouch.org' || adminEmail === 'admin@lcmaudios.com') &&
+        (currentPassword === 'LCM@Admin2026!' || currentPassword === 'admin123456');
+
+      if (isMasterAdminMatch || isDefaultAdminMatch) {
+        isValidCurrent = true;
+      } else {
+        const dbUser = await dbClient.findUserByEmail(adminEmail);
+        if (dbUser && dbUser.passwordHash) {
+          isValidCurrent = await bcrypt.compare(currentPassword, dbUser.passwordHash);
+        }
+      }
+    }
+
+    if (!isValidCurrent) {
+      res.status(400).json({ error: 'Current password is incorrect. Please verify and try again.' });
+      return;
+    }
+
+    // Hash and persist the new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await dbClient.setAdminPassword(adminEmail, passwordHash);
+
+    // Refresh JWT token
+    const token = jwt.sign(
+      { id: adminUser.id || 'admin_root', email: adminEmail, role: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    console.log(`[Auth] 🔑 Admin password successfully changed for: ${adminEmail}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin password changed successfully. Your new password is now active.',
+      token,
+    });
+  } catch (error: any) {
+    console.error('[Auth] Error changing admin password:', error);
+    res.status(500).json({ error: 'Failed to change admin password. Internal server error.' });
   }
 };
 

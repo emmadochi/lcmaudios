@@ -226,6 +226,40 @@ class DbClient {
     return false;
   }
 
+  public async getAdminCredentials(email?: string): Promise<{ email: string; passwordHash: string } | null> {
+    const mock = MockDatabase.getInstance();
+    if (mock.adminConfig) {
+      if (!email || mock.adminConfig.email.toLowerCase() === email.toLowerCase()) {
+        return mock.adminConfig;
+      }
+    }
+    // Also check if admin user exists in DB
+    if (email) {
+      const u = await this.findUserByEmail(email);
+      if (u && u.passwordHash) {
+        return { email: u.email, passwordHash: u.passwordHash };
+      }
+    }
+    return null;
+  }
+
+  public async setAdminPassword(email: string, passwordHash: string): Promise<boolean> {
+    const mock = MockDatabase.getInstance();
+    mock.adminConfig = {
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      updatedAt: new Date().toISOString(),
+    };
+    mock.saveToFile();
+
+    // If an admin user exists in DB or Prisma, update that as well
+    const existing = await this.findUserByEmail(email);
+    if (existing) {
+      await this.updateUserPassword(existing.id, passwordHash);
+    }
+    return true;
+  }
+
   public async getUsers(): Promise<User[]> {
     if (this.isPrismaConnected && this.prisma) {
       try {

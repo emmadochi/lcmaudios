@@ -12,6 +12,11 @@ export class MockDatabase {
   public categories: CategoryItem[] = [];
   public ministers: Minister[] = [];
   public telemetryEvents: TelemetryEvent[] = [];
+  public adminConfig?: {
+    email: string;
+    passwordHash: string;
+    updatedAt: string;
+  };
 
   private static getStoragePath(): string {
     const directUploads = path.resolve(__dirname, '../../uploads');
@@ -46,6 +51,7 @@ export class MockDatabase {
         categories: this.categories,
         ministers: this.ministers,
         telemetryEvents: this.telemetryEvents,
+        adminConfig: this.adminConfig,
       };
       fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf-8');
     } catch (err) {
@@ -66,6 +72,7 @@ export class MockDatabase {
           this.categories = Array.isArray(data.categories) ? data.categories : [];
           this.ministers = Array.isArray(data.ministers) ? data.ministers : [];
           this.telemetryEvents = Array.isArray(data.telemetryEvents) ? data.telemetryEvents : [];
+          this.adminConfig = data.adminConfig || undefined;
           
           if (!data.ministers) {
             this.seedMinisters();
