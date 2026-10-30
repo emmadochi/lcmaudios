@@ -577,7 +577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'LCM Audios • Version 1.0.1 (Faith in Motion)',
+                          'LCM Audios • Version 1.0.2 (Faith in Motion)',
                           style: TextStyle(color: AppColors.muted(context), fontSize: 11),
                         ),
                       ],

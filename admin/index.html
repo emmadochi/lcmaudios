@@ -3079,7 +3079,9 @@
 
     async function loadMinisters() {
       try {
-        const res = await fetch(`${API_BASE}/admin/ministers`);
+        const res = await fetch(`${API_BASE}/admin/ministers`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         cachedMinistersList = data.ministers || [];
         const grid = document.getElementById('ministers-grid');
@@ -3202,7 +3204,10 @@
       if (!confirm(`Are you sure you want to remove ${name}?`)) return;
 
       try {
-        const res = await fetch(`${API_BASE}/admin/ministers/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/ministers/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
         if (res.ok) {
           loadMinisters();
         } else {
@@ -3233,7 +3238,9 @@
 
     async function loadPartnerLedger() {
       try {
-        const res = await fetch(`${API_BASE}/admin/partners/ledger`);
+        const res = await fetch(`${API_BASE}/admin/partners/ledger`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         if (data.success && data.data) {
           const l = data.data;
@@ -3282,14 +3289,21 @@
 
     async function loadAnalytics() {
       try {
-        const res = await fetch(`${API_BASE}/admin/analytics`);
+        const res = await fetch(`${API_BASE}/admin/analytics`, {
+          headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+          console.warn('[Analytics] Failed to fetch telemetry: HTTP', res.status);
+          return;
+        }
         const data = await res.json();
         const a = data.analytics;
+        if (!a) return;
 
-        document.getElementById('stat-streams').innerText = a.totalStreams.toLocaleString();
-        document.getElementById('stat-users').innerText = a.activeListeners.toLocaleString();
-        document.getElementById('stat-hours').innerText = `${a.totalListeningHours} Hrs`;
-        document.getElementById('stat-notes').innerText = `${a.totalNotesTaken} Notes`;
+        if (document.getElementById('stat-streams')) document.getElementById('stat-streams').innerText = (a.totalStreams || 0).toLocaleString();
+        if (document.getElementById('stat-users')) document.getElementById('stat-users').innerText = (a.activeListeners || 0).toLocaleString();
+        if (document.getElementById('stat-hours')) document.getElementById('stat-hours').innerText = `${a.totalListeningHours || 0} Hrs`;
+        if (document.getElementById('stat-notes')) document.getElementById('stat-notes').innerText = `${a.totalNotesTaken || 0} Notes`;
 
         // Category Distribution Bars
         const container = document.getElementById('analytics-categories-bars');
@@ -3338,7 +3352,9 @@
 
     async function loadCategories() {
       try {
-        const res = await fetch(`${API_BASE}/admin/categories`);
+        const res = await fetch(`${API_BASE}/admin/categories`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         const grid = document.getElementById('categories-grid');
         grid.innerHTML = '';
@@ -3498,7 +3514,10 @@
 
       if (!confirm(msg)) return;
       try {
-        const res = await fetch(`${API_BASE}/admin/categories/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
         if (res.ok) {
           await loadCategories();
           populateCategoryDropdown();
@@ -3513,7 +3532,9 @@
 
     async function populateCategoryDropdown() {
       try {
-        const res = await fetch(`${API_BASE}/admin/categories`);
+        const res = await fetch(`${API_BASE}/admin/categories`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         const select = document.getElementById('intentCategory');
         const editSelect = document.getElementById('editTrackCategory');
@@ -3585,7 +3606,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/tracks/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ isPremium: Boolean(isPremium) }),
         });
         if (res.ok) {
@@ -3635,7 +3656,7 @@
       try {
         const res = await fetch(`${API_BASE}/admin/tracks/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ title, artist, intentCategory, subgenre, isPremium, duration: parseInt(duration) || 300 }),
         });
 
@@ -3654,7 +3675,10 @@
     async function deleteTrack(id) {
       if (!confirm('Are you sure you want to delete this track?')) return;
       try {
-        await fetch(`${API_BASE}/admin/tracks/${id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/admin/tracks/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
         loadCatalog();
       } catch (e) {
         alert('Failed to delete track');

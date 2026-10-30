@@ -12,7 +12,7 @@ class LcmBridge {
   static const String designatedPackageName = 'com.lcmaudios.lcm_audios_app';
   static const String fallbackPackageName = 'org.ldtl.lcmaudios';
   static const String appName = 'LCM Audios';
-  static const String currentAppVersion = '1.0.1';
+  static const String currentAppVersion = '1.0.2';
 
   /// 1. Auto-check for updates on app startup
   static Future<void> checkForUpdates(
