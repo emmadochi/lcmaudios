@@ -4,13 +4,11 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      # In Codemagic UI: Teams/Account -> Integrations -> App Store Connect
-      # Name your API key integration "app_store_connect_api_key" (or update the name below)
-      app_store_connect: app_store_connect_api_key
+      app_store_connect: LCM Audios
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.lcmaudios.lcmAudiosApp
+        bundle_identifier: org.lifechangerstouch.lcmaudios
       flutter: stable
       xcode: latest
       cocoapods: default

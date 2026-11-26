@@ -58,7 +58,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.lcmaudios.lcmAudiosApp</string>
+			<string>org.lifechangerstouch.lcmaudios</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lcmaudios</string>
