@@ -118,6 +118,58 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> loginWithApple({
+    String? identityToken,
+    String? authorizationCode,
+    String? userIdentifier,
+    String? email,
+    String? fullName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/apple'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          if (identityToken != null) 'identityToken': identityToken,
+          if (authorizationCode != null) 'authorizationCode': authorizationCode,
+          if (userIdentifier != null) 'userIdentifier': userIdentifier,
+          if (email != null) 'email': email.trim().toLowerCase(),
+          if (fullName != null) 'fullName': fullName.trim(),
+        }),
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'token': data['token'], 'user': data['user']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Apple authentication failed.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to streaming cloud for Apple sign-in.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteAccount(String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/auth/account'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 25));
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message'] ?? 'Account deleted.'};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Failed to delete account.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Unable to connect to server to delete account.'};
+    }
+  }
+
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
       final response = await http.post(
@@ -459,6 +511,42 @@ class ApiService {
       debugPrint('[ApiService] Paystack verify error: $e');
     }
     return null;
+  }
+
+  /// Verify Apple StoreKit / Google Play Billing IAP receipt with backend
+  static Future<Map<String, dynamic>> verifyInAppPurchase({
+    String? token,
+    required String platform,
+    required String productId,
+    required String purchaseId,
+    required String verificationData,
+  }) async {
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/verify-iap'),
+        headers: headers,
+        body: json.encode({
+          'platform': platform,
+          'productId': productId,
+          'purchaseId': purchaseId,
+          'verificationData': verificationData,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] is Map<String, dynamic>) {
+          return data['data'] as Map<String, dynamic>;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] IAP verify error: $e');
+    }
+    return {};
   }
 
   // Fetch dynamic list of ministers from backend

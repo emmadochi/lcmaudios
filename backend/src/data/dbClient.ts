@@ -204,6 +204,26 @@ class DbClient {
     return newUser;
   }
 
+  public async deleteUser(id: string): Promise<boolean> {
+    if (this.isPrismaConnected && this.prisma) {
+      try {
+        await this.prisma.user.delete({ where: { id } });
+        return true;
+      } catch (e) {
+        console.error('[DB Client] Prisma deleteUser error:', e);
+        return false;
+      }
+    }
+    const mock = MockDatabase.getInstance();
+    const idx = mock.users.findIndex((u: User) => u.id === id);
+    if (idx !== -1) {
+      mock.users.splice(idx, 1);
+      mock.saveToFile();
+      return true;
+    }
+    return false;
+  }
+
   public async updateUserPassword(id: string, passwordHash: string): Promise<boolean> {
     if (this.isPrismaConnected && this.prisma) {
       try {

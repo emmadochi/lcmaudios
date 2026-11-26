@@ -51,8 +51,11 @@ dependencies:
   connectivity_plus: ^6.1.4
   # Background audio service & lock-screen media notification controls
   audio_service: ^0.18.18
-  # Native Google Sign In
+  # Native Google Sign In & Sign in with Apple
   google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.4
+  # Native In-App Purchases (Apple StoreKit & Google Play Billing)
+  in_app_purchase: ^3.2.0
   # Native Android System Notifications & Alarm Scheduling
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.0

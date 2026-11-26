@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/audio_player_service.dart';
-import 'paystack_checkout_sheet.dart';
+import '../../../services/iap_service.dart';
+import '../../legal/screens/legal_screen.dart';
 
 class CovenantPartnerPaywallSheet extends StatefulWidget {
   final String? sourceFeature;
@@ -26,6 +27,34 @@ class CovenantPartnerPaywallSheet extends StatefulWidget {
 
 class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallSheet> {
   int _selectedPlanIndex = 1; // 0 = Monthly, 1 = Annual (Best Value)
+  final IapService _iapService = IapService();
+  bool _isBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+      _iapService.onPurchaseResult = (success, message) {
+        if (!mounted) return;
+        setState(() => _isBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        if (success) {
+          Navigator.of(context).pop();
+        }
+      };
+      await _iapService.init(playerService);
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _iapService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,14 +223,14 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                   const SizedBox(height: 20),
 
                   if (!isPartner) ...[
-                    // Subscription / Seed Plan Selector
+                    // Subscription Plan Selector (Apple StoreKit / Google Play Billing)
                     Row(
                       children: [
                         Expanded(
                           child: _buildPlanCard(
                             index: 0,
                             title: 'Monthly Seed',
-                            price: '₦2,500',
+                            price: _iapService.getProduct(IapService.monthlyProductId)?.price ?? '\$2.99',
                             period: '/ month',
                             badge: null,
                           ),
@@ -211,7 +240,7 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                           child: _buildPlanCard(
                             index: 1,
                             title: 'Annual Covenant',
-                            price: '₦24,000',
+                            price: _iapService.getProduct(IapService.annualProductId)?.price ?? '\$24.99',
                             period: '/ year',
                             badge: 'SAVE 20%',
                           ),
@@ -225,18 +254,18 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () async {
-                          final planType = _selectedPlanIndex == 1 ? 'annual' : 'monthly';
-                          final amount = _selectedPlanIndex == 1 ? 24000 : 2500;
-                          final navigator = Navigator.of(context);
-
-                          navigator.pop(); // Close paywall sheet
-                          await PaystackCheckoutSheet.show(
-                            context,
-                            planType: planType,
-                            amount: amount,
-                          );
-                        },
+                        onPressed: _isBusy
+                            ? null
+                            : () async {
+                                final productId = _selectedPlanIndex == 1
+                                    ? IapService.annualProductId
+                                    : IapService.monthlyProductId;
+                                setState(() => _isBusy = true);
+                                final started = await _iapService.buyPlan(productId);
+                                if (!started && mounted) {
+                                  setState(() => _isBusy = false);
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(
@@ -251,28 +280,97 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.lock_open_rounded, color: Color(0xFF140D1E), size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'ACTIVATE PARTNER TIER',
-                                  style: TextStyle(
-                                    color: Color(0xFF140D1E),
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.1,
-                                    fontSize: 14,
+                            child: _isBusy
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Color(0xFF140D1E),
+                                    ),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.lock_open_rounded, color: Color(0xFF140D1E), size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'SUBSCRIBE & UNLOCK',
+                                        style: TextStyle(
+                                          color: Color(0xFF140D1E),
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.1,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+
+                    // Restore Purchases (Required by Apple Guideline 3.1.1)
+                    TextButton(
+                      onPressed: _isBusy
+                          ? null
+                          : () async {
+                              setState(() => _isBusy = true);
+                              await _iapService.restorePurchases();
+                              if (mounted) setState(() => _isBusy = false);
+                            },
+                      child: const Text(
+                        'Restore Purchases',
+                        style: TextStyle(
+                          color: Color(0xFFFFDF79),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    // Auto-renewal disclosure & Legal Links (Required by Apple)
+                    Text(
+                      'Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period in your App Store or Google Play account settings.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LegalScreen(type: LegalDocumentType.privacyPolicy),
+                            ),
+                          ),
+                          child: Text(
+                            'Privacy Policy',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11.5),
+                          ),
+                        ),
+                        Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.4))),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LegalScreen(type: LegalDocumentType.termsOfService),
+                            ),
+                          ),
+                          child: Text(
+                            'Terms of Use',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11.5),
+                          ),
+                        ),
+                      ],
+                    ),
                   ] else ...[
-                    // Already Partner - Status Info & Toggle
+                    // Already Partner - Status Info
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -280,14 +378,14 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
-                          const Icon(Icons.verified_rounded, color: Color(0xFFFFDF79), size: 28),
-                          const SizedBox(width: 12),
+                          Icon(Icons.verified_rounded, color: Color(0xFFFFDF79), size: 28),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'Covenant Partner Active',
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -300,21 +398,6 @@ class _CovenantPartnerPaywallSheetState extends State<CovenantPartnerPaywallShee
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () async {
-                        final navigator = Navigator.of(context);
-                        await playerService.activatePartnerTier(false);
-                        if (mounted) navigator.pop();
-                      },
-                      child: Text(
-                        'Deactivate Partner Tier (Test Free Tier Mode)',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 12,
-                        ),
                       ),
                     ),
                   ],

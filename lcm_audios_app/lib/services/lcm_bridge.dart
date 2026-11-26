@@ -14,42 +14,17 @@ class LcmBridge {
   static const String appName = 'LCM Audios';
   static const String currentAppVersion = '1.0.2';
 
-  /// 1. Auto-check for updates on app startup
+  /// 1. Store-safe update check (external APK self-updating is disabled for App Store & Play Store compliance)
   static Future<void> checkForUpdates(
     BuildContext context, {
     String packageName = designatedPackageName,
     String currentVersion = currentAppVersion,
     bool showToastIfLatest = false,
   }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/apps/check-update').replace(
-        queryParameters: {
-          'package': packageName,
-          'version': currentVersion,
-        },
+    if (showToastIfLatest && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You are on the latest version!')),
       );
-
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final data = jsonDecode(response.body);
-        if (data is Map<String, dynamic> && data['has_update'] == true && context.mounted) {
-          _showUpdateDialog(
-            context,
-            packageName: packageName,
-            appName: data['app_name'] ?? appName,
-            latestVersion: data['latest_version'] ?? '',
-            whatsNew: data['whats_new'] ?? 'General improvements and bug fixes.',
-            downloadUrl: data['download_url'] ?? '',
-          );
-        } else if (showToastIfLatest && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You are on the latest version!')),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('[LCMBridge] Update check error: $e');
     }
   }
 
@@ -153,60 +128,6 @@ class LcmBridge {
       debugPrint('[LCMBridge] Feedback submit error: $e');
       return false;
     }
-  }
-
-  static void _showUpdateDialog(
-    BuildContext context, {
-    required String packageName,
-    required String appName,
-    required String latestVersion,
-    required String whatsNew,
-    required String downloadUrl,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2230),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.system_update_rounded, color: Colors.blueAccent),
-            SizedBox(width: 10),
-            Text('Update Available', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('$appName v$latestVersion is available on Lifechangers Apps.', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 12),
-            const Text("What's New:", style: TextStyle(color: Colors.blueAccent, fontSize: 13, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
-              child: Text(whatsNew, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Later', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-            onPressed: () {
-              Navigator.pop(ctx);
-              openAppInStore(packageName);
-            },
-            child: const Text('Update Now', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
   }
 }
 

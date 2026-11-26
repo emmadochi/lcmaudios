@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { register, login, getMe, googleAuth, forgotPassword, resetPassword, updateProfile, adminLogin, verifyAdminSession, changeAdminPassword } from '../controllers/authController';
+import { register, login, getMe, googleAuth, appleAuth, deleteAccount, forgotPassword, resetPassword, updateProfile, adminLogin, verifyAdminSession, changeAdminPassword } from '../controllers/authController';
 import { getTracks, getTrackById, getLyrics } from '../controllers/trackController';
 import { getNotes, createNote } from '../controllers/noteController';
 import { logTelemetry } from '../controllers/telemetryController';
 import {
   initializePayment,
   verifyPayment,
+  verifyInAppPurchase,
   handleWebhook,
   getPartnerLedgerAdmin,
 } from '../controllers/paymentController';
@@ -71,15 +72,18 @@ apiRouter.post('/admin/marketing/broadcast', requireAdmin, sendMarketingCampaign
 apiRouter.post('/auth/register', register);
 apiRouter.post('/auth/login', login);
 apiRouter.post('/auth/google', googleAuth);
+apiRouter.post('/auth/apple', appleAuth);
 apiRouter.post('/auth/forgot-password', forgotPassword);
 apiRouter.post('/auth/reset-password', resetPassword);
 apiRouter.get('/auth/me', verifyToken, getMe);
 apiRouter.patch('/auth/profile', verifyToken, updateProfile);
 apiRouter.post('/auth/profile', verifyToken, updateProfile);
+apiRouter.delete('/auth/account', verifyToken, deleteAccount);
 
-// Paystack Covenant Partner Payments
+// Paystack & In-App Purchase Covenant Partner Payments
 apiRouter.post('/payments/initialize', initializePayment);
 apiRouter.get('/payments/verify/:reference', verifyPayment);
+apiRouter.post('/payments/verify-iap', verifyInAppPurchase);
 apiRouter.post('/payments/webhook', handleWebhook);
 apiRouter.get('/admin/partners/ledger', requireAdmin, getPartnerLedgerAdmin);
 

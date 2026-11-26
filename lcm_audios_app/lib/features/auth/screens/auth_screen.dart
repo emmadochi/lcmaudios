@@ -1,11 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/spiritual_intent.dart';
 import '../../../services/audio_player_service.dart';
 import '../../../services/api_service.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
+import '../../legal/screens/legal_screen.dart';
 import '../../../main.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -206,6 +209,75 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       } else {
         _showError('Google Sign-In: $e');
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.iOS &&
+            defaultTargetPlatform != TargetPlatform.macOS)) {
+      _showError('Sign in with Apple is available on iOS and macOS devices.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final givenName = credential.givenName ?? '';
+      final familyName = credential.familyName ?? '';
+      final combinedName = '$givenName $familyName'.trim();
+
+      final result = await ApiService.loginWithApple(
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        userIdentifier: credential.userIdentifier,
+        email: credential.email,
+        fullName: combinedName.isNotEmpty ? combinedName : null,
+      );
+
+      if (result['success'] == true) {
+        if (!mounted) return;
+        final user = result['user'] as Map<String, dynamic>;
+        final token = result['token'] as String;
+        final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+
+        await playerService.saveAuthSession(
+          token: token,
+          userId: user['id']?.toString() ?? credential.userIdentifier ?? 'apple_user',
+          email: user['email'] ?? credential.email ?? '',
+          fullName: user['fullName'] ?? (combinedName.isNotEmpty ? combinedName : 'Apple Worshipper'),
+        );
+
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainNavigationShell()),
+          );
+        }
+      } else {
+        _showError(result['error'] ?? 'Apple sign-in failed on server.');
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled) {
+        _showError('Apple Sign-In failed: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('[Apple Auth Error] $e');
+      _showError('Apple Sign-In: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -710,7 +782,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                               child: _buildSocialButton(
                                 label: 'Apple',
                                 icon: Icons.apple_rounded,
-                                onPressed: _handleGuestEntry,
+                                onPressed: _handleAppleSignIn,
                               ),
                             ),
                           ],
@@ -762,6 +834,35 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         decoration: TextDecoration.underline,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LegalScreen(type: LegalDocumentType.privacyPolicy),
+                          ),
+                        ),
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                      ),
+                      const Text('•', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LegalScreen(type: LegalDocumentType.termsOfService),
+                          ),
+                        ),
+                        child: const Text(
+                          'Terms of Service',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

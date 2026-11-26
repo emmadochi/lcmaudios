@@ -209,6 +209,87 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+export const appleAuth = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { identityToken, userIdentifier, email, fullName } = req.body;
+
+    if (!identityToken && !userIdentifier) {
+      res.status(400).json({ error: 'Apple identityToken or userIdentifier is required.' });
+      return;
+    }
+
+    // Extract sub and email from Apple JWT identityToken if available
+    let tokenSub: string | undefined;
+    let tokenEmail: string | undefined;
+    if (typeof identityToken === 'string' && identityToken.split('.').length === 3) {
+      try {
+        const payloadJson = Buffer.from(identityToken.split('.')[1], 'base64url').toString('utf8');
+        const payload = JSON.parse(payloadJson);
+        tokenSub = payload.sub;
+        tokenEmail = payload.email;
+      } catch {}
+    }
+
+    const resolvedSub = userIdentifier || tokenSub;
+    const resolvedEmail = (email || tokenEmail || `${resolvedSub}@privaterelay.lcmaudios.app`)
+      .trim()
+      .toLowerCase();
+
+    let user = await dbClient.findUserByEmail(resolvedEmail);
+
+    if (!user) {
+      const randomPassword = 'a_' + Math.random().toString(36).substring(2, 15);
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+      user = await dbClient.createUser({
+        email: resolvedEmail,
+        passwordHash,
+        fullName: (fullName && String(fullName).trim()) ? String(fullName).trim() : 'Apple Worshipper',
+        intentPreferences: ['morningDevotion', 'deepWorship', 'warfare'],
+      });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '14d' });
+
+    res.status(200).json({
+      message: 'Apple authentication successful.',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        intentPreferences: user.intentPreferences,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error during Apple authentication.' });
+  }
+};
+
+export const deleteAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized.' });
+      return;
+    }
+
+    const deleted = await dbClient.deleteUser(userId);
+    if (!deleted) {
+      res.status(404).json({ error: 'Account not found or already deleted.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Your account and associated data have been permanently deleted.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete account.' });
+  }
+};
+
 interface OtpRecord {
   otp: string;
   expiresAt: number;

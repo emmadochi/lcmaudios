@@ -1,0 +1,76 @@
+workflows:
+  ios-release:
+    name: LCM Audios iOS App Store Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # In Codemagic UI: Teams/Account -> Integrations -> App Store Connect
+      # Name your API key integration "app_store_connect_api_key" (or update the name below)
+      app_store_connect: app_store_connect_api_key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.lcmaudios.lcmAudiosApp
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages & generate iOS Podfile
+        script: |
+          cd lcm_audios_app
+          flutter pub get
+          flutter build ios --config-only --no-codesign
+      - name: Run Flutter analyzer
+        script: |
+          cd lcm_audios_app
+          flutter analyze
+      - name: Install CocoaPods dependencies
+        script: |
+          cd lcm_audios_app/ios
+          pod install
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA for App Store Connect
+        script: |
+          cd lcm_audios_app
+          BUILD_NUMBER=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0) + 1))
+          flutter build ipa --release \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - lcm_audios_app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - lcm_audios_app/flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+
+  android-release:
+    name: LCM Audios Android Play Store Release
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      # Upload your upload keystore in Codemagic UI -> Code signing identities -> Android keystores
+      # and reference its name here:
+      android_signing:
+        - lcm_audios_keystore
+      flutter: stable
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          cd lcm_audios_app
+          flutter pub get
+      - name: Run Flutter analyzer
+        script: |
+          cd lcm_audios_app
+          flutter analyze
+      - name: Build Android App Bundle (.aab)
+        script: |
+          cd lcm_audios_app
+          flutter build appbundle --release \
+            --build-number=$PROJECT_BUILD_NUMBER
+    artifacts:
+      - lcm_audios_app/build/app/outputs/bundle/release/*.aab

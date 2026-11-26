@@ -1590,6 +1590,19 @@ class AudioPlayerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently delete the signed-in user's account and clear local session data.
+  Future<Map<String, dynamic>> deleteAccount() async {
+    if (_jwtToken != null && _jwtToken!.isNotEmpty) {
+      final res = await ApiService.deleteAccount(_jwtToken!);
+      if (res['success'] != true) {
+        return res;
+      }
+    }
+    await activatePartnerTier(false);
+    await logout();
+    return {'success': true, 'message': 'Account permanently deleted.'};
+  }
+
   // ─── Dispose ──────────────────────────────────────────────────────────────
   @override
   void dispose() {

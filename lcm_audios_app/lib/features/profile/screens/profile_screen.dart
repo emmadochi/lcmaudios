@@ -8,6 +8,7 @@ import '../../../services/lcm_bridge.dart';
 import '../../auth/screens/auth_screen.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
+import '../../legal/screens/legal_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -156,6 +157,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    bool isDeleting = false;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.card(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Delete Account Permanently?',
+            style: TextStyle(color: AppColors.text(context), fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'This will permanently delete your LCM Audios account and personal profile data from our servers. This action cannot be undone.',
+            style: TextStyle(color: AppColors.subtext(context), fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: AppColors.muted(context))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: isDeleting
+                  ? null
+                  : () async {
+                      setDialogState(() => isDeleting = true);
+                      final playerService = Provider.of<AudioPlayerService>(context, listen: false);
+                      final result = await playerService.deleteAccount();
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
+                      if (result['success'] == true) {
+                        if (context.mounted) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const AuthScreen()),
+                            (route) => false,
+                          );
+                        }
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result['error'] ?? 'Could not delete account.'),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
+                    },
+              child: isDeleting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Delete Account', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -550,18 +615,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Divider(color: AppColors.border(context), height: 1),
                     ListTile(
-                      leading: const Icon(Icons.system_update_rounded, color: AppColors.primary),
-                      title: Text('Check for Updates', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
-                      subtitle: Text('Verify newest APK build on LCMWorld Hub', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+                      title: Text('Privacy Policy', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('How we handle and protect your data', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
                       trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
-                      onTap: () => LcmBridge.checkForUpdates(context, showToastIfLatest: true),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LegalScreen(type: LegalDocumentType.privacyPolicy),
+                        ),
+                      ),
                     ),
                     Divider(color: AppColors.border(context), height: 1),
                     ListTile(
-                      leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                      title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent, fontSize: 13.5, fontWeight: FontWeight.bold)),
-                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent, size: 13),
+                      leading: const Icon(Icons.description_outlined, color: AppColors.primary),
+                      title: Text('Terms of Service', style: TextStyle(color: AppColors.text(context), fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Usage & Covenant Partner subscription terms', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, color: AppColors.muted(context), size: 13),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const LegalScreen(type: LegalDocumentType.termsOfService),
+                        ),
+                      ),
+                    ),
+                    Divider(color: AppColors.border(context), height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.logout_rounded, color: Colors.orangeAccent),
+                      title: const Text('Sign Out', style: TextStyle(color: Colors.orangeAccent, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.orangeAccent, size: 13),
                       onTap: () => _showSignOutDialog(context),
+                    ),
+                    Divider(color: AppColors.border(context), height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                      title: const Text('Delete Account', style: TextStyle(color: Colors.redAccent, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                      subtitle: Text('Permanently erase your account & profile data', style: TextStyle(color: AppColors.muted(context), fontSize: 11.5)),
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent, size: 13),
+                      onTap: () => _showDeleteAccountDialog(context),
                     ),
                   ]),
                   const SizedBox(height: 28),
