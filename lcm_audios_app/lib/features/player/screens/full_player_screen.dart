@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/audio_track.dart';
-import '../../../services/audio_player_service.dart';
+import '../../../services/audio_player_service.dart' hide RepeatMode;
+import '../../../services/audio_player_service.dart' as audio_svc show RepeatMode;
 import '../../../services/share_service.dart';
 import '../../partner/widgets/covenant_partner_paywall_sheet.dart';
 
@@ -297,10 +298,10 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                     // Repeat in queue
                     IconButton(
                       icon: Icon(
-                        playerService.repeatMode == RepeatMode.one
+                        playerService.repeatMode == audio_svc.RepeatMode.one
                             ? Icons.repeat_one_rounded
                             : Icons.repeat_rounded,
-                        color: playerService.repeatMode != RepeatMode.off ? AppColors.primary : Colors.white54,
+                        color: playerService.repeatMode != audio_svc.RepeatMode.off ? AppColors.primary : Colors.white54,
                         size: 20,
                       ),
                       tooltip: 'Repeat Mode',
@@ -1171,22 +1172,22 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> with SingleTickerPr
                         // Repeat Mode Button
                         IconButton(
                           icon: Icon(
-                            playerService.repeatMode == RepeatMode.one
+                            playerService.repeatMode == audio_svc.RepeatMode.one
                                 ? Icons.repeat_one_rounded
                                 : Icons.repeat_rounded,
-                            color: playerService.repeatMode != RepeatMode.off ? AppColors.primary : Colors.white54,
+                            color: playerService.repeatMode != audio_svc.RepeatMode.off ? AppColors.primary : Colors.white54,
                             size: 22,
                           ),
-                          tooltip: playerService.repeatMode == RepeatMode.one
+                          tooltip: playerService.repeatMode == audio_svc.RepeatMode.one
                               ? 'Repeat: One'
-                              : playerService.repeatMode == RepeatMode.all
+                              : playerService.repeatMode == audio_svc.RepeatMode.all
                                   ? 'Repeat: All'
                                   : 'Repeat: Off',
                           onPressed: () {
                             playerService.cycleRepeatMode();
-                            final modeName = playerService.repeatMode == RepeatMode.one
+                            final modeName = playerService.repeatMode == audio_svc.RepeatMode.one
                                 ? 'Repeating Current Track 🔂'
-                                : playerService.repeatMode == RepeatMode.all
+                                : playerService.repeatMode == audio_svc.RepeatMode.all
                                     ? 'Repeating All Tracks 🔁'
                                     : 'Repeat Off (Play Once) ➡️';
                             ScaffoldMessenger.of(context).clearSnackBars();
